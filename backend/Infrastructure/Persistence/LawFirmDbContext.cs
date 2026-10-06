@@ -18,6 +18,7 @@ public sealed class LawFirmDbContext(DbContextOptions<LawFirmDbContext> options)
     public DbSet<MatterTask> MatterTasks => Set<MatterTask>();
     public DbSet<MatterDocument> MatterDocuments => Set<MatterDocument>();
     public DbSet<MatterTimelineAction> MatterTimelineActions => Set<MatterTimelineAction>();
+    public DbSet<ConsultationRequest> ConsultationRequests => Set<ConsultationRequest>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -301,6 +302,27 @@ public sealed class LawFirmDbContext(DbContextOptions<LawFirmDbContext> options)
             entity.HasIndex(action => action.MatterRecordId);
             entity.HasIndex(action => action.OccurredAtUtc);
         });
+
+        modelBuilder.Entity<ConsultationRequest>(entity =>
+        {
+            entity.ToTable("consultation_requests");
+            entity.HasKey(request => request.Id);
+            entity.Property(request => request.FullName).HasMaxLength(200).IsRequired();
+            entity.Property(request => request.Email).HasMaxLength(256).IsRequired();
+            entity.Property(request => request.Phone).HasMaxLength(64);
+            entity.Property(request => request.PracticeArea).HasMaxLength(64).IsRequired();
+            entity.Property(request => request.Message).HasMaxLength(3000);
+            entity.Property(request => request.TimeZone).HasMaxLength(64).IsRequired();
+            entity.Property(request => request.Status).HasMaxLength(32).IsRequired();
+            entity.Property(request => request.AssignedToActorId).HasMaxLength(128);
+            entity.Property(request => request.AssignedToDisplayName).HasMaxLength(200);
+            entity.Property(request => request.InternalNotes).HasMaxLength(2000);
+            entity.Property(request => request.CreatedAtUtc).IsRequired();
+            entity.Property(request => request.UpdatedAtUtc).IsRequired();
+            entity.HasIndex(request => request.Status);
+            entity.HasIndex(request => request.PreferredAtUtc);
+            entity.HasIndex(request => request.CreatedAtUtc);
+        });
     }
 }
 
@@ -547,4 +569,32 @@ public sealed class MatterTimelineAction
     public string CreatedByActorId { get; set; } = string.Empty;
     public string CreatedByDisplayName { get; set; } = string.Empty;
     public DateTimeOffset CreatedAtUtc { get; set; }
+}
+
+public static class ConsultationStatuses
+{
+    public const string New = "New";
+    public const string Contacted = "Contacted";
+    public const string Scheduled = "Scheduled";
+    public const string InReview = "InReview";
+    public const string Closed = "Closed";
+    public const string Cancelled = "Cancelled";
+}
+
+public sealed class ConsultationRequest
+{
+    public Guid Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string PracticeArea { get; set; } = string.Empty;
+    public string? Message { get; set; }
+    public DateTimeOffset PreferredAtUtc { get; set; }
+    public string TimeZone { get; set; } = "UTC";
+    public string Status { get; set; } = ConsultationStatuses.New;
+    public string? AssignedToActorId { get; set; }
+    public string? AssignedToDisplayName { get; set; }
+    public string? InternalNotes { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
 }

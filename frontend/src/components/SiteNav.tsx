@@ -15,6 +15,7 @@ const workspaceNavLinks = [
   { label: "Parties", path: "/workspace/parties", requiredPermission: "contacts.read" },
   { label: "Conflicts", path: "/workspace/conflicts", requiredPermission: "conflicts.search" },
   { label: "Tasks & Calendar", path: "/workspace/calendar", requiredPermission: "calendar.read" },
+  { label: "Consultations", path: "/workspace/consultations", requiredPermission: "intake.read" },
   { label: "Intake", path: "/workspace/intake", requiredPermission: "intake.read" },
   { label: "Matters", path: "/workspace/matters", requiredPermissions: ["matters.read.assigned", "matters.read.all"] },
 ];

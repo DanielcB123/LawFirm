@@ -181,5 +181,27 @@ public static class PersistenceServiceCollectionExtensions
                     FOREIGN KEY (MatterRecordId) REFERENCES matters (Id) ON DELETE CASCADE
             );
             """);
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS consultation_requests (
+                Id char(36) NOT NULL,
+                FullName varchar(200) NOT NULL,
+                Email varchar(256) NOT NULL,
+                Phone varchar(64) NULL,
+                PracticeArea varchar(64) NOT NULL,
+                Message varchar(3000) NULL,
+                PreferredAtUtc datetime(6) NOT NULL,
+                TimeZone varchar(64) NOT NULL,
+                Status varchar(32) NOT NULL,
+                AssignedToActorId varchar(128) NULL,
+                AssignedToDisplayName varchar(200) NULL,
+                InternalNotes varchar(2000) NULL,
+                CreatedAtUtc datetime(6) NOT NULL,
+                UpdatedAtUtc datetime(6) NOT NULL,
+                PRIMARY KEY (Id),
+                INDEX IX_consultation_requests_Status (Status),
+                INDEX IX_consultation_requests_PreferredAtUtc (PreferredAtUtc),
+                INDEX IX_consultation_requests_CreatedAtUtc (CreatedAtUtc)
+            );
+            """);
     }
 }

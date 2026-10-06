@@ -153,6 +153,13 @@ export function WorkspaceHomePage() {
         canReadIntake
           ? { label: "Review intake board", path: "/workspace/intake", helper: "Move prospects through intake stages." }
           : null,
+        canReadIntake
+          ? {
+              label: "Process consultation queue",
+              path: "/workspace/consultations",
+              helper: "Triage incoming contact requests and follow-up ownership.",
+            }
+          : null,
         canReadMatters
           ? { label: "Open matters workspace", path: "/workspace/matters", helper: "Drill into tasks, docs, and timeline." }
           : null,

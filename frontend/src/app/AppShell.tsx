@@ -3,6 +3,7 @@ import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { AboutPage } from "../pages/AboutPage";
+import { AttorneyProfilePage } from "../pages/AttorneyProfilePage";
 import { AttorneysPage } from "../pages/AttorneysPage";
 import { ConflictChecksPage } from "../pages/ConflictChecksPage";
 import { ContactPage } from "../pages/ContactPage";
@@ -21,6 +22,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { PartiesPage } from "../pages/PartiesPage";
 import { PracticeAreasPage } from "../pages/PracticeAreasPage";
 import { TasksCalendarPage } from "../pages/TasksCalendarPage";
+import { WorkspaceConsultationsPage } from "../pages/WorkspaceConsultationsPage";
 import { WorkspaceHomePage } from "../pages/WorkspaceHomePage";
 import { WorkspaceLoginPage } from "../pages/WorkspaceLoginPage";
 import "./AppShell.css";
@@ -35,6 +37,7 @@ export function AppShell() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/practice-areas" element={<PracticeAreasPage />} />
           <Route path="/attorneys" element={<AttorneysPage />} />
+          <Route path="/attorneys/:slug" element={<AttorneyProfilePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/workspace/login" element={<WorkspaceLoginPage />} />
           <Route path="/workspace" element={<RequireAuth />}>
@@ -42,6 +45,7 @@ export function AppShell() {
             <Route path="parties" element={<PartiesPage />} />
             <Route path="conflicts" element={<ConflictChecksPage />} />
             <Route path="calendar" element={<TasksCalendarPage />} />
+            <Route path="consultations" element={<WorkspaceConsultationsPage />} />
             <Route path="intake" element={<IntakeBoardPage />} />
             <Route path="intake/:intakeId" element={<IntakeDetailPage />} />
             <Route path="matters" element={<MattersPage />} />

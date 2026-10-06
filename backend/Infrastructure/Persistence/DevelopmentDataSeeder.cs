@@ -378,6 +378,42 @@ public static class DevelopmentDataSeeder
             }
         }
 
+        if (!await dbContext.ConsultationRequests.AnyAsync())
+        {
+            dbContext.ConsultationRequests.AddRange(
+                new ConsultationRequest
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = "Taylor Bennett",
+                    Email = "taylor.bennett@example.test",
+                    Phone = "(555) 010-4420",
+                    PracticeArea = "BusinessLitigation",
+                    Message = "Need counsel on an escalating contract dispute with a vendor.",
+                    PreferredAtUtc = DateTimeOffset.UtcNow.AddDays(2).Date.AddHours(15),
+                    TimeZone = "America/New_York",
+                    Status = ConsultationStatuses.New,
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddHours(-8),
+                    UpdatedAtUtc = DateTimeOffset.UtcNow.AddHours(-8)
+                },
+                new ConsultationRequest
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = "Morgan Hale",
+                    Email = "morgan.hale@example.test",
+                    Phone = "(555) 010-7331",
+                    PracticeArea = "EstatePlanning",
+                    Message = "Looking to update wills and powers of attorney this quarter.",
+                    PreferredAtUtc = DateTimeOffset.UtcNow.AddDays(4).Date.AddHours(14),
+                    TimeZone = "America/New_York",
+                    Status = ConsultationStatuses.Contacted,
+                    AssignedToActorId = "u-paralegal-001",
+                    AssignedToDisplayName = "Priya Paralegal",
+                    InternalNotes = "Sent initial intake packet via email.",
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddDays(-1),
+                    UpdatedAtUtc = DateTimeOffset.UtcNow.AddHours(-3)
+                });
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }
