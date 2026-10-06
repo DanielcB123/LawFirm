@@ -179,26 +179,62 @@ export function WorkspaceHomePage() {
       {error && <p className="error-text">{error}</p>}
 
       <section className="dashboard-metrics">
-        <article className="card metric-card">
+        <Link
+          to="/workspace/worklists?view=open-tasks"
+          className={`card metric-card metric-card--link ${!canReadCalendar ? "metric-card--disabled" : ""}`}
+          aria-disabled={!canReadCalendar}
+          onClick={(event) => {
+            if (!canReadCalendar) {
+              event.preventDefault();
+            }
+          }}
+        >
           <p className="metric-card__label">Open tasks</p>
           <p className="metric-card__value">{canReadCalendar ? assignedOpenTasks : "N/A"}</p>
           <p className="muted">Calendar tasks and deadlines not marked complete.</p>
-        </article>
-        <article className="card metric-card">
+        </Link>
+        <Link
+          to="/workspace/worklists?view=due-today"
+          className={`card metric-card metric-card--link ${!canReadCalendar ? "metric-card--disabled" : ""}`}
+          aria-disabled={!canReadCalendar}
+          onClick={(event) => {
+            if (!canReadCalendar) {
+              event.preventDefault();
+            }
+          }}
+        >
           <p className="metric-card__label">Due today</p>
           <p className="metric-card__value">{canReadCalendar ? dueTodayCount : "N/A"}</p>
           <p className="muted">Entries scheduled before end of day.</p>
-        </article>
-        <article className="card metric-card">
+        </Link>
+        <Link
+          to="/workspace/worklists?view=overdue"
+          className={`card metric-card metric-card--link ${!canReadCalendar ? "metric-card--disabled" : ""}`}
+          aria-disabled={!canReadCalendar}
+          onClick={(event) => {
+            if (!canReadCalendar) {
+              event.preventDefault();
+            }
+          }}
+        >
           <p className="metric-card__label">Overdue</p>
           <p className="metric-card__value">{canReadCalendar ? overdueTasks : "N/A"}</p>
           <p className="muted">Unfinished entries with schedule time in the past.</p>
-        </article>
-        <article className="card metric-card">
+        </Link>
+        <Link
+          to="/workspace/worklists?view=active-matters"
+          className={`card metric-card metric-card--link ${!canReadMatters ? "metric-card--disabled" : ""}`}
+          aria-disabled={!canReadMatters}
+          onClick={(event) => {
+            if (!canReadMatters) {
+              event.preventDefault();
+            }
+          }}
+        >
           <p className="metric-card__label">Active matters</p>
           <p className="metric-card__value">{canReadMatters ? activeMatterCount : "N/A"}</p>
           <p className="muted">Current matters requiring legal team execution.</p>
-        </article>
+        </Link>
       </section>
 
       {isLoading && <p>Loading dashboard...</p>}

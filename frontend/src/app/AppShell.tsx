@@ -25,6 +25,7 @@ import { TasksCalendarPage } from "../pages/TasksCalendarPage";
 import { WorkspaceConsultationsPage } from "../pages/WorkspaceConsultationsPage";
 import { WorkspaceHomePage } from "../pages/WorkspaceHomePage";
 import { WorkspaceLoginPage } from "../pages/WorkspaceLoginPage";
+import { WorkspaceWorklistsPage } from "../pages/WorkspaceWorklistsPage";
 import "./AppShell.css";
 
 export function AppShell() {
@@ -46,6 +47,7 @@ export function AppShell() {
             <Route path="conflicts" element={<ConflictChecksPage />} />
             <Route path="calendar" element={<TasksCalendarPage />} />
             <Route path="consultations" element={<WorkspaceConsultationsPage />} />
+            <Route path="worklists" element={<WorkspaceWorklistsPage />} />
             <Route path="intake" element={<IntakeBoardPage />} />
             <Route path="intake/:intakeId" element={<IntakeDetailPage />} />
             <Route path="matters" element={<MattersPage />} />

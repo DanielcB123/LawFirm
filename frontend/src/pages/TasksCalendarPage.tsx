@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { ApiClientError } from "../services/apiClient";
 import {
@@ -61,12 +62,18 @@ function formatQuarterLabel(slot: number): string {
 
 export function TasksCalendarPage() {
   const { token, actor } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [view, setView] = useState<CalendarView>("week");
+  const view = useMemo<CalendarView>(() => {
+    const requestedView = (searchParams.get("view") ?? "").toLowerCase();
+    return requestedView === "month" || requestedView === "week" || requestedView === "day"
+      ? (requestedView as CalendarView)
+      : "week";
+  }, [searchParams]);
   const [cursorDate, setCursorDate] = useState(new Date());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -313,7 +320,13 @@ export function TasksCalendarPage() {
                 key={option}
                 type="button"
                 className={`calendar-tab ${view === option ? "calendar-tab--active" : ""}`}
-                onClick={() => setView(option)}
+                onClick={() => {
+                  setSearchParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.set("view", option);
+                    return next;
+                  });
+                }}
               >
                 {option[0].toUpperCase() + option.slice(1)}
               </button>
