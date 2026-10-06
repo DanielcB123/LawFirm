@@ -1,0 +1,24 @@
+# Node / frontend artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+
+# .NET build artifacts
+backend/bin/
+backend/obj/
+backend/.build-out/
+backend/*.db
+backend/*.db-*
+
+# IDE / local metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

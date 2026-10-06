@@ -1,0 +1,45 @@
+export type CalendarEntry = {
+  id: string;
+  title: string;
+  entryType: "Task" | "Event" | "Deadline";
+  deadlineType: "OrdinaryTask" | "InternalTarget" | "CourtOrdered" | "LegallySignificant";
+  ownerActorId: string;
+  ownerDisplayName: string;
+  backupActorId: string | null;
+  backupDisplayName: string | null;
+  scheduledAtUtc: string;
+  isAllDay: boolean;
+  timeZone: string;
+  matterReference: string | null;
+  sourceReference: string | null;
+  verifiedAtUtc: string | null;
+  verifiedByActorId: string | null;
+  verifiedByDisplayName: string | null;
+  overrideReason: string | null;
+  isAcknowledged: boolean;
+  acknowledgedAtUtc: string | null;
+  isCompleted: boolean;
+  completedAtUtc: string | null;
+  reminderOffsetsMinutes: number[];
+  createdAtUtc: string;
+};
+
+export type CreateCalendarEntryPayload = {
+  title: string;
+  entryType: "Task" | "Event" | "Deadline";
+  deadlineType: "OrdinaryTask" | "InternalTarget" | "CourtOrdered" | "LegallySignificant";
+  ownerActorId: string;
+  ownerDisplayName: string;
+  backupActorId?: string;
+  backupDisplayName?: string;
+  scheduledAtUtc: string;
+  isAllDay: boolean;
+  timeZone: string;
+  matterReference?: string;
+  sourceReference?: string;
+  verifiedAtUtc?: string;
+  verifiedByActorId?: string;
+  verifiedByDisplayName?: string;
+  overrideReason?: string;
+  reminderOffsetsMinutes?: number[];
+};
