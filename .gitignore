@@ -11,11 +11,45 @@ backend/.build-out/
 backend/*.db
 backend/*.db-*
 
+# General build artifacts
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+# .NET / tooling
+project.lock.json
+project.fragment.lock.json
+ScaffoldingReadMe.txt
+*.nupkg
+*.snupkg
+*.binlog
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+CodeCoverage/
+
+# Env
+.env
+
 # IDE / local metadata
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+~$*
+*~
 
 # Logs
 *.log
