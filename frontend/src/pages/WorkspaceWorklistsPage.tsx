@@ -20,6 +20,43 @@ function toDayStartUtc(date: Date): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 }
 
+function resolveTaskLink(entry: CalendarEntry, matters: MatterListItem[]): { path: string; label: string } {
+  const sourceText = `${entry.sourceReference ?? ""} ${entry.title}`.toLowerCase();
+  if (sourceText.includes("conflict")) {
+    return { path: "/workspace/conflicts", label: "Open conflict checks" };
+  }
+
+  if (entry.matterReference) {
+    const matchedMatter = matters.find((matter) => matter.matterNumber === entry.matterReference);
+    if (matchedMatter) {
+      return {
+        path: `/workspace/matters/${matchedMatter.id}/tasks`,
+        label: `Open ${matchedMatter.matterNumber} tasks`,
+      };
+    }
+
+    return {
+      path: "/workspace/matters",
+      label: "Open matters",
+    };
+  }
+
+  if (sourceText.includes("intake")) {
+    return { path: "/workspace/intake", label: "Open intake board" };
+  }
+
+  const taskDate = toCalendarDateParam(entry.scheduledAtUtc);
+  return { path: `/workspace/calendar?view=month&date=${taskDate}`, label: "Open in calendar month" };
+}
+
+function toCalendarDateParam(value: string): string {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function WorkspaceWorklistsPage() {
   const { token, actor } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -131,23 +168,27 @@ export function WorkspaceWorklistsPage() {
                   <th>Type</th>
                   <th>Scheduled</th>
                   <th>Owner</th>
+                  <th>Go to</th>
                 </tr>
               </thead>
               <tbody>
-                {openTasks.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>{entry.title}</td>
-                    <td>{entry.entryType}</td>
-                    <td>{new Date(entry.scheduledAtUtc).toLocaleString()}</td>
-                    <td>{entry.ownerDisplayName}</td>
-                  </tr>
-                ))}
+                {openTasks.map((entry) => {
+                  const destination = resolveTaskLink(entry, matters);
+                  return (
+                    <tr key={entry.id}>
+                      <td>{entry.title}</td>
+                      <td>{entry.entryType}</td>
+                      <td>{new Date(entry.scheduledAtUtc).toLocaleString()}</td>
+                      <td>{entry.ownerDisplayName}</td>
+                      <td>
+                        <Link to={destination.path}>{destination.label}</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
-          <Link className="mini-action-link" to="/workspace/calendar?view=month">
-            Open calendar workspace
-          </Link>
         </article>
       )}
 
@@ -164,23 +205,27 @@ export function WorkspaceWorklistsPage() {
                   <th>Type</th>
                   <th>Time</th>
                   <th>Owner</th>
+                  <th>Go to</th>
                 </tr>
               </thead>
               <tbody>
-                {dueTodayTasks.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>{entry.title}</td>
-                    <td>{entry.entryType}</td>
-                    <td>{new Date(entry.scheduledAtUtc).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</td>
-                    <td>{entry.ownerDisplayName}</td>
-                  </tr>
-                ))}
+                {dueTodayTasks.map((entry) => {
+                  const destination = resolveTaskLink(entry, matters);
+                  return (
+                    <tr key={entry.id}>
+                      <td>{entry.title}</td>
+                      <td>{entry.entryType}</td>
+                      <td>{new Date(entry.scheduledAtUtc).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</td>
+                      <td>{entry.ownerDisplayName}</td>
+                      <td>
+                        <Link to={destination.path}>{destination.label}</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
-          <Link className="mini-action-link" to="/workspace/calendar?view=month">
-            Open calendar workspace
-          </Link>
         </article>
       )}
 
@@ -197,23 +242,27 @@ export function WorkspaceWorklistsPage() {
                   <th>Type</th>
                   <th>Scheduled</th>
                   <th>Owner</th>
+                  <th>Go to</th>
                 </tr>
               </thead>
               <tbody>
-                {overdueTasks.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>{entry.title}</td>
-                    <td>{entry.entryType}</td>
-                    <td>{new Date(entry.scheduledAtUtc).toLocaleString()}</td>
-                    <td>{entry.ownerDisplayName}</td>
-                  </tr>
-                ))}
+                {overdueTasks.map((entry) => {
+                  const destination = resolveTaskLink(entry, matters);
+                  return (
+                    <tr key={entry.id}>
+                      <td>{entry.title}</td>
+                      <td>{entry.entryType}</td>
+                      <td>{new Date(entry.scheduledAtUtc).toLocaleString()}</td>
+                      <td>{entry.ownerDisplayName}</td>
+                      <td>
+                        <Link to={destination.path}>{destination.label}</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
-          <Link className="mini-action-link" to="/workspace/calendar?view=month">
-            Open calendar workspace
-          </Link>
         </article>
       )}
 

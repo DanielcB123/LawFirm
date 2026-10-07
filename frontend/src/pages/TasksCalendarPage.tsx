@@ -72,9 +72,24 @@ export function TasksCalendarPage() {
     const requestedView = (searchParams.get("view") ?? "").toLowerCase();
     return requestedView === "month" || requestedView === "week" || requestedView === "day"
       ? (requestedView as CalendarView)
-      : "week";
+      : "month";
   }, [searchParams]);
-  const [cursorDate, setCursorDate] = useState(new Date());
+  const [cursorDate, setCursorDate] = useState(() => {
+    const queryDate = searchParams.get("date");
+    if (!queryDate) {
+      return new Date();
+    }
+
+    const [yearPart, monthPart, dayPart] = queryDate.split("-");
+    const year = Number(yearPart);
+    const month = Number(monthPart);
+    const day = Number(dayPart);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+      return new Date();
+    }
+
+    return new Date(year, month - 1, day);
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
