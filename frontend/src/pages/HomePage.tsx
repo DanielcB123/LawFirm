@@ -90,20 +90,20 @@ export function HomePage() {
 
   const heroLayerStyle = prefersReducedMotion
     ? undefined
-    : { transform: `translate3d(0, ${scrollY * 0.14}px, 0)` };
+    : { transform: `translate3d(0, ${scrollY * 0.07}px, 0)` };
   const glowLayerStyle = prefersReducedMotion
     ? undefined
-    : { transform: `translate3d(0, ${scrollY * -0.08}px, 0)` };
+    : { transform: `translate3d(0, ${scrollY * -0.04}px, 0)` };
   const heroImageStyle = prefersReducedMotion
     ? undefined
-    : { transform: `translate3d(0, ${scrollY * 0.1}px, 0)` };
+    : { transform: `translate3d(0, ${scrollY * 0.05}px, 0)` };
   const bannerLayerStyle = prefersReducedMotion
     ? undefined
-    : { transform: `translate3d(0, ${scrollY * 0.06}px, 0)` };
+    : { transform: `translate3d(0, ${scrollY * 0.03}px, 0)` };
 
   return (
     <section className="page home-page">
-      <section className="home-hero" aria-label="Intro">
+      <section className="home-hero" aria-label="Intro" data-reveal="zoom">
         <div className="home-hero__image" style={heroImageStyle} aria-hidden="true" />
         <div className="home-hero__glow" style={glowLayerStyle} aria-hidden="true" />
         <div className="home-hero__grid" style={heroLayerStyle} aria-hidden="true" />
@@ -131,8 +131,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="content-grid home-panels" aria-label="Why clients choose us and consultation details">
-        <article className="card home-panel home-panel--lift">
+      <section className="content-grid home-panels" aria-label="Why clients choose us and consultation details" data-reveal="left">
+        <article className="card home-panel home-panel--lift" data-reveal>
           <h2>Why clients choose us</h2>
           <ul>
             {valueProps.map((item) => (
@@ -140,7 +140,7 @@ export function HomePage() {
             ))}
           </ul>
         </article>
-        <article className="card home-panel home-panel--lift">
+        <article className="card home-panel home-panel--lift" data-reveal="right">
           <h2>Consultation hours</h2>
           <p>Monday-Friday: 8:30 AM-6:00 PM</p>
           <p>Saturday: By appointment</p>
@@ -148,9 +148,9 @@ export function HomePage() {
         </article>
       </section>
 
-      <section className="home-practice-grid" aria-label="Practice area highlights">
+      <section className="home-practice-grid" aria-label="Practice area highlights" data-reveal>
         {practiceAreaHighlights.map((item) => (
-          <article key={item.title} className="card home-practice-card home-panel--lift">
+          <article key={item.title} className="card home-practice-card home-panel--lift" data-reveal="zoom">
             <p className="home-practice-card__tag">Practice area</p>
             <h3>{item.title}</h3>
             <p>{item.body}</p>
@@ -158,14 +158,14 @@ export function HomePage() {
         ))}
       </section>
 
-      <section className="home-parallax-banner" aria-label="Approach">
+      <section className="home-parallax-banner" aria-label="Approach" data-reveal>
         <div className="home-parallax-banner__inner" style={bannerLayerStyle}>
           <p className="home-parallax-banner__kicker">Approach</p>
           <h2>Built for clarity, speed, and confidence at every legal milestone.</h2>
         </div>
       </section>
 
-      <section className="home-partners card" aria-label="Partner profiles">
+      <section className="home-partners card" aria-label="Partner profiles" data-reveal="zoom">
         <p className="home-partners__kicker">Partner spotlight</p>
         <h2>Meet the attorneys behind every strategy.</h2>
         <div className="home-partners__grid">
@@ -183,7 +183,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="home-process card" aria-label="Client process">
+      <section className="home-process card" aria-label="Client process" data-reveal>
         <p className="home-process__kicker">What to expect</p>
         <h2>A simple process designed to reduce uncertainty.</h2>
         <ol className="home-process__list">
@@ -193,20 +193,20 @@ export function HomePage() {
         </ol>
       </section>
 
-      <section className="content-grid home-testimonials" aria-label="Client testimonials">
+      <section className="content-grid home-testimonials" aria-label="Client testimonials" data-reveal="left">
         {testimonials.map((item) => (
-          <article key={item.quote} className="card home-testimonial home-panel--lift">
+          <article key={item.quote} className="card home-testimonial home-panel--lift" data-reveal="right">
             <p className="home-testimonial__quote">"{item.quote}"</p>
             <p className="home-testimonial__source">{item.source}</p>
           </article>
         ))}
       </section>
 
-      <article className="card home-panel home-panel--health">
+      <article className="card home-panel home-panel--health" data-reveal>
         <HealthStatusCard />
       </article>
 
-      <section className="card home-final-cta" aria-label="Contact call to action">
+      <section className="card home-final-cta" aria-label="Contact call to action" data-reveal="zoom">
         <p className="home-final-cta__kicker">Ready to move forward?</p>
         <h2>Bring your questions. We will bring a plan.</h2>
         <p>

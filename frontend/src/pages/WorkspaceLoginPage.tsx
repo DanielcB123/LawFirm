@@ -31,11 +31,14 @@ export function WorkspaceLoginPage() {
   }
 
   return (
-    <section className="page">
-      <h1>Workspace Sign In</h1>
-      <p className="lead">Use a staff account to manage contacts and conflict checks.</p>
+    <section className="page marketing-page">
+      <section className="marketing-hero" data-reveal="zoom">
+        <p className="eyebrow">Workspace access</p>
+        <h1>Workspace Sign In</h1>
+        <p className="lead">Use a staff account to manage contacts, calendars, matters, and intake workflows.</p>
+      </section>
 
-      <form className="card workspace-form" onSubmit={onSubmit}>
+      <form className="card workspace-form" onSubmit={onSubmit} data-reveal="left">
         <label htmlFor="email">Email</label>
         <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} />
 
@@ -53,6 +56,23 @@ export function WorkspaceLoginPage() {
           {isSubmitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
+
+      <section className="content-grid marketing-grid" data-reveal="right">
+        <article className="card marketing-card" data-reveal>
+          <h2>Who uses workspace</h2>
+          <ul>
+            <li>Attorneys managing matters and deadlines.</li>
+            <li>Paralegals handling intake and document prep.</li>
+            <li>Legal assistants coordinating appointments and communications.</li>
+          </ul>
+        </article>
+        <article className="card marketing-card" data-reveal="zoom">
+          <h2>Need help signing in?</h2>
+          <p>
+            If you do not have access yet, contact your office administrator for account setup and role permissions.
+          </p>
+        </article>
+      </section>
     </section>
   );
 }

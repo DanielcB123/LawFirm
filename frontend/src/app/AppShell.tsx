@@ -1,6 +1,8 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
+import { useAuth } from "../features/auth/AuthContext";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { AboutPage } from "../pages/AboutPage";
 import { AttorneyProfilePage } from "../pages/AttorneyProfilePage";
@@ -29,8 +31,43 @@ import { WorkspaceWorklistsPage } from "../pages/WorkspaceWorklistsPage";
 import "./AppShell.css";
 
 export function AppShell() {
+  const { token } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (token) {
+      return;
+    }
+
+    const elements = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (elements.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-revealed");
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      {
+        threshold: 0.18,
+        rootMargin: "0px 0px -8% 0px",
+      },
+    );
+
+    for (const element of elements) {
+      observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  }, [location.pathname, token]);
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${token ? "app-shell--authenticated" : ""}`}>
       <SiteNav />
       <main className="app-content">
         <Routes>

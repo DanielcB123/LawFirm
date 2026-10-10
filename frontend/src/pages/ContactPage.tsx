@@ -13,6 +13,22 @@ const practiceAreas = [
 
 const appointmentHours = [9, 10, 11, 12, 13, 14, 15, 16];
 const appointmentMinutes = [0, 30];
+const intakeChecklist = [
+  "Names of all people or businesses involved",
+  "Contracts, notices, or letters related to the issue",
+  "Important dates and deadlines",
+  "A short list of your goals and desired outcomes",
+];
+const consultationFaq = [
+  {
+    question: "How soon can I get a consultation?",
+    answer: "Most requests are confirmed within one business day, with same-week availability for many matters.",
+  },
+  {
+    question: "Can I request virtual consultation?",
+    answer: "Yes. You can note virtual preference in your message and we will provide meeting details.",
+  },
+];
 
 export function ContactPage() {
   const modalCardRef = useRef<HTMLElement | null>(null);
@@ -203,7 +219,7 @@ export function ContactPage() {
 
   return (
     <section className="page marketing-page">
-      <section className="marketing-hero marketing-hero--contact">
+      <section className="marketing-hero marketing-hero--contact" data-reveal="zoom">
         <p className="eyebrow">Contact us</p>
         <h1>Tell us what is happening. We will help you plan the next move.</h1>
         <p className="lead">
@@ -221,18 +237,18 @@ export function ContactPage() {
         </button>
       </section>
 
-      <section className="content-grid marketing-grid">
-        <article className="card marketing-card marketing-card--lift">
+      <section className="content-grid marketing-grid" data-reveal="left">
+        <article className="card marketing-card marketing-card--lift" data-reveal="left">
           <h2>Office</h2>
           <p>123 Justice Avenue, Suite 400</p>
           <p>Columbus, OH 43215</p>
         </article>
-        <article className="card marketing-card marketing-card--lift">
+        <article className="card marketing-card marketing-card--lift" data-reveal>
           <h2>Phone & Email</h2>
           <p>(614) 555-0134</p>
           <p>intake@parkerreedlaw.com</p>
         </article>
-        <article className="card marketing-card marketing-card--lift">
+        <article className="card marketing-card marketing-card--lift" data-reveal="right">
           <h2>Hours</h2>
           <p>Monday-Friday: 8:30 AM-6:00 PM</p>
           <p>Saturday: By appointment</p>
@@ -240,13 +256,34 @@ export function ContactPage() {
         </article>
       </section>
 
-      <section className="marketing-highlight marketing-highlight--contact">
+      <section className="marketing-highlight marketing-highlight--contact" data-reveal>
         <h2>What to include when you reach out</h2>
         <ul>
           <li>A short summary of the legal issue.</li>
           <li>Important dates, deadlines, or hearings.</li>
           <li>Any documents that help us assess urgency and next steps.</li>
         </ul>
+      </section>
+
+      <section className="content-grid marketing-grid" data-reveal="zoom">
+        <article className="card marketing-card" data-reveal="left">
+          <h2>Intake checklist</h2>
+          <ul>
+            {intakeChecklist.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </article>
+        <article className="card marketing-card" data-reveal="right">
+          <h2>Consultation FAQs</h2>
+          {consultationFaq.map((item) => (
+            <p key={item.question}>
+              <strong>{item.question}</strong>
+              <br />
+              {item.answer}
+            </p>
+          ))}
+        </article>
       </section>
       {submitSuccess && <p className="card success-text">{submitSuccess}</p>}
       {submitError && !isModalOpen && <p className="error-text">{submitError}</p>}
