@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Access;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Audit;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
@@ -15,55 +16,66 @@ public sealed class MattersEndpoints : IEndpointModule
         var group = app.MapGroup("/matters-v2").WithTags("Matters");
 
         group.MapGet(string.Empty, ListMatters)
-            .RequireAuthorization(AuthPolicies.MatterReadAssigned)
-            .WithSummary("Lists matters in the new workspace shell.");
+            .RequireAuthorization(AuthPolicies.MatterStaffRead)
+            .WithSummary("Lists matters the caller may read.");
 
         group.MapGet("/{matterId:guid}", GetMatterById)
-            .RequireAuthorization(AuthPolicies.MatterReadAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffRead)
             .WithSummary("Gets matter shell details.");
 
         group.MapGet("/{matterId:guid}/tasks", ListTasks)
-            .RequireAuthorization(AuthPolicies.MatterReadAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffRead)
             .WithSummary("Lists matter tasks and deadlines.");
         group.MapPost("/{matterId:guid}/tasks", CreateTask)
-            .RequireAuthorization(AuthPolicies.MatterUpdateAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite)
             .WithSummary("Creates a matter task/deadline.");
         group.MapPost("/{matterId:guid}/tasks/{taskId:guid}", UpdateTask)
-            .RequireAuthorization(AuthPolicies.MatterUpdateAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite)
             .WithSummary("Updates a matter task/deadline.");
         group.MapDelete("/{matterId:guid}/tasks/{taskId:guid}", DeleteTask)
-            .RequireAuthorization(AuthPolicies.MatterUpdateAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite)
             .WithSummary("Deletes a matter task/deadline.");
 
         group.MapGet("/{matterId:guid}/documents", ListDocuments)
-            .RequireAuthorization(AuthPolicies.MatterReadAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffRead)
             .WithSummary("Lists matter document index metadata.");
         group.MapPost("/{matterId:guid}/documents", CreateDocument)
-            .RequireAuthorization(AuthPolicies.DocumentUpload)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite, AuthPolicies.DocumentUpload)
             .WithSummary("Adds matter document metadata.");
         group.MapPost("/{matterId:guid}/documents/{documentId:guid}/review", ReviewDocument)
-            .RequireAuthorization(AuthPolicies.DocumentReview)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite, AuthPolicies.DocumentReview)
             .WithSummary("Updates review status on matter document metadata.");
         group.MapDelete("/{matterId:guid}/documents/{documentId:guid}", DeleteDocument)
-            .RequireAuthorization(AuthPolicies.DocumentReview)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite, AuthPolicies.DocumentReview)
             .WithSummary("Deletes matter document metadata.");
 
         group.MapGet("/{matterId:guid}/timeline", ListTimelineActions)
-            .RequireAuthorization(AuthPolicies.MatterReadAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffRead)
             .WithSummary("Lists custom matter timeline actions.");
         group.MapPost("/{matterId:guid}/timeline-actions", CreateTimelineAction)
-            .RequireAuthorization(AuthPolicies.MatterUpdateAssigned)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite)
             .WithSummary("Creates custom matter timeline action.");
+
+        group.MapGet("/{matterId:guid}/access-grants", MatterAccessGrantEndpoints.ListGrants)
+            .RequireAuthorization(AuthPolicies.MatterStaffRead)
+            .WithSummary("Lists explicit access grants on a matter.");
+        group.MapPost("/{matterId:guid}/access-grants", MatterAccessGrantEndpoints.CreateGrant)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite)
+            .WithSummary("Grants a staff member or client access to a matter.");
+        group.MapPost("/{matterId:guid}/access-grants/{grantId:guid}/revoke", MatterAccessGrantEndpoints.RevokeGrant)
+            .RequireAuthorization(AuthPolicies.MatterStaffWrite)
+            .WithSummary("Revokes an explicit matter access grant.");
     }
 
     private static async Task<IResult> ListMatters(
         string? stage,
         string? practiceArea,
         string? status,
-        LawFirmDbContext dbContext,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.MatterRecords.AsNoTracking().AsQueryable();
+        var query = access.ReadableMatters(user).AsNoTracking();
         if (!string.IsNullOrWhiteSpace(stage))
         {
             query = query.Where(record => record.Stage == stage.Trim());
@@ -102,20 +114,19 @@ public sealed class MattersEndpoints : IEndpointModule
 
     private static async Task<IResult> GetMatterById(
         Guid matterId,
-        LawFirmDbContext dbContext,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        var matter = await dbContext.MatterRecords
+        var matter = await access.ReadableMatters(user)
             .AsNoTracking()
             .Include(record => record.StageHistory)
             .FirstOrDefaultAsync(record => record.Id == matterId, cancellationToken);
 
         if (matter is null)
         {
-            return Results.NotFound(new ApiErrorResponse(
-                httpContext.GetCorrelationId(),
-                new ApiError("matter_not_found", "Matter was not found.")));
+            return MatterAccessResults.MatterNotFound(httpContext);
         }
 
         return Results.Ok(new MatterDetailResponse(
@@ -147,12 +158,14 @@ public sealed class MattersEndpoints : IEndpointModule
     private static async Task<IResult> ListTasks(
         Guid matterId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!await MatterExists(dbContext, matterId, cancellationToken))
+        if (!await access.CanReadAsync(user, matterId, cancellationToken))
         {
-            return MatterNotFound(httpContext);
+            return MatterAccessResults.MatterNotFound(httpContext);
         }
 
         var tasks = await dbContext.MatterTasks
@@ -187,14 +200,15 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid matterId,
         CreateMatterTaskRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!await MatterExists(dbContext, matterId, cancellationToken))
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
         {
-            return MatterNotFound(httpContext);
+            return denied;
         }
 
         if (string.IsNullOrWhiteSpace(request.Title))
@@ -247,11 +261,17 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid taskId,
         UpdateMatterTaskRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
         var task = await dbContext.MatterTasks
             .FirstOrDefaultAsync(item => item.MatterRecordId == matterId && item.Id == taskId, cancellationToken);
         if (task is null)
@@ -311,10 +331,17 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid matterId,
         Guid taskId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
+        ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
         var task = await dbContext.MatterTasks
             .FirstOrDefaultAsync(item => item.MatterRecordId == matterId && item.Id == taskId, cancellationToken);
         if (task is null)
@@ -341,12 +368,14 @@ public sealed class MattersEndpoints : IEndpointModule
     private static async Task<IResult> ListDocuments(
         Guid matterId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!await MatterExists(dbContext, matterId, cancellationToken))
+        if (!await access.CanReadAsync(user, matterId, cancellationToken))
         {
-            return MatterNotFound(httpContext);
+            return MatterAccessResults.MatterNotFound(httpContext);
         }
 
         var documents = await dbContext.MatterDocuments
@@ -375,14 +404,15 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid matterId,
         CreateMatterDocumentRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!await MatterExists(dbContext, matterId, cancellationToken))
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
         {
-            return MatterNotFound(httpContext);
+            return denied;
         }
 
         if (string.IsNullOrWhiteSpace(request.FileName))
@@ -433,11 +463,17 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid documentId,
         ReviewMatterDocumentRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
         var document = await dbContext.MatterDocuments
             .FirstOrDefaultAsync(item => item.MatterRecordId == matterId && item.Id == documentId, cancellationToken);
         if (document is null)
@@ -479,10 +515,17 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid matterId,
         Guid documentId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
+        ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
         var document = await dbContext.MatterDocuments
             .FirstOrDefaultAsync(item => item.MatterRecordId == matterId && item.Id == documentId, cancellationToken);
         if (document is null)
@@ -509,12 +552,14 @@ public sealed class MattersEndpoints : IEndpointModule
     private static async Task<IResult> ListTimelineActions(
         Guid matterId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!await MatterExists(dbContext, matterId, cancellationToken))
+        if (!await access.CanReadAsync(user, matterId, cancellationToken))
         {
-            return MatterNotFound(httpContext);
+            return MatterAccessResults.MatterNotFound(httpContext);
         }
 
         var actions = await dbContext.MatterTimelineActions
@@ -539,14 +584,15 @@ public sealed class MattersEndpoints : IEndpointModule
         Guid matterId,
         CreateMatterTimelineActionRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         ClaimsPrincipal user,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!await MatterExists(dbContext, matterId, cancellationToken))
+        if (await MatterAccessResults.DenyUnlessWritableAsync(access, user, matterId, httpContext, cancellationToken) is { } denied)
         {
-            return MatterNotFound(httpContext);
+            return denied;
         }
 
         if (string.IsNullOrWhiteSpace(request.ActionType) || string.IsNullOrWhiteSpace(request.Summary))
@@ -585,21 +631,9 @@ public sealed class MattersEndpoints : IEndpointModule
         return Results.Created($"/api/matters-v2/{matterId}/timeline-actions/{action.Id}", ToTimelineResponse(action));
     }
 
-    private static async Task<bool> MatterExists(LawFirmDbContext dbContext, Guid matterId, CancellationToken cancellationToken)
+    internal static (string actorId, string actorDisplayName) GetActor(ClaimsPrincipal user)
     {
-        return await dbContext.MatterRecords.AnyAsync(record => record.Id == matterId, cancellationToken);
-    }
-
-    private static IResult MatterNotFound(HttpContext httpContext)
-    {
-        return Results.NotFound(new ApiErrorResponse(
-            httpContext.GetCorrelationId(),
-            new ApiError("matter_not_found", "Matter was not found.")));
-    }
-
-    private static (string actorId, string actorDisplayName) GetActor(ClaimsPrincipal user)
-    {
-        var actorId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub") ?? string.Empty;
+        var actorId = ActorClaims.GetActorId(user);
         var actorDisplayName = user.FindFirstValue("name") ?? user.FindFirstValue(ClaimTypes.Email) ?? "Unknown";
         return (actorId, actorDisplayName);
     }

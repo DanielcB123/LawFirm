@@ -1,6 +1,8 @@
 # Database architecture
 
-[Home](../README.md) · [Research](tenancy-research.md) · [ADR-001](ADR-001-tenancy.md) · [Data model](data-model.md) · [Provisioning](provisioning-and-migrations.md)
+[Home](../README.md) · [Research](tenancy-research.md) · [ADR-001](ADR-001-tenancy.md) · [ADR-002](ADR-002-multitenant-architecture.md) · [Data model](data-model.md) · [Data dictionary](data-dictionary.md) · [Query and index spec](query-and-index-spec.md) · [Design SQL](../../db/design/README.md) · [Provisioning](provisioning-and-migrations.md)
+
+> **2026-10-12:** the multi-firm database design is in [ADR-002](ADR-002-multitenant-architecture.md), the [data dictionary](data-dictionary.md), and reviewable SQL validated on disposable MySQL 8.0.36 ([db/design](../../db/design/README.md)). It is design only; the application schema is unchanged.
 
 ## Vocabulary
 **Tenant = firm. Client = person or organization represented by that firm. Matter = legal work container.** Never create a database per represented client.
@@ -10,7 +12,7 @@ A shared schema means firms share tables, separated by tenant keys and authoriza
 MySQL uses schema/database terminology differently from PostgreSQL and SQL Server. **This repository uses MySQL 8.0** (Pomelo EF Core), where `SCHEMA` is a synonym for `DATABASE` [S19]. "Schema per firm" and "database per firm" therefore mean the same thing here.
 
 ## Current state
-One MySQL database, 16 tables defined in `backend/Infrastructure/Persistence/LawFirmDbContext.cs`. No tenant columns, no migrations (`EnsureCreated` + raw DDL), GUID `char(36)` keys, `datetime(6)` instants, no money columns yet. Details are in the [codebase audit](../architecture/current-codebase-audit.md).
+One MySQL database, 17 tables defined in `backend/Infrastructure/Persistence/LawFirmDbContext.cs` (the 16 audited tables plus `matter_access_grants`, added 2026-10-12). No tenant columns, GUID `char(36)` keys, `datetime(6)` instants, no money columns yet. Schema is managed by EF Core migrations (`Baseline`, `MatterAccessGrants`). Databases created by the old `EnsureCreated` path must be baselined first: [migration baseline](migration-baseline.md). Details are in the [codebase audit](../architecture/current-codebase-audit.md).
 
 ## Proposed responsibility split
 

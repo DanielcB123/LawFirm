@@ -1,4 +1,5 @@
 using System.Text;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Access;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
@@ -58,6 +59,20 @@ public static class AuthServiceCollectionExtensions
                 policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(AuthPermissions.MattersUpdateAssigned)));
             options.AddPolicy(AuthPolicies.MatterUpdateAll, policy =>
                 policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(AuthPermissions.MattersUpdateAll)));
+            options.AddPolicy(AuthPolicies.MatterStaffRead, policy =>
+                policy.RequireAuthenticatedUser()
+                    .RequireRole(AuthRoles.Attorney, AuthRoles.Paralegal, AuthRoles.Admin)
+                    .RequireAssertion(context => ActorClaims.HasAnyPermission(
+                        context.User, AuthPermissions.MattersReadAssigned, AuthPermissions.MattersReadAll)));
+            options.AddPolicy(AuthPolicies.MatterStaffWrite, policy =>
+                policy.RequireAuthenticatedUser()
+                    .RequireRole(AuthRoles.Attorney, AuthRoles.Paralegal, AuthRoles.Admin)
+                    .RequireAssertion(context => ActorClaims.HasAnyPermission(
+                        context.User, AuthPermissions.MattersUpdateAssigned, AuthPermissions.MattersUpdateAll)));
+            options.AddPolicy(AuthPolicies.ClientMatterPortal, policy =>
+                policy.RequireAuthenticatedUser()
+                    .RequireRole(AuthRoles.Client)
+                    .AddRequirements(new PermissionRequirement(AuthPermissions.MattersReadOwn)));
             options.AddPolicy(AuthPolicies.DocumentUpload, policy =>
                 policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(AuthPermissions.DocumentsUpload)));
             options.AddPolicy(AuthPolicies.DocumentReview, policy =>
@@ -70,6 +85,32 @@ public static class AuthServiceCollectionExtensions
                 policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(AuthPermissions.UsersManage)));
         });
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the hard-coded demo accounts only when explicitly enabled in a Development environment.
+    /// Enabling them anywhere else is a startup error rather than a silent fallback.
+    /// </summary>
+    public static IServiceCollection AddLawFirmDemoAuthentication(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        var enabled = configuration.GetValue<bool>(AuthConstants.DemoUsersEnabledKey);
+        if (!enabled)
+        {
+            return services;
+        }
+
+        if (!environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(
+                $"{AuthConstants.DemoUsersEnabledKey} is true in the '{environment.EnvironmentName}' environment. " +
+                "Demo accounts are permitted only in Development.");
+        }
+
+        services.AddSingleton<IDemoUserStore, DemoUserStore>();
         return services;
     }
 

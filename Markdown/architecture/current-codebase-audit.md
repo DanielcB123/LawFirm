@@ -4,6 +4,16 @@
 
 **Audit date:** 2026-10-12. **Commit inspected:** `61e5134` (branch head, plus untracked `Markdown/`). **Method:** static source reading, configuration inspection (key names only; secret values were not printed), local builds, and lint. The API was **not** run against a live MySQL server, and no HTTP request was exercised.
 
+> **Status update, 2026-10-12 (slice F1, uncommitted working tree).** The findings below are kept as they stood at `61e5134`. Since then, integration tests against MySQL 8.0.36 verify these fixes:
+> - Matter routes are now scoped by assignment or grant. Clients are rejected on staff routes and use `/api/portal/matters`. Admin access is now assignment-or-grant only.
+> - `/api/parties` hides restricted parties, and conflict masking no longer exposes the real party id.
+> - `DemoUserStore` is registered only through an explicit Development opt-in.
+> - Tracked config holds no secrets, and the fallback connection string is removed. Earlier commits still contain credentials, which have not been rotated.
+> - `EnsureCreated` and the raw DDL were replaced by EF Core migrations. Unmanaged databases are refused.
+> - An integration test project exists.
+>
+> Details: [matter access policy](../security/matter-access-policy.md), [migration baseline](../database/migration-baseline.md), [SLICE_HISTORY.md](../../SLICE_HISTORY.md).
+
 ## Evidence labels
 
 | Label | Meaning |

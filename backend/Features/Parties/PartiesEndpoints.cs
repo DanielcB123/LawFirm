@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Access;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Audit;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
@@ -34,11 +36,12 @@ public sealed class PartiesEndpoints : IEndpointModule
     private static async Task<IResult> SearchParties(
         string? query,
         LawFirmDbContext dbContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
         var normalizedQuery = query?.Trim();
 
-        var partyQuery = dbContext.Parties
+        var partyQuery = PartyVisibility.VisibleParties(dbContext.Parties, user)
             .AsNoTracking()
             .Include(party => party.Aliases)
             .OrderBy(party => party.DisplayName)
@@ -122,6 +125,7 @@ public sealed class PartiesEndpoints : IEndpointModule
         LawFirmDbContext dbContext,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
@@ -140,8 +144,7 @@ public sealed class PartiesEndpoints : IEndpointModule
             return httpContext.ValidationError("Alias data is invalid.", errors);
         }
 
-        var party = await dbContext.Parties
-            .Include(existingParty => existingParty.Aliases)
+        var party = await PartyVisibility.VisibleParties(dbContext.Parties, user)
             .FirstOrDefaultAsync(existingParty => existingParty.Id == partyId, cancellationToken);
         if (party is null)
         {
@@ -178,6 +181,7 @@ public sealed class PartiesEndpoints : IEndpointModule
         LawFirmDbContext dbContext,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
@@ -206,8 +210,9 @@ public sealed class PartiesEndpoints : IEndpointModule
             return httpContext.ValidationError("Relationship data is invalid.", errors);
         }
 
-        var fromExists = await dbContext.Parties.AnyAsync(party => party.Id == request.FromPartyId, cancellationToken);
-        var toExists = await dbContext.Parties.AnyAsync(party => party.Id == request.ToPartyId, cancellationToken);
+        var visibleParties = PartyVisibility.VisibleParties(dbContext.Parties, user);
+        var fromExists = await visibleParties.AnyAsync(party => party.Id == request.FromPartyId, cancellationToken);
+        var toExists = await visibleParties.AnyAsync(party => party.Id == request.ToPartyId, cancellationToken);
         if (!fromExists || !toExists)
         {
             return Results.NotFound(new ApiErrorResponse(

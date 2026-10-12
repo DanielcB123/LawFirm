@@ -1,0 +1,651 @@
+﻿MatterForge design validation log (synthetic data only)
+Run started (UTC): 2026-10-12 06:01:44
+Image: mysql:8.0.36; container: mf-design-validation-6affb47c (disposable, removed at end unless -KeepContainer)
+Docker: 20.10.17 (API 1.41)
+
+### Engine behavior checks (60-engine-behavior-checks.sql) (as root)
++---------+-----------------+---------+-------------------------+-----------------+-------------------+--------+
+| version | isolation       | log_bin | trust_function_creators | max_connections | lock_wait_timeout | engine |
++---------+-----------------+---------+-------------------------+-----------------+-------------------+--------+
+ERROR 1506 (HY000) at line 13: Foreign keys are not yet supported in conjunction with partitioning
+| 8.0.36  | REPEATABLE-READ |       1 |                       0 |             151 |                50 | InnoDB |
++---------+-----------------+---------+-------------------------+-----------------+-------------------+--------+
++----------------------------------------------------------------------------+
+| check_name                                                                 |
++----------------------------------------------------------------------------+
+| E1 EXPECT ERROR 1506: partitioned InnoDB table that declares a foreign key |
++----------------------------------------------------------------------------+
++-----------------------------------------------------------------------+
+| check_name                                                            |
++-----------------------------------------------------------------------+
+| E2 EXPECT ERROR 1506: foreign key that references a partitioned table |
++-----------------------------------------------------------------------+
+ERROR 1506 (HY000) at line 27: Foreign keys are not yet supported in conjunction with partitioning
+ERROR 1503 (HY000) at line 32: A UNIQUE INDEX must include all columns in the table's partitioning function (prefixed columns are not considered).
++-----------------------------------------------------------------------------+
+| check_name                                                                  |
++-----------------------------------------------------------------------------+
+| E3 EXPECT ERROR 1503: every unique key must include the partitioning column |
++-----------------------------------------------------------------------------+
++--------------------------------------------------------------------------+
+| check_name                                                               |
++--------------------------------------------------------------------------+
+| E4 DDL implicitly commits an open transaction: expect committed_rows = 1 |
++--------------------------------------------------------------------------+
++----------------+
+| committed_rows |
++----------------+
+|              1 |
++----------------+
++---------------------------------------------------------------------------------------------+
+| check_name                                                                                  |
++---------------------------------------------------------------------------------------------+
+| E5 multi-statement migration failing midway leaves earlier DDL applied: expect step1 exists |
++---------------------------------------------------------------------------------------------+
+ERROR 1146 (42S02) at line 49: Table 'mf_engine_checks.e_mig_missing' doesn't exist
+ERROR 1845 (0A000) at line 59: ALGORITHM=INSTANT is not supported for this operation. Try ALGORITHM=COPY/INPLACE.
++--------------------+
+| step1_table_exists |
++--------------------+
+|                  1 |
++--------------------+
++------------------------------------------------------+
+| check_name                                           |
++------------------------------------------------------+
+| E6 ADD COLUMN with ALGORITHM=INSTANT: expect success |
++------------------------------------------------------+
++--------------------------------------------------------+
+| check_name                                             |
++--------------------------------------------------------+
+| E7 EXPECT ERROR 1845/1846: ADD INDEX cannot be INSTANT |
++--------------------------------------------------------+
++----------------------------------------------------------------+
+| check_name                                                     |
++----------------------------------------------------------------+
+| E8 ADD INDEX with ALGORITHM=INPLACE, LOCK=NONE: expect success |
++----------------------------------------------------------------+
++--------------------------------------------------------------------------+
+| check_name                                                               |
++--------------------------------------------------------------------------+
+| E9 EXPECT ERROR 1846: changing a column type cannot be INPLACE/LOCK=NONE |
++--------------------------------------------------------------------------+
+ERROR 1846 (0A000) at line 65: ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY.
++----------------------------------------------------------------------------------+
+| check_name                                                                       |
++----------------------------------------------------------------------------------+
+| E10 EXPECT ERROR 3780: FK between char(36) ascii_general_ci and char(36) utf8mb4 |
++----------------------------------------------------------------------------------+
+ERROR 3780 (HY000) at line 70: Referencing column 'ParentId' and referenced column 'Id' in foreign key constraint 'e_utf8_child_ibfk_1' are incompatible.
++------------------------------------------------------------+
+| check_name                                                 |
++------------------------------------------------------------+
+| E11 EXPECT ERROR 3819: CHECK constraint enforced (8.0.16+) |
++------------------------------------------------------------+
+ERROR 3819 (HY000) at line 76: Check constraint 'CK_e_check' is violated.
++---------------------------------------------------------------------------------------------------+
+| check_name                                                                                        |
++---------------------------------------------------------------------------------------------------+
+| E12 unique index over a nullable STORED generated column allows many inactive rows: expect 3 rows |
++---------------------------------------------------------------------------------------------------+
++------------+
+| rows_for_k |
++------------+
+|          3 |
++------------+
++------------------------------------------------------------+
+| check_name                                                 |
++------------------------------------------------------------+
+| E12b EXPECT ERROR 1062: second active row for the same key |
++------------------------------------------------------------+
+ERROR 1062 (23000) at line 85: Duplicate entry '1-1' for key 'e_active.K'
+
+### Apply 01-control-plane.sql (as root on mf_control)
+
+### Control-plane tables created (as root)
++--------+
+| tables |
++--------+
+|     15 |
++--------+
+
+### Firm A: apply 10 (generated EF schema) as migration user (as mf_mig_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+
+### Firm A: apply 11 (required additions) as migration user (as mf_mig_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+
+### Firm A: apply 12 (future structures, includes triggers) as migration user (as mf_mig_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+
+### Firm A: apply 13 (ledger triggers) as migration user - EXPECT 1419 while binary logging is on (as mf_mig_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1419 (HY000) at line 13: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 22: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 27: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 36: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 58: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+
+### Firm A: apply 13 through privileged provisioning step with DEFINER = migration user (as root on mf_f_b794a3e961504bf28ef1be59d3164b64)
+Schema apply elapsed: 5.3 s
+
+### Firm A: object counts (as root)
++--------+----------+--------------+--------+
+| tables | triggers | foreign_keys | checks |
++--------+----------+--------------+--------+
+|     73 |        5 |          103 |     74 |
++--------+----------+--------------+--------+
+
+### Firm A: synthetic data at scale 1.0 (as root on mf_f_b794a3e961504bf28ef1be59d3164b64)
+Synthetic load elapsed: 37 s
+Runtime user for firm A: 73 table-level grants, MAX_USER_CONNECTIONS 20
+
+### Firm B: apply 10 (generated EF schema) as migration user (as mf_mig_b on mf_f_019188d4877d4b7e8c25286d999b1051)
+
+### Firm B: apply 11 (required additions) as migration user (as mf_mig_b on mf_f_019188d4877d4b7e8c25286d999b1051)
+
+### Firm B: apply 12 (future structures, includes triggers) as migration user (as mf_mig_b on mf_f_019188d4877d4b7e8c25286d999b1051)
+
+### Firm B: apply 13 (ledger triggers) as migration user - EXPECT 1419 while binary logging is on (as mf_mig_b on mf_f_019188d4877d4b7e8c25286d999b1051)
+ERROR 1419 (HY000) at line 13: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 22: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 27: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 36: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+ERROR 1419 (HY000) at line 58: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+
+### Firm B: apply 13 through privileged provisioning step with DEFINER = migration user (as root on mf_f_019188d4877d4b7e8c25286d999b1051)
+Schema apply elapsed: 4.2 s
+
+### Firm B: object counts (as root)
++--------+----------+--------------+--------+
+| tables | triggers | foreign_keys | checks |
++--------+----------+--------------+--------+
+|     73 |        5 |          103 |     74 |
++--------+----------+--------------+--------+
+
+### Firm B: synthetic data at scale 0.1 (as root on mf_f_019188d4877d4b7e8c25286d999b1051)
+Synthetic load elapsed: 9.2 s
+Runtime user for firm B: 73 table-level grants, MAX_USER_CONNECTIONS 20
+
+### ANALYZE firm A tables (as root on mf_f_b794a3e961504bf28ef1be59d3164b64)
++----------------------------------------------------------------+---------+----------+----------+
+| Table                                                          | Op      | Msg_type | Msg_text |
++----------------------------------------------------------------+---------+----------+----------+
+| mf_f_b794a3e961504bf28ef1be59d3164b64.matters                  | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.matter_tasks             | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.matter_access_grants     | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.matter_assignments       | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.deadlines                | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.matter_documents         | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.document_versions        | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.messages                 | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.invoices                 | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.payment_allocations      | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.journal_lines            | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.journal_entries          | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.trust_subledger_balances | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.intake_records           | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.consultation_requests    | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.outbox_events            | analyze | status   | OK       |
+| mf_f_b794a3e961504bf28ef1be59d3164b64.webhook_receipts         | analyze | status   | OK       |
++----------------------------------------------------------------+---------+----------+----------+
+
+### G1 EXPECT 1142: firm A runtime reads firm B table (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: SELECT command denied to user 'mf_rt_a'@'127.0.0.1' for table 'matters'
+
+### G2 EXPECT 1044: firm A runtime switches to firm B database (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1044 (42000) at line 1: Access denied for user 'mf_rt_a'@'%' to database 'mf_f_019188d4877d4b7e8c25286d999b1051'
+
+### G3 firm A runtime sees only its own firm database (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
++---------------------------------------+
+| Database                              |
++---------------------------------------+
+| information_schema                    |
+| mf_f_b794a3e961504bf28ef1be59d3164b64 |
+| performance_schema                    |
++---------------------------------------+
+
+### G4 EXPECT 1142: runtime CREATE TABLE (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: CREATE command denied to user 'mf_rt_a'@'127.0.0.1' for table 'zz_x'
+
+### G5 EXPECT 1142: runtime DROP TABLE (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: DROP command denied to user 'mf_rt_a'@'127.0.0.1' for table 'matters'
+
+### G6 EXPECT 1142: runtime ALTER TABLE (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: ALTER command denied to user 'mf_rt_a'@'127.0.0.1' for table 'matters'
+
+### G7 EXPECT 1142 x2: runtime UPDATE and DELETE on append-only audit_events (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: UPDATE command denied to user 'mf_rt_a'@'127.0.0.1' for table 'audit_events'
+ERROR 1142 (42000) at line 1: DELETE command denied to user 'mf_rt_a'@'127.0.0.1' for table 'audit_events'
+
+### G8 EXPECT 1142 x2: runtime writes firm_identity (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: UPDATE command denied to user 'mf_rt_a'@'127.0.0.1' for table 'firm_identity'
+ERROR 1142 (42000) at line 1: INSERT command denied to user 'mf_rt_a'@'127.0.0.1' for table 'firm_identity'
+
+### G9 EXPECT 1142: runtime reads mysql.user (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: SELECT command denied to user 'mf_rt_a'@'127.0.0.1' for table 'user'
+
+### G10 EXPECT 1227: runtime changes a global variable (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1227 (42000) at line 1: Access denied; you need (at least one of) the SUPER or SYSTEM_VARIABLES_ADMIN privilege(s) for this operation
+
+### G11 positive control: runtime appends audit, updates a matter (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
++--------------+
+| rows_updated |
++--------------+
+|            1 |
++--------------+
+
+### G12 firm identity row read by runtime A (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
++----------------+------------------+
+| matches_firm_a | FirmSlug         |
++----------------+------------------+
+|              1 | synthetic-firm-a |
++----------------+------------------+
+
+### G13 overlapping local ids: same matter id in A and B holds different rows (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
++--------------------------------------+--------------------------------+
+| Id                                   | Title                          |
++--------------------------------------+--------------------------------+
+| 00000001-0000-4000-8000-000000000001 | Synthetic matter A-1 (checked) |
++--------------------------------------+--------------------------------+
+
+### G13b same id in firm B (read by B runtime) (as mf_rt_b on mf_f_019188d4877d4b7e8c25286d999b1051)
++--------------------------------------+----------------------+
+| Id                                   | Title                |
++--------------------------------------+----------------------+
+| 00000001-0000-4000-8000-000000000001 | Synthetic matter B-1 |
++--------------------------------------+----------------------+
+
+### G14 EXPECT 1142 and 1044: firm A migration user reads B and creates a database (as mf_mig_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+ERROR 1142 (42000) at line 1: SELECT command denied to user 'mf_mig_a'@'127.0.0.1' for table 'matters'
+ERROR 1044 (42000) at line 1: Access denied for user 'mf_mig_a'@'%' to database 'mf_f_00000000000000000000000000000000'
+
+### G15 EXPECT 1142: control-plane runtime reads a firm database (as mf_cp_rt on mf_control)
+ERROR 1142 (42000) at line 1: SELECT command denied to user 'mf_cp_rt'@'127.0.0.1' for table 'matters'
+
+### G16 EXPECT 1141 or 1147: table-level REVOKE cannot carve out of a database-level grant (as root)
+ERROR 1147 (42000) at line 3: There is no such grant defined for user 'zz_dbwide' on host '%' on table 'audit_events'
+
+### G16b database-level user can therefore still UPDATE audit_events (expect ok = 1) (as zz_dbwide on mf_f_b794a3e961504bf28ef1be59d3164b64)
++----+
+| ok |
++----+
+|  1 |
++----+
+
+### Apply 20-pooled-alternative.sql (as root on mf_pooled_check)
+
+### P1 pooled: overlapping matter id in two firms, cross-firm reference (EXPECT 1452), same-firm reference ok (as root on mf_pooled_check)
+ERROR 1452 (23000) at line 5: Cannot add or update a child row: a foreign key constraint fails (`mf_pooled_check`.`pooled_matter_tasks`, CONSTRAINT `FK_pooled_matter_tasks_matters` FOREIGN KEY (`FirmId`, `MatterRecordId`) REFERENCES `pooled_matters` (`FirmId`, `Id`) ON DELETE CASCADE)
++------------------+
+| tasks_for_firm_a |
++------------------+
+|                1 |
++------------------+
+
+### P2 pooled: a query that omits FirmId returns both firms (FKs do not authorize reads) (as root on mf_pooled_check)
++--------------------------------------+-------+
+| FirmId                               | Title |
++--------------------------------------+-------+
+| 0a000000-0000-4000-8000-00000000000a | A one |
+| 0b000000-0000-4000-8000-00000000000b | B one |
++--------------------------------------+-------+
+
+### P3 pooled: updating FirmId silently re-parents a task to firm B when local ids overlap (expect rows_moved = 1) (as root on mf_pooled_check)
++------------+
+| rows_moved |
++------------+
+|          1 |
++------------+
+
+### P4 pooled mitigation: column-level UPDATE grant excludes FirmId (EXPECT 1143) (as root)
+
+### P4b zz_pooled updates FirmId (as zz_pooled on mf_pooled_check)
+ERROR 1143 (42000) at line 1: UPDATE command denied to user 'zz_pooled'@'127.0.0.1' for column 'FirmId' in table 'pooled_matter_tasks'
+
+### Money and approval integrity checks (70-money-integrity-checks.sql) (as mf_rt_b on mf_f_019188d4877d4b7e8c25286d999b1051)
++-------------------------------------------------+
+| check_name                                      |
++-------------------------------------------------+
+| L1 balanced entry posts: expect Status = Posted |
++-------------------------------------------------+
++--------+
+| Status |
++--------+
+| Posted |
++--------+
++-----------------------------------------------+
+| check_name                                    |
++-----------------------------------------------+
+| L2 EXPECT ERROR 1644 journal_entry_unbalanced |
++-----------------------------------------------+
+ERROR 1644 (45000) at line 26: journal_entry_unbalanced
+ERROR 1644 (45000) at line 30: journal_entry_not_draft
++------------------------------------------------------------------------+
+| check_name                                                             |
++------------------------------------------------------------------------+
+| L3 EXPECT ERROR 1644 journal_entry_not_draft: add line to posted entry |
++------------------------------------------------------------------------+
+ERROR 1644 (45000) at line 34: journal_entry_posted_immutable
++------------------------------------------------------------------------+
+| check_name                                                             |
++------------------------------------------------------------------------+
+| L4 EXPECT ERROR 1644 journal_entry_posted_immutable: edit posted entry |
++------------------------------------------------------------------------+
++--------------------------------------------------------------------------+
+| check_name                                                               |
++--------------------------------------------------------------------------+
+| L5 EXPECT ERROR 1644 journal_entry_posted_immutable: delete posted entry |
++--------------------------------------------------------------------------+
+ERROR 1644 (45000) at line 37: journal_entry_posted_immutable
+ERROR 1142 (42000) at line 40: UPDATE command denied to user 'mf_rt_b'@'127.0.0.1' for table 'journal_lines'
++----------------------------------------------------------+
+| check_name                                               |
++----------------------------------------------------------+
+| L6 EXPECT ERROR 1644 journal_line_immutable: edit a line |
++----------------------------------------------------------+
++--------------------------------------------------+
+| check_name                                       |
++--------------------------------------------------+
+| L7 EXPECT ERROR 1644 journal_entry_too_few_lines |
++--------------------------------------------------+
+ERROR 1644 (45000) at line 45: journal_entry_too_few_lines
++----------------------------------------------+
+| check_name                                   |
++----------------------------------------------+
+| L8 EXPECT ERROR 1062: idempotency key replay |
++----------------------------------------------+
+ERROR 1062 (23000) at line 49: Duplicate entry 'chk-1' for key 'journal_entries.UX_journal_entries_Idempotency'
++-------------------------------------------------+
+| check_name                                      |
++-------------------------------------------------+
+| L9 EXPECT ERROR 3819: trust subledger overdraft |
++-------------------------------------------------+
+ERROR 3819 (HY000) at line 53: Check constraint 'CK_trust_subledger_NonNegative' is violated.
++----------------------------------------------------------------+
+| check_name                                                     |
++----------------------------------------------------------------+
+| L10 version-bound approval: approve hash H1, expect 1 approval |
++----------------------------------------------------------------+
++-----------+
+| approvals |
++-----------+
+|         1 |
++-----------+
++---------------------------------------------------------------------+
+| check_name                                                          |
++---------------------------------------------------------------------+
+| L11 EXPECT ERROR 1452: approval that names a different content hash |
++---------------------------------------------------------------------+
+ERROR 1452 (23000) at line 66: Cannot add or update a child row: a foreign key constraint fails (`mf_f_019188d4877d4b7e8c25286d999b1051`.`trust_disbursement_approvals`, CONSTRAINT `FK_trust_disbursement_approvals_version` FOREIGN KEY (`RequestId`, `ApprovedContentSha256`) REFERENCES `trus)
+ERROR 1451 (23000) at line 70: Cannot delete or update a parent row: a foreign key constraint fails (`mf_f_019188d4877d4b7e8c25286d999b1051`.`trust_disbursement_approvals`, CONSTRAINT `FK_trust_disbursement_approvals_version` FOREIGN KEY (`RequestId`, `ApprovedContentSha256`) REFERENCES `trus)
++----------------------------------------------------------------------------------+
+| check_name                                                                       |
++----------------------------------------------------------------------------------+
+| L12 EXPECT ERROR 1451: changing approved content while an approval references it |
++----------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------+
+| check_name                                                                  |
++-----------------------------------------------------------------------------+
+| L13 EXPECT ERROR 3819: time entry amount must equal rounded rate x duration |
++-----------------------------------------------------------------------------+
+ERROR 3819 (HY000) at line 74: Check constraint 'CK_time_entries_Amount' is violated.
+ERROR 1062 (23000) at line 83: Duplicate entry 'dddddddd-0000-4000-8000-000000000002' for key 'invoice_lines.UX_invoice_lines_Time'
++---------------------------------------------------------------------------------------------+
+| check_name                                                                                  |
++---------------------------------------------------------------------------------------------+
+| L14 time entry with correct amount: expect success; then EXPECT ERROR 1062 billing it twice |
++---------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------+
+| check_name                                                         |
++--------------------------------------------------------------------+
+| L15 EXPECT ERROR 1062: webhook replay in the same provider account |
++--------------------------------------------------------------------+
+ERROR 1062 (23000) at line 88: Duplicate entry 'synthetic-pay-acct_synthetic_B-evt_1' for key 'webhook_receipts.UX_webhook_receipts_Event'
++-------------------------------------------------------------------------------------------+
+| check_name                                                                                |
++-------------------------------------------------------------------------------------------+
+| L16 same event id under a different provider account is a different event: expect success |
++-------------------------------------------------------------------------------------------+
++------------------------------------------------------------------------+
+| check_name                                                             |
++------------------------------------------------------------------------+
+| L17 EXPECT ERROR 3819: unverified webhook signature cannot be recorded |
++------------------------------------------------------------------------+
+ERROR 3819 (HY000) at line 96: Check constraint 'CK_webhook_receipts_Verified' is violated.
+ERROR 3819 (HY000) at line 100: Check constraint 'CK_payments_Amounts' is violated.
++------------------------------------------------+
+| check_name                                     |
++------------------------------------------------+
+| L18 EXPECT ERROR 3819: payment over-allocation |
++------------------------------------------------+
+
+### R1 race: session 1 adds an unbalancing line and holds; session 2 posts the entry
+session2: ERROR 1644 (45000) at line 2: journal_entry_unbalanced
+session2 waited approximately 2.4 s
+session1: 0
+session1: session1 committed extra line
+
+### R1 result (expect Status Draft, 3 lines) (as mf_rt_b on mf_f_019188d4877d4b7e8c25286d999b1051)
++--------+------------+
+| Status | line_count |
++--------+------------+
+| Draft  |          3 |
++--------+------------+
+
+### R2 race: two concurrent withdrawals that together overdraw one trust subledger
+balance before: 806.00
+session2: 322.40
+session2: ERROR 3819 (HY000) at line 3: Check constraint 'CK_trust_subledger_NonNegative' is violated.
+session1: 806.00
+session1: 0
+session1: session1 committed withdrawal
+
+### R2 result (expect balance = before - 483.6) (as mf_rt_b on mf_f_019188d4877d4b7e8c25286d999b1051)
++---------+
+| Balance |
++---------+
+|  322.40 |
++---------+
+
+### R3 outbox claim with FOR UPDATE SKIP LOCKED: two dispatchers must claim disjoint rows
+dispatcher2 claimed: 600,700,800,900,1000
+dispatcher1 claimed: 100,200,300,400,500
+
+### R4 per-user connection cap (MAX_USER_CONNECTIONS 1): second concurrent session EXPECT 1226
+session2: ERROR 1226 (42000): User 'zz_capped' has exceeded the 'max_user_connections' resource (current value: 1)
+
+### Firm A distributions (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
++-----------------------------------+---------------+--------+
+| t                                 | v             | n      |
++-----------------------------------+---------------+--------+
+| matters                           | Active        |   1500 |
+| matters                           | Closed        |   3000 |
+| matters                           | Pending       |    500 |
+| matter_tasks                      | Open          |  12500 |
+| matter_tasks                      | InProgress    |  12500 |
+| matter_tasks                      | Completed     |  75000 |
+| deadlines                         | Completed     |  15004 |
+| deadlines                         | Unverified    |   5831 |
+| deadlines                         | Verified      |   4165 |
+| invoices                          | Paid          |  14000 |
+| invoices                          | Issued        |   3000 |
+| invoices                          | PartiallyPaid |   1000 |
+| invoices                          | Draft         |   1000 |
+| invoices                          | Void          |   1000 |
+| outbox_events                     | Done          | 198000 |
+| outbox_events                     | Pending       |   2000 |
+| matters for u-s-003 (responsible) | all           |    334 |
+| messages in hot conversation      | n             |  20000 |
++-----------------------------------+---------------+--------+
+
+### Firm A largest tables (information_schema estimates after ANALYZE) (as root)
++---------------------+----------+---------+----------+
+| TABLE_NAME          | est_rows | data_mb | index_mb |
++---------------------+----------+---------+----------+
+| messages            |   297324 |    43.6 |     44.2 |
+| matter_tasks        |    98756 |    21.6 |     51.4 |
+| outbox_events       |   197824 |    35.6 |     16.1 |
+| audit_events        |    99086 |    16.6 |     22.2 |
+| journal_lines       |    59489 |     9.5 |     25.7 |
+| document_versions   |    88803 |    20.6 |     11.6 |
+| invoice_lines       |    79380 |    11.6 |     20.6 |
+| matter_documents    |    59400 |    10.6 |     18.6 |
+| journal_entries     |    29548 |     8.5 |     13.1 |
+| deadlines           |    24770 |     5.5 |     11.1 |
+| invoices            |    19809 |     4.5 |     10.6 |
+| payments            |    14861 |     4.5 |      9.6 |
+| webhook_receipts    |    29786 |     5.5 |      7.1 |
+| payment_allocations |    17934 |     3.5 |      4.0 |
+| parties             |    20102 |     2.5 |      2.5 |
+| matters             |     4737 |     1.5 |      3.0 |
++---------------------+----------+---------+----------+
++----------+
+| total_mb |
++----------+
+|    505.4 |
++----------+
+
+### Representative query plans on firm A (50-representative-queries.sql) (as mf_rt_a on mf_f_b794a3e961504bf28ef1be59d3164b64)
+=== Q0 PITFALL: utf8mb4 user variable against ascii_general_ci GUID column
+-> Filter: (matter_tasks.MatterRecordId = <cache>((@matter_utf8mb4)))  (cost=2359 rows=9876) (actual time=0.0861..63.1 rows=20 loops=1)
+    -> Table scan on matter_tasks  (cost=2359 rows=98756) (actual time=0.0798..42.3 rows=100000 loops=1)
+
+=== Q0b plain string literal (how client-side parameter substitution arrives)
+-> Index lookup on matter_tasks using IX_matter_tasks_MatterRecordId (MatterRecordId='00000001-0000-4000-8000-000000000004')  (cost=7 rows=20) (actual time=0.0679..0.0698 rows=20 loops=1)
+
+=== Q1a authorized active matters, CURRENT shape (MatterAccessService: OR + EXISTS)
+-> Limit: 50 row(s)  (cost=386 rows=50) (actual time=0.38..3.36 rows=50 loops=1)
+    -> Filter: ((m.ResponsibleAttorneyActorId = <cache>((@attorney))) or (m.ParalegalActorId = <cache>((@attorney))) or exists(select #2))  (cost=386 rows=1500) (actual time=0.38..3.36 rows=50 loops=1)
+        -> Index lookup on m using IX_matters_Status_CreatedAtUtc (Status='Active') (reverse)  (cost=386 rows=1500) (actual time=0.239..1.69 rows=436 loops=1)
+        -> Select #2 (subquery in condition; dependent)
+            -> Limit: 1 row(s)  (cost=0.988 rows=0.05) (actual time=0.00384..0.00384 rows=0 loops=386)
+                -> Filter: ((g.GrantType = 'Staff') and (g.RevokedAtUtc is null))  (cost=0.988 rows=0.05) (actual time=0.00355..0.00355 rows=0 loops=386)
+                    -> Index lookup on g using IX_matter_access_grants_MatterRecordId_ActorId_ActiveMarker (MatterRecordId=m.Id, ActorId=(@attorney))  (cost=0.988 rows=1) (actual time=0.00347..0.00347 rows=0 loops=386)
+
+=== Q1b authorized active matters, PROPOSED shape (assignment/grant id set, ethical wall)
+-> Limit: 50 row(s)  (actual time=1.01..1.01 rows=50 loops=1)
+    -> Sort: m.CreatedAtUtc DESC, m.Id DESC, limit input to 50 row(s) per chunk  (actual time=1.01..1.01 rows=50 loops=1)
+        -> Stream results  (cost=306 rows=108) (actual time=0.446..0.964 rows=167 loops=1)
+            -> Nested loop antijoin  (cost=306 rows=108) (actual time=0.442..0.924 rows=167 loops=1)
+                -> Nested loop inner join  (cost=284 rows=108) (actual time=0.436..0.875 rows=167 loops=1)
+                    -> Table scan on s  (cost=159..165 rows=341) (actual time=0.43..0.455 rows=386 loops=1)
+                        -> Union materialize with deduplication  (cost=159..159 rows=341) (actual time=0.428..0.428 rows=386 loops=1)
+                            -> Covering index lookup on matter_assignments using IX_matter_assignments_Actor_Active (ActorId=(@attorney), ActiveMarker=1)  (cost=57.9 rows=334) (actual time=0.0493..0.0965 rows=334 loops=1)
+                            -> Filter: (matter_access_grants.GrantType = 'Staff')  (cost=66.5 rows=6.7) (actual time=0.26..0.271 rows=67 loops=1)
+                                -> Index lookup on matter_access_grants using IX_matter_access_grants_ActorId_RevokedAtUtc (ActorId=(@attorney), RevokedAtUtc=NULL), with index condition: (matter_access_grants.RevokedAtUtc is null)  (cost=66.5 rows=67) (actual time=0.259..0.265 rows=67 loops=1)
+                    -> Filter: (m.`Status` = 'Active')  (cost=0.25 rows=0.317) (actual time=993e-6..0.00101 rows=0.433 loops=386)
+                        -> Single-row index lookup on m using PRIMARY (Id=s.MatterRecordId)  (cost=0.25 rows=1) (actual time=866e-6..882e-6 rows=1 loops=386)
+                -> Single-row index lookup on <subquery5> using <auto_distinct_key> (MatterRecordId=s.MatterRecordId)  (cost=12.1..12.1 rows=1) (actual time=204e-6..204e-6 rows=0 loops=167)
+                    -> Materialize with deduplication  (cost=1.2..1.2 rows=1) (actual time=0.00499..0.00499 rows=0 loops=1)
+                        -> Filter: (w.MatterRecordId is not null)  (cost=1.1 rows=1) (actual time=0.00451..0.00451 rows=0 loops=1)
+                            -> Covering index lookup on w using IX_ethical_walls_Actor_Active (ScreenedActorId=(@attorney), ActiveMarker=1)  (cost=1.1 rows=1) (actual time=0.00436..0.00436 rows=0 loops=1)
+
+=== Q1c firm-wide active matters, keyset page 2 (matters.read.all)
+-> Limit: 50 row(s)  (cost=498 rows=50) (actual time=0.0776..0.119 rows=50 loops=1)
+    -> Index range scan on m using IX_matters_Status_CreatedAtUtc over (Status = 'Active' AND CreatedAtUtc < '2026-08-22 23:49:10.000000') OR (Status = 'Active' AND CreatedAtUtc = '2026-08-22 23:49:10.000000' AND Id < '00000001-0000-4000-8000-00000000028A') (reverse), with index condition: ((m.`Status` = 'Active') and ((m.CreatedAtUtc < <cache>((@cursor_created))) or ((m.CreatedAtUtc = <cache>((@cursor_created))) and (m.Id < <cache>((@cursor_id))))))  (cost=498 rows=1451) (actual time=0.0769..0.116 rows=50 loops=1)
+
+=== Q1d client portal matters (ClientMatters: Client grant)
+-> Nested loop inner join  (cost=3.45 rows=0.1) (actual time=0.0687..0.0694 rows=1 loops=1)
+    -> Table scan on <subquery2>  (cost=3.19..3.19 rows=0.1) (actual time=0.0579..0.0583 rows=1 loops=1)
+        -> Materialize with deduplication  (cost=0.689..0.689 rows=0.1) (actual time=0.0567..0.0567 rows=1 loops=1)
+            -> Filter: (g.GrantType = 'Client')  (cost=0.679 rows=0.1) (actual time=0.0492..0.0508 rows=1 loops=1)
+                -> Index lookup on g using IX_matter_access_grants_ActorId_RevokedAtUtc (ActorId='u-c-4', RevokedAtUtc=NULL), with index condition: (g.RevokedAtUtc is null)  (cost=0.679 rows=1) (actual time=0.0479..0.0493 rows=1 loops=1)
+    -> Single-row index lookup on m using PRIMARY (Id=`<subquery2>`.MatterRecordId)  (cost=0.35 rows=1) (actual time=0.00956..0.00965 rows=1 loops=1)
+
+=== Q2a my overdue open tasks
+-> Limit: 50 row(s)  (cost=309 rows=50) (actual time=2.43..2.44 rows=50 loops=1)
+    -> Sort: matter_tasks.DueAtUtc, matter_tasks.Id, limit input to 50 row(s) per chunk  (cost=309 rows=685) (actual time=2.43..2.44 rows=50 loops=1)
+        -> Index range scan on matter_tasks using IX_matter_tasks_Assignee_Status_Due over (AssigneeActorId = 'u-s-016' AND Status = 'InProgress' AND NULL < DueAtUtc < '2026-10-12 00:00:00.000000') OR (AssigneeActorId = 'u-s-016' AND Status = 'Open' AND NULL < DueAtUtc < '2026-10-12 00:00:00.000000'), with index condition: ((matter_tasks.AssigneeActorId = <cache>((@paralegal))) and (matter_tasks.`Status` in ('Open','InProgress')) and (matter_tasks.DueAtUtc < <cache>((@now))))  (cost=309 rows=685) (actual time=0.0203..2.34 rows=684 loops=1)
+
+=== Q2b open tasks on one matter
+-> Sort: matter_tasks.DueAtUtc  (cost=1.41 rows=2) (actual time=0.0389..0.0389 rows=0 loops=1)
+    -> Index range scan on matter_tasks using IX_matter_tasks_Matter_Status_Due over (MatterRecordId = '00000001-0000-4000-8000-000000000004' AND Status = 'InProgress') OR (MatterRecordId = '00000001-0000-4000-8000-000000000004' AND Status = 'Open'), with index condition: ((matter_tasks.MatterRecordId = <cache>((@matter))) and (matter_tasks.`Status` in ('Open','InProgress')))  (cost=1.41 rows=2) (actual time=0.0331..0.0331 rows=0 loops=1)
+
+=== Q2c firm deadlines due in the next 14 days
+-> Limit: 100 row(s)  (cost=500 rows=100) (actual time=3.99..4 rows=100 loops=1)
+    -> Sort: deadlines.DueDate, deadlines.Id, limit input to 100 row(s) per chunk  (cost=500 rows=416) (actual time=3.99..3.99 rows=100 loops=1)
+        -> Index range scan on deadlines using IX_deadlines_Status_DueDate over (Status = 'Unverified' AND '2026-10-12' <= DueDate <= '2026-10-26') OR (Status = 'Verified' AND '2026-10-12' <= DueDate <= '2026-10-26'), with index condition: ((deadlines.`Status` in ('Unverified','Verified')) and (deadlines.DueDate between <cache>((@today)) and <cache>(((@today) + interval 14 day))))  (cost=500 rows=416) (actual time=0.0954..3.86 rows=416 loops=1)
+
+=== Q2d my deadlines, overdue or due within 30 days
+-> Sort: deadlines.DueDate  (cost=29.1 rows=56) (actual time=0.208..0.211 rows=56 loops=1)
+    -> Index range scan on deadlines using IX_deadlines_Responsible_Status_Due over (ResponsibleActorId = 'u-s-003' AND Status = 'Unverified' AND DueDate < '2026-11-11') OR (ResponsibleActorId = 'u-s-003' AND Status = 'Verified' AND DueDate < '2026-11-11'), with index condition: ((deadlines.ResponsibleActorId = <cache>((@attorney))) and (deadlines.`Status` in ('Unverified','Verified')) and (deadlines.DueDate < <cache>(((@today) + interval 30 day))))  (cost=29.1 rows=56) (actual time=0.0211..0.194 rows=56 loops=1)
+
+=== Q3a documents on a matter, newest first
+-> Limit: 50 row(s)  (cost=13.2 rows=12) (actual time=0.195..0.233 rows=12 loops=1)
+    -> Index lookup on matter_documents using IX_matter_documents_Matter_Uploaded (MatterRecordId=(@matter)) (reverse)  (cost=13.2 rows=12) (actual time=0.194..0.231 rows=12 loops=1)
+
+=== Q3b current version of a document
+-> Limit: 1 row(s)  (cost=2.2 rows=1) (actual time=0.041..0.0411 rows=1 loops=1)
+    -> Index lookup on document_versions using UX_document_versions_Doc_Version (DocumentId=(@document)) (reverse)  (cost=2.2 rows=2) (actual time=0.0406..0.0406 rows=1 loops=1)
+
+=== Q4a conversation page, keyset (older than cursor)
+-> Limit: 50 row(s)  (cost=1.61e+6 rows=50) (actual time=0.0554..0.0718 rows=50 loops=1)
+    -> Filter: ((messages.ConversationId = <cache>((@hot_conversation))) and (messages.Id < <cache>((@msg_cursor))))  (cost=1.61e+6 rows=967) (actual time=0.0545..0.0676 rows=50 loops=1)
+        -> Index range scan on messages using PRIMARY over (Id < 5000) (reverse)  (cost=1.61e+6 rows=9666) (actual time=0.0505..0.0565 rows=50 loops=1)
+
+=== Q4c keyset page in an ORDINARY conversation (messages interleaved across the whole id range)
+-> Limit: 20 row(s)  (cost=29.7 rows=20) (actual time=0.218..0.221 rows=20 loops=1)
+    -> Index range scan on messages using IX_messages_Conversation_Id over (ConversationId = '0000000a-0000-4000-8000-000000000002' AND Id < 215973) (reverse), with index condition: ((messages.ConversationId = <cache>((@normal_conversation))) and (messages.Id < <cache>((@normal_cursor))))  (cost=29.7 rows=24) (actual time=0.218..0.22 rows=20 loops=1)
+
+=== Q4b conversation page, OFFSET 15000 (anti-pattern for comparison)
+-> Limit/Offset: 50/15000 row(s)  (cost=12206 rows=50) (actual time=15..15.1 rows=50 loops=1)
+    -> Index lookup on messages using IX_messages_Conversation_Id (ConversationId=(@hot_conversation)) (reverse)  (cost=12206 rows=39252) (actual time=0.142..14.7 rows=15050 loops=1)
+
+=== Q5a overdue receivables, two-status IN (comparison)
+-> Limit: 50 row(s)  (cost=2005 rows=50) (actual time=10.9..10.9 rows=50 loops=1)
+    -> Sort: invoices.DueDate, invoices.Id, limit input to 50 row(s) per chunk  (cost=2005 rows=19809) (actual time=10.9..10.9 rows=50 loops=1)
+        -> Filter: ((invoices.`Status` in ('Issued','PartiallyPaid')) and (invoices.DueDate < <cache>((@today))))  (cost=2005 rows=19809) (actual time=0.0818..10.4 rows=3800 loops=1)
+            -> Table scan on invoices  (cost=2005 rows=19809) (actual time=0.0742..9.09 rows=20000 loops=1)
+
+=== Q5a2 overdue receivables via OpenMarker (design)
+-> Limit: 50 row(s)  (cost=2053 rows=50) (actual time=0.0221..0.128 rows=50 loops=1)
+    -> Index range scan on invoices using IX_invoices_Open_DueDate over (OpenMarker = 1 AND NULL < DueDate < '2026-10-12'), with index condition: ((invoices.OpenMarker = 1) and (invoices.DueDate < <cache>((@today))))  (cost=2053 rows=7050) (actual time=0.0214..0.126 rows=50 loops=1)
+
+=== Q5b active allocations for one invoice
+-> Index lookup on a using IX_payment_allocations_Invoice (InvoiceId=(@invoice), ReversedAtUtc=NULL), with index condition: (a.ReversedAtUtc is null)  (cost=1.1 rows=1) (actual time=0.0181..0.0188 rows=1 loops=1)
+
+=== Q5c open invoices for one client
+-> Index lookup on invoices using IX_invoices_BillTo_Open (BillToPartyId=(@`client`), OpenMarker=1)  (cost=0.35 rows=1) (actual time=0.00909..0.00909 rows=0 loops=1)
+
+=== Q6a trust activity for one matter and client
+-> Nested loop inner join  (cost=4.39 rows=1) (actual time=0.0654..0.0812 rows=2 loops=1)
+    -> Index lookup on l using IX_journal_lines_Trust (LedgerAccountId=(@trust), MatterRecordId=(@matter), ClientPartyId=(@`client`))  (cost=2.2 rows=2) (actual time=0.0387..0.0409 rows=2 loops=1)
+    -> Filter: (e.`Status` = 'Posted')  (cost=1.02 rows=0.5) (actual time=0.019..0.0192 rows=1 loops=2)
+        -> Single-row index lookup on e using PRIMARY (Id=l.JournalEntryId)  (cost=1.02 rows=1) (actual time=0.0185..0.0185 rows=1 loops=2)
+
+=== Q6b trust book balance as of a statement date (reconciliation input)
+-> Aggregate: sum((l.Debit - l.Credit))  (cost=19528 rows=1) (actual time=37.8..37.8 rows=1 loops=1)
+    -> Nested loop inner join  (cost=18816 rows=7113) (actual time=0.203..36.7 rows=10000 loops=1)
+        -> Index lookup on l using IX_journal_lines_Trust (LedgerAccountId=(@trust))  (cost=3243 rows=14226) (actual time=0.193..15.2 rows=10000 loops=1)
+        -> Filter: ((e.`Status` = 'Posted') and (e.EffectiveDate <= <cache>((@today))))  (cost=0.995 rows=0.5) (actual time=0.002..0.00205 rows=1 loops=10000)
+            -> Single-row index lookup on e using PRIMARY (Id=l.JournalEntryId)  (cost=0.995 rows=1) (actual time=0.00179..0.00181 rows=1 loops=10000)
+
+=== Q6c trust subledger total (reconciliation input)
+-> Aggregate: sum(trust_subledger_balances.Balance)  (cost=528 rows=1) (actual time=1.35..1.35 rows=1 loops=1)
+    -> Index lookup on trust_subledger_balances using PRIMARY (TrustAccountId=(@trust))  (cost=278 rows=2500) (actual time=0.0218..1.08 rows=5000 loops=1)
+
+=== Q7a intake work queue
+-> Limit: 50 row(s)  (cost=681 rows=50) (actual time=2.32..2.33 rows=50 loops=1)
+    -> Sort: intake_records.NextActionDueAtUtc, intake_records.Id, limit input to 50 row(s) per chunk  (cost=681 rows=5851) (actual time=2.32..2.32 rows=50 loops=1)
+        -> Filter: (intake_records.Stage in ('New','Contacted','ConsultationScheduled','UnderReview'))  (cost=681 rows=5851) (actual time=0.0641..2.03 rows=2400 loops=1)
+            -> Table scan on intake_records  (cost=681 rows=5851) (actual time=0.0627..1.43 rows=6000 loops=1)
+
+=== Q7b new consultation requests by preferred time
+-> Limit: 50 row(s)  (cost=329 rows=50) (actual time=0.0741..0.337 rows=50 loops=1)
+    -> Index lookup on consultation_requests using IX_consultation_requests_Status_Preferred (Status='New')  (cost=329 rows=400) (actual time=0.0738..0.335 rows=50 loops=1)
+
+=== Q8a outbox claim batch (plan only; real claim uses FOR UPDATE SKIP LOCKED)
+-> Limit: 100 row(s)  (cost=410 rows=100)
+    -> Filter: ((outbox_events.`Status` = 'Pending') and (outbox_events.AvailableAtUtc <= <cache>((@now))))  (cost=410 rows=2000)
+        -> Covering index range scan on outbox_events using IX_outbox_events_Status_Available over (Status = 'Pending' AND AvailableAtUtc <= '2026-10-12 00:00:00.000000')  (cost=410 rows=2000)
+
+-> Limit: 100 row(s)  (cost=410 rows=100) (actual time=0.0117..0.0497 rows=100 loops=1)
+    -> Filter: ((outbox_events.`Status` = 'Pending') and (outbox_events.AvailableAtUtc <= <cache>((@now))))  (cost=410 rows=2000) (actual time=0.0114..0.046 rows=100 loops=1)
+        -> Covering index range scan on outbox_events using IX_outbox_events_Status_Available over (Status = 'Pending' AND AvailableAtUtc <= '2026-10-12 00:00:00.000000')  (cost=410 rows=2000) (actual time=0.0096..0.0294 rows=100 loops=1)
+
+=== Q8b webhook dedup probe
+-> Rows fetched before execution  (cost=0..0 rows=1) (actual time=60e-6..107e-6 rows=1 loops=1)
+
+=== Q8c unprocessed webhook receipts
+-> Limit: 100 row(s)  (cost=164 rows=100) (actual time=0.93..0.943 rows=100 loops=1)
+    -> Index lookup on webhook_receipts using IX_webhook_receipts_Unprocessed (ProcessedAtUtc=NULL), with index condition: (webhook_receipts.ProcessedAtUtc is null)  (cost=164 rows=150) (actual time=0.93..0.938 rows=100 loops=1)
+
+
+Run finished (UTC): 2026-10-12 06:03:29
+Container mf-design-validation-6affb47c removed.

@@ -3,6 +3,8 @@
 [Home](../README.md) · [ADR](ADR-001-tenancy.md) · [Recovery](../operations/reliability-and-recovery.md)
 
 > **Current implementation (audited 2026-10-12):** No provisioning exists, and schema is created with `EnsureCreated` plus raw `CREATE TABLE IF NOT EXISTS`. EF Core migrations are a prerequisite for everything below (G06 in the [gap map](../delivery/implementation-gap-map.md)).
+>
+> **Update 2026-10-12 (F1, uncommitted):** EF Core migrations now own the schema (`Baseline`, `MatterAccessGrants`). Startup refuses databases without migration history and applies migrations only when `Database:ApplyMigrationsOnStartup` is true. Existing databases follow the manual [migration baseline](migration-baseline.md). There is still no provisioning, no per-firm runner, and no runtime/migration account split.
 
 ## Provisioning state machine
 Requested → provisioning → validation → ready, with failed/retryable branches. A unique operation key prevents duplicate databases or memberships. Create catalog entry, database/role, schema, private file scope, verified domain, administrative invitation, and health evidence. Publish ready only when all required components pass validation. Compensate or explicitly mark partially completed operations; never route users to half-created resources.

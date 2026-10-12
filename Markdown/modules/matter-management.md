@@ -3,6 +3,8 @@
 [Home](../README.md) · [Construction](../practice-areas/construction-law.md) · [PI](../practice-areas/personal-injury.md)
 
 > **Current implementation (audited 2026-10-12):** Matter shell, stage history, tasks with attorney verification flag, and timeline actions (`backend/Features/Matters/MattersEndpoints.cs`). Staff calendar with deadline type, source, and verification fields (`backend/Features/Calendar/CalendarEndpoints.cs`). Gaps: no assignment-based access; the calendar verifier is taken from the request body; no jurisdiction, trigger, or rule version; no date-only deadlines; hard deletes. See G10, G30, G31, and G33 in the [gap map](../delivery/implementation-gap-map.md).
+>
+> **Update 2026-10-12 (F1, uncommitted):** every matter route and child route is now scoped by assignment or `matter_access_grants`, and writes are checked. Calendar entries follow the access of the matter named in `MatterReference`, and new references must name a matter the caller can change. Verified on MySQL for a single firm ([matter access policy](../security/matter-access-policy.md)). The other gaps listed above remain.
 
 Each matter has a unique firm number, practice area, jurisdiction, parties/roles, responsible attorney, team, engagement, phase, assignments, and access policy. Track tasks, dependencies, requests, calendar events, deadlines, evidence, communications, expenses, and decisions in one workspace.
 

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Errors;
 
 namespace EnterpriseKnowledgeAssistant.Api.Features.Auth;
 
@@ -23,9 +24,19 @@ public sealed class AuthEndpoints : IEndpointModule
 
     private static IResult Login(
         LoginRequest request,
-        IDemoUserStore userStore,
+        HttpContext httpContext,
         ITokenService tokenService)
     {
+        var userStore = httpContext.RequestServices.GetService<IDemoUserStore>();
+        if (userStore is null)
+        {
+            return Results.Json(
+                new ApiErrorResponse(
+                    httpContext.GetCorrelationId(),
+                    new ApiError("sign_in_unavailable", "Password sign-in is not configured for this environment.")),
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
         var user = userStore.FindByEmail(request.Email);
         if (user is null || !userStore.VerifyPassword(user, request.Password))
         {

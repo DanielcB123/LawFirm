@@ -3,6 +3,13 @@
 [Home](../README.md) · [Publishing](communications.md) · [Access](../security/confidentiality-and-access.md)
 
 > **Current implementation (audited 2026-10-12):** Absent. There is a `Client` role and a static `/api/portal/client` demo endpoint. Frontend workspace routes check only for a token. See G40 in the [gap map](../delivery/implementation-gap-map.md).
+>
+> **Update 2026-10-12 (F1, uncommitted):** the backend now has a client-only API (`backend/Features/ClientPortal/ClientPortalEndpoints.cs`):
+> - `GET /api/portal/matters` and `/{id}` return a minimal client DTO: number, title, practice area, status.
+> - `GET /api/portal/matters/{id}/documents` lists only the caller's own uploads.
+> - `POST /api/portal/matters/{id}/documents` stores metadata with status Pending and ignores any caller-supplied storage key.
+>
+> Access requires an unrevoked Client grant. It is tested on MySQL ([policy](../security/matter-access-policy.md)). There are still no portal pages, publication model, messaging, or file binaries.
 
 ## Landing dashboard
 Show authorized matters, responsible team and contact method, current approved phase, latest approved update with publication date, next expected update date, upcoming appointments, requested actions, shared documents, and permitted financial information. Give waiting periods a clear explanation where approved. A progress bar must not imply a predictable litigation outcome or fixed completion percentage.

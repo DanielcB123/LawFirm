@@ -38,6 +38,7 @@ The current implementation in this repo uses local JWT auth for development spee
 ### Attorney
 - `contacts.read`
 - `contacts.manage`
+- `contacts.read.restricted`
 - `conflicts.search`
 - `conflicts.review`
 - `calendar.read`
@@ -49,18 +50,27 @@ The current implementation in this repo uses local JWT auth for development spee
 - `documents.review`
 - `billing.manage`
 
+Firm-wide matter access for attorneys is kept pending firm confirmation; there are no ethical walls yet.
+
 ### Admin
 - `contacts.read`
 - `contacts.manage`
+- `contacts.read.restricted`
 - `conflicts.search`
 - `conflicts.review`
 - `calendar.read`
 - `calendar.manage`
-- `matters.read.all`
-- `matters.update.all`
+- `matters.read.assigned`
+- `matters.update.assigned`
 - `documents.review`
 - `billing.manage`
 - `users.manage`
+
+Changed 2026-10-12: admins no longer hold `matters.read.all` / `matters.update.all`. Administration does not imply access to case content; an admin reaches a matter only when assigned or granted.
+
+## Matter-level enforcement
+
+Permission claims decide which kind of route a caller may use. Which matters they reach is decided per request by `Infrastructure/Access/MatterAccessService.cs`: assignment as responsible attorney or paralegal, or an unrevoked grant in `matter_access_grants`. Clients use only `/api/portal/matters`. Full rules, denial codes, and the role/action matrix are in [Markdown/security/matter-access-policy.md](../Markdown/security/matter-access-policy.md).
 
 ## Operational controls to add before production
 
@@ -68,5 +78,5 @@ The current implementation in this repo uses local JWT auth for development spee
 - Rotate JWT signing keys using a managed secrets platform.
 - Add refresh tokens with revocation and device/session management.
 - Add audit logging for sign-in, authorization failures, and sensitive actions.
-- Enforce least privilege by matter assignment and tenant/client boundaries.
+- Enforce least privilege by tenant boundaries (matter assignment and client grants are enforced within one firm as of 2026-10-12).
 - Add step-up auth for sensitive actions (billing changes, user role changes, case exports).

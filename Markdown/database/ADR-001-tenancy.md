@@ -2,6 +2,8 @@
 
 [Home](../README.md) · [Research](tenancy-research.md) · [Provisioning](provisioning-and-migrations.md) · [Codebase audit](../architecture/current-codebase-audit.md)
 
+**Refined by [ADR-002](ADR-002-multitenant-architecture.md) (2026-10-12).** ADR-002 keeps this decision and replaces the "Connections and cost" section below. This file is otherwise kept as written.
+
 **Status:** Proposed. Revised 2026-10-12 after the repository audit; awaiting hosting validation and founder sign-off. **Decision owners:** product founder and technical owner, with first-firm workflow review. Nothing in this ADR is implemented yet.
 
 ## Context from the audit

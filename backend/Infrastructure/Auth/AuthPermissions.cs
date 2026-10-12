@@ -4,6 +4,7 @@ public static class AuthPermissions
 {
     public const string ContactsRead = "contacts.read";
     public const string ContactsManage = "contacts.manage";
+    public const string ContactsReadRestricted = "contacts.read.restricted";
     public const string ConflictsSearch = "conflicts.search";
     public const string ConflictsReview = "conflicts.review";
     public const string CalendarRead = "calendar.read";

@@ -1,17 +1,41 @@
+using System.Data;
+using System.Data.Common;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Audit;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace EnterpriseKnowledgeAssistant.Api.Infrastructure.Persistence;
 
 public static class PersistenceServiceCollectionExtensions
 {
-    public static IServiceCollection AddLawFirmPersistence(this IServiceCollection services, IConfiguration configuration)
-    {
-        var connectionString = configuration.GetConnectionString("LawFirm")
-                               ?? "Server=localhost;Port=3307;Database=lawfirm_dev;User=lawfirm_app;Password=lawfirm_dev_pw;AllowPublicKeyRetrieval=True;SslMode=Preferred;";
+    public const string ConnectionStringName = "LawFirm";
+    public const string ApplyMigrationsOnStartupKey = "Database:ApplyMigrationsOnStartup";
+    public const string BaselineRunbookPath = "Markdown/database/migration-baseline.md";
 
-        services.AddDbContext<LawFirmDbContext>(options =>
-            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
+    public static readonly MySqlServerVersion ServerVersion = new(new Version(8, 0, 36));
+
+    private static readonly string[] KnownApplicationTables =
+    [
+        "parties", "party_aliases", "party_relationships", "conflict_checks", "conflict_decisions",
+        "audit_events", "calendar_entries", "intake_records", "intake_stage_history", "intake_notes",
+        "matters", "matter_stage_history", "matter_tasks", "matter_documents", "matter_timeline_actions",
+        "consultation_requests"
+    ];
+
+    public static IServiceCollection AddLawFirmPersistence(this IServiceCollection services)
+    {
+        services.AddDbContext<LawFirmDbContext>((serviceProvider, options) =>
+        {
+            var connectionString = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionStringName);
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    $"Connection string '{ConnectionStringName}' is not configured. Set it with user-secrets or the " +
+                    $"ConnectionStrings__{ConnectionStringName} environment variable.");
+            }
+
+            options.UseMySql(connectionString, ServerVersion);
+        });
         services.AddScoped<IAuditTrailService, AuditTrailService>();
 
         return services;
@@ -21,187 +45,85 @@ public static class PersistenceServiceCollectionExtensions
     {
         await using var scope = services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LawFirmDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS intake_records (
-                Id char(36) NOT NULL,
-                PracticeArea varchar(64) NOT NULL,
-                IntakeType varchar(64) NOT NULL,
-                Stage varchar(64) NOT NULL,
-                ProspectiveClientName varchar(200) NOT NULL,
-                ProspectiveClientEmail varchar(256) NULL,
-                ProspectiveClientPhone varchar(64) NULL,
-                OwnerActorId varchar(128) NOT NULL,
-                OwnerDisplayName varchar(200) NOT NULL,
-                NextAction varchar(200) NULL,
-                NextActionDueAtUtc datetime(6) NULL,
-                ReferralSource varchar(128) NULL,
-                ConflictCheckId char(36) NULL,
-                ApprovedConflictDecisionId char(36) NULL,
-                DeclineReason varchar(500) NULL,
-                NotesSummary varchar(2000) NULL,
-                CreatedByActorId varchar(128) NOT NULL,
-                CreatedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_intake_records_Stage (Stage),
-                INDEX IX_intake_records_OwnerActorId (OwnerActorId),
-                INDEX IX_intake_records_PracticeArea (PracticeArea)
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS intake_stage_history (
-                Id char(36) NOT NULL,
-                IntakeRecordId char(36) NOT NULL,
-                FromStage varchar(64) NOT NULL,
-                ToStage varchar(64) NOT NULL,
-                ChangedByActorId varchar(128) NOT NULL,
-                ChangedByDisplayName varchar(200) NOT NULL,
-                ChangeReason varchar(1000) NULL,
-                ChangedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_intake_stage_history_IntakeRecordId (IntakeRecordId),
-                CONSTRAINT FK_intake_stage_history_intake_records_IntakeRecordId
-                    FOREIGN KEY (IntakeRecordId) REFERENCES intake_records (Id) ON DELETE CASCADE
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS intake_notes (
-                Id char(36) NOT NULL,
-                IntakeRecordId char(36) NOT NULL,
-                Note varchar(3000) NOT NULL,
-                CreatedByActorId varchar(128) NOT NULL,
-                CreatedByDisplayName varchar(200) NOT NULL,
-                CreatedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_intake_notes_IntakeRecordId (IntakeRecordId),
-                CONSTRAINT FK_intake_notes_intake_records_IntakeRecordId
-                    FOREIGN KEY (IntakeRecordId) REFERENCES intake_records (Id) ON DELETE CASCADE
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS matters (
-                Id char(36) NOT NULL,
-                MatterNumber varchar(64) NOT NULL,
-                Title varchar(200) NOT NULL,
-                PracticeArea varchar(64) NOT NULL,
-                Stage varchar(64) NOT NULL,
-                Status varchar(64) NOT NULL,
-                ResponsibleAttorneyActorId varchar(128) NOT NULL,
-                ResponsibleAttorneyDisplayName varchar(200) NOT NULL,
-                ParalegalActorId varchar(128) NULL,
-                ParalegalDisplayName varchar(200) NULL,
-                LinkedIntakeRecordId char(36) NULL,
-                CreatedByActorId varchar(128) NOT NULL,
-                CreatedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                UNIQUE INDEX IX_matters_MatterNumber (MatterNumber),
-                INDEX IX_matters_Stage (Stage),
-                INDEX IX_matters_ResponsibleAttorneyActorId (ResponsibleAttorneyActorId)
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS matter_stage_history (
-                Id char(36) NOT NULL,
-                MatterRecordId char(36) NOT NULL,
-                FromStage varchar(64) NOT NULL,
-                ToStage varchar(64) NOT NULL,
-                ChangedByActorId varchar(128) NOT NULL,
-                ChangedByDisplayName varchar(200) NOT NULL,
-                ChangeReason varchar(1000) NULL,
-                ChangedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_matter_stage_history_MatterRecordId (MatterRecordId),
-                CONSTRAINT FK_matter_stage_history_matters_MatterRecordId
-                    FOREIGN KEY (MatterRecordId) REFERENCES matters (Id) ON DELETE CASCADE
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS matter_tasks (
-                Id char(36) NOT NULL,
-                MatterRecordId char(36) NOT NULL,
-                Title varchar(240) NOT NULL,
-                Description varchar(4000) NULL,
-                Status varchar(64) NOT NULL,
-                Priority varchar(32) NOT NULL,
-                AssigneeActorId varchar(128) NULL,
-                AssigneeDisplayName varchar(200) NULL,
-                DueAtUtc datetime(6) NULL,
-                IsDeadlineVerified tinyint(1) NOT NULL,
-                DeadlineVerifiedAtUtc datetime(6) NULL,
-                DeadlineVerifiedByActorId varchar(128) NULL,
-                DeadlineVerifiedByDisplayName varchar(200) NULL,
-                CompletedAtUtc datetime(6) NULL,
-                CreatedByActorId varchar(128) NOT NULL,
-                CreatedByDisplayName varchar(200) NOT NULL,
-                CreatedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_matter_tasks_MatterRecordId (MatterRecordId),
-                INDEX IX_matter_tasks_DueAtUtc (DueAtUtc),
-                CONSTRAINT FK_matter_tasks_matters_MatterRecordId
-                    FOREIGN KEY (MatterRecordId) REFERENCES matters (Id) ON DELETE CASCADE
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS matter_documents (
-                Id char(36) NOT NULL,
-                MatterRecordId char(36) NOT NULL,
-                FileName varchar(240) NOT NULL,
-                DocumentType varchar(80) NOT NULL,
-                StorageKey varchar(512) NULL,
-                UploadedByActorId varchar(128) NOT NULL,
-                UploadedByDisplayName varchar(200) NOT NULL,
-                UploadedAtUtc datetime(6) NOT NULL,
-                ReviewStatus varchar(32) NOT NULL,
-                ReviewNotes varchar(2000) NULL,
-                ReviewedByActorId varchar(128) NULL,
-                ReviewedByDisplayName varchar(200) NULL,
-                ReviewedAtUtc datetime(6) NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_matter_documents_MatterRecordId (MatterRecordId),
-                INDEX IX_matter_documents_DocumentType (DocumentType),
-                CONSTRAINT FK_matter_documents_matters_MatterRecordId
-                    FOREIGN KEY (MatterRecordId) REFERENCES matters (Id) ON DELETE CASCADE
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS matter_timeline_actions (
-                Id char(36) NOT NULL,
-                MatterRecordId char(36) NOT NULL,
-                ActionType varchar(80) NOT NULL,
-                Summary varchar(400) NOT NULL,
-                Details varchar(4000) NULL,
-                OccurredAtUtc datetime(6) NOT NULL,
-                CreatedByActorId varchar(128) NOT NULL,
-                CreatedByDisplayName varchar(200) NOT NULL,
-                CreatedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_matter_timeline_actions_MatterRecordId (MatterRecordId),
-                INDEX IX_matter_timeline_actions_OccurredAtUtc (OccurredAtUtc),
-                CONSTRAINT FK_matter_timeline_actions_matters_MatterRecordId
-                    FOREIGN KEY (MatterRecordId) REFERENCES matters (Id) ON DELETE CASCADE
-            );
-            """);
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS consultation_requests (
-                Id char(36) NOT NULL,
-                FullName varchar(200) NOT NULL,
-                Email varchar(256) NOT NULL,
-                Phone varchar(64) NULL,
-                PracticeArea varchar(64) NOT NULL,
-                Message varchar(3000) NULL,
-                PreferredAtUtc datetime(6) NOT NULL,
-                TimeZone varchar(64) NOT NULL,
-                Status varchar(32) NOT NULL,
-                AssignedToActorId varchar(128) NULL,
-                AssignedToDisplayName varchar(200) NULL,
-                InternalNotes varchar(2000) NULL,
-                CreatedAtUtc datetime(6) NOT NULL,
-                UpdatedAtUtc datetime(6) NOT NULL,
-                PRIMARY KEY (Id),
-                INDEX IX_consultation_requests_Status (Status),
-                INDEX IX_consultation_requests_PreferredAtUtc (PreferredAtUtc),
-                INDEX IX_consultation_requests_CreatedAtUtc (CreatedAtUtc)
-            );
-            """);
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("LawFirmPersistence");
+        var applyMigrations = configuration.GetValue<bool>(ApplyMigrationsOnStartupKey);
+
+        var state = await DetectSchemaStateAsync(dbContext);
+        if (state == SchemaState.LegacyUnmanaged)
+        {
+            throw new InvalidOperationException(
+                "The configured database contains application tables but no EF Core migration history. It was " +
+                "probably created by the previous EnsureCreated startup path. It will not be modified automatically. " +
+                $"Follow {BaselineRunbookPath} to baseline it, or point the connection string at a new empty database.");
+        }
+
+        var pending = (await dbContext.Database.GetPendingMigrationsAsync()).ToArray();
+        if (pending.Length == 0)
+        {
+            return;
+        }
+
+        if (!applyMigrations)
+        {
+            throw new InvalidOperationException(
+                $"The database has {pending.Length} pending migration(s) ({string.Join(", ", pending)}) and " +
+                $"{ApplyMigrationsOnStartupKey} is false. Apply migrations with a migration-privileged account.");
+        }
+
+        logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pending.Length, string.Join(", ", pending));
+        await dbContext.Database.MigrateAsync();
+    }
+
+    private enum SchemaState
+    {
+        Empty,
+        Managed,
+        LegacyUnmanaged
+    }
+
+    private static async Task<SchemaState> DetectSchemaStateAsync(LawFirmDbContext dbContext)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+        try
+        {
+            await connection.OpenAsync();
+        }
+        catch (MySqlException exception) when (exception.ErrorCode == MySqlErrorCode.UnknownDatabase)
+        {
+            return SchemaState.Empty;
+        }
+
+        try
+        {
+            var tableNames = await ReadTableNamesAsync(connection);
+            if (tableNames.Contains("__EFMigrationsHistory"))
+            {
+                return SchemaState.Managed;
+            }
+
+            return KnownApplicationTables.Any(tableNames.Contains) ? SchemaState.LegacyUnmanaged : SchemaState.Empty;
+        }
+        finally
+        {
+            if (connection.State == ConnectionState.Open)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    private static async Task<HashSet<string>> ReadTableNamesAsync(DbConnection connection)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()";
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            names.Add(reader.GetString(0));
+        }
+
+        return names;
     }
 }

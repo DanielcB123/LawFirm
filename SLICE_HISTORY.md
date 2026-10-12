@@ -1,5 +1,7 @@
 # Slice History
 
+A **slice** is one bounded implementation step: a small piece of work carried end to end (schema, API, UI where relevant, tests, documentation) that leaves the application runnable. Entries are append-only. Each heading's date and slice name is its stable ID. Later outcomes are added as new entries; earlier failures are not rewritten. Commit references appear only when a commit exists. Current state lives in [ProgressPlan.md](ProgressPlan.md).
+
 ## 2026-10-04 - Slice S1 + S2 foundation
 
 Implemented initial vertical slice for:
@@ -203,3 +205,149 @@ Implemented the second workspace slice to support matter execution workflows (ta
 
 - Document handling is metadata index only in this slice (no binary upload/storage pipeline yet).
 - Task updates currently use a full-field post model from UI quick actions rather than granular PATCH semantics.
+
+## 2026-10-12 - Slice A0 Repository audit and linked documentation
+
+- **Recorded:** retroactively on 2026-10-12 01:22 EDT (UTC−04:00). The work was committed by the repository owner as `91a9ded` ("Markdown and the PLAN. Follow the PLAN") at 2026-10-12 00:28:32 EDT.
+- **Objective and scope:** audit the codebase against the law-firm SaaS blueprint in `Markldown/CURSOR_PROMPT.md` and produce linked documentation. Documentation only.
+- **Changes:** created `Markdown/` (27 blueprint documents) plus `Markdown/architecture/current-codebase-audit.md`, `Markdown/architecture/stack-and-runtime.md`, `Markdown/delivery/implementation-gap-map.md`; rewrote `Markdown/database/ADR-001-tenancy.md` (MySQL, database per firm); added the dependency-ordered plan F1–F13 to `Markdown/delivery/roadmap-and-acceptance.md`. 30 files changed, all Markdown.
+- **Decisions:** keep .NET 8 / EF Core + Pomelo / MySQL 8 / React; tenant is the law firm; database per firm proposed in ADR-001 (not implemented).
+- **Checks run:** relative links in the new documents resolved (184 links, all valid); `npm run lint` recorded as failing with 7 errors and 3 warnings; source read for every audit claim.
+- **Checks not run:** application code was unchanged, so no build or test was needed for the change itself. No database or API behavior was exercised; audit findings about runtime behavior came from reading source.
+- **Remaining defects found:** matter routes not assignment-scoped; clients could create document metadata on any matter; restricted parties unmasked in `/api/parties`; demo users registered in all environments; secrets in tracked config; `EnsureCreated` schema; no tests. See the gap map.
+- **Outcome:** documentation complete. **Next action:** F1 (test harness + matter authorization).
+
+## 2026-10-12 - Slice F1 Matter authorization, real-MySQL test harness, migrations baseline, secrets and demo-auth gating
+
+- **Recorded:** 2026-10-12 01:22 EDT (UTC−04:00). **Not committed** (working tree on top of `91a9ded`).
+- **Objective and scope:** enforce matter-level access on every matter-owned path for one firm, fix restricted-party disclosure, prove it on real MySQL, and remove the schema and secrets prerequisites that blocked testing. Multitenancy explicitly out of scope.
+
+### Changes
+
+- Access control (new): `backend/Infrastructure/Access/` — `MatterAccessService.cs` (`IMatterAccessService`: readable, writable, and client matter queries; grant-manager check), `MatterAccessResults.cs` (uniform 404/403), `PartyVisibility.cs`, `ActorClaims.cs`, `AccessServiceCollectionExtensions.cs`.
+- Policies and permissions: `AuthPolicies.cs` (`MatterStaffRead`, `MatterStaffWrite`, `ClientMatterPortal`), `AuthPermissions.cs` (`contacts.read.restricted`), `AuthServiceCollectionExtensions.cs` (policies; `AddLawFirmDemoAuthentication`), `DemoUserStore.cs` (Admin: `matters.read.all/update.all` replaced by `read.assigned/update.assigned`; Attorney and Admin gain `contacts.read.restricted`), `AuthConstants.cs`.
+- Endpoints: `Features/Matters/MattersEndpoints.cs` (all routes scoped; writes checked), `Features/Matters/MatterAccessGrantEndpoints.cs` (new: list/create/revoke grants, audited), `Features/ClientPortal/ClientPortalEndpoints.cs` (new: `/api/portal/matters`), `Features/Calendar/CalendarEndpoints.cs` (entries filtered and write-checked through the linked matter number; create/update must name a writable matter), `Features/Parties/PartiesEndpoints.cs`, `Features/Conflicts/ConflictEndpoints.cs` (masked matches get a fresh id), `Features/Auth/AuthEndpoints.cs` (503 when demo sign-in is not configured).
+- Schema: `MatterAccessGrant` entity in `Infrastructure/Persistence/LawFirmDbContext.cs`; migrations `Infrastructure/Persistence/Migrations/20261012050714_Baseline` and `20261012050741_MatterAccessGrants`; `LawFirmDesignTimeDbContextFactory.cs`; `PersistenceServiceCollectionExtensions.cs` rewritten (no `EnsureCreated`, no raw DDL, no fallback connection string; refuses unmanaged databases; applies migrations only when `Database:ApplyMigrationsOnStartup` is true); `DevelopmentDataSeeder.cs` seeds one Client grant for `u-client-001` on `MAT-2026-0001`.
+- Configuration: `backend/appsettings.json` and `appsettings.Development.json` now have empty connection string and signing key (values were not printed); `Authentication:DemoUsers:Enabled` false by default; `UserSecretsId` and `Microsoft.EntityFrameworkCore.Design` added to the API project; `dotnet-tools.json` (dotnet-ef 8.0.13); `Program.cs` (`public partial class Program`, registrations).
+- Tests (new): `backend.IntegrationTests/` — `AuthenticationTests`, `MatterAccessTests`, `ClientPortalTests`, `CalendarMatterScopeTests`, `PartyVisibilityTests`, `SchemaSafetyTests`, fixtures in `Infrastructure/`.
+- Repository: `.gitignore` (test project outputs, `.test-results/`); root `AGENTS.md`; this file; `ProgressPlan.md`; `README.md`.
+- Documentation: new `Markdown/security/matter-access-policy.md` and `Markdown/database/migration-baseline.md`; updated gap map, roadmap, codebase audit, stack and runtime, security and database indexes, client-portal and matter-management modules, `backend/AUTHORIZATION_STRATEGY.md`, `backend/DEV_AUTH_CREDENTIALS.md`.
+- Removed: an empty root-level `DemoUserStore.cs` accidentally created by a failed shell edit during this session (never committed).
+
+### Decisions
+
+- Admins get no implicit matter access; attorneys keep firm-wide access pending firm confirmation (no ethical walls yet).
+- Clients use separate portal routes and DTOs; staff matter routes return 403 to clients.
+- Denial is 404 for anything the caller cannot read, matching nonexistent ids; 403 only when the caller can already read the matter.
+- Grants are soft-revoked rows; MySQL enforces one unrevoked grant per matter and actor through a stored generated column in a unique index.
+- Existing `EnsureCreated` databases are refused at startup, not migrated automatically.
+
+### Checks run (actual results)
+
+- **Fail-before:** with harness, schema, and permission changes in place but endpoints not yet enforcing, `dotnet test backend.IntegrationTests -c EfDesign` against `mysql:8.0.36`: **26 failed, 17 passed, 43 total.** The 17 that passed covered behavior that was already correct or not yet changed: assigned/firm-wide reads, policy-level 403 for staff without update permission, child lookup filtering by matter id, database constraints, schema refusal, login 503, 401s on existing routes.
+- **Pass-after:** same command after enforcement: **43 passed.** After adding the seeder test: **44 passed, 0 failed.**
+- Backend build `dotnet build -o ./.build-out` (in `backend/`): success, 0 warnings, 0 errors. Test project build `-c EfDesign`: success.
+- `dotnet-ef migrations has-pending-model-changes`: no pending changes.
+- Collation probe on a throwaway `mysql:8.0.36` container: a `ascii_general_ci` foreign key to a utf8mb4 `char(36)` primary key fails with error 3780.
+- Tracked config inspected by script printing only lengths: connection strings and signing keys are empty. No `password=`/`pwd=` strings in backend `.cs`/`.json` files.
+- Frontend `npm run build`: success. `npm run lint`: **7 errors, 3 warnings**, the same counts as the audit baseline; no frontend files changed.
+- Markdown relative links: PowerShell check over all 41 `.md` files (excluding build output): 246 relative links, 0 broken, anchors included.
+
+### Checks not run, and why
+
+- Starting the API in Development with user-secrets and demo login against a new database: not exercised (would need local secrets; the user's API process was running).
+- Baselining any existing database: deliberately not attempted; no existing database was touched.
+- Frontend behavior against the changed API: not exercised; no frontend changes in scope.
+- CI: does not exist.
+- Credential rotation: not performed (owner action). Git history: not rewritten.
+
+### Remaining defects
+
+- The calendar UI sends free-text matter references, which now return 400 unless they name a writable matter.
+- Admin users see no matters until granted.
+- Grant actor ids are unvalidated text. No ethical walls. Intake not scoped. Calendar verifier still taken from the request body. Staff document route still accepts `StorageKey`. Audit metadata contains restricted party names. Audit is not in the same transaction as the change.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope (single firm, API level, MySQL 8.0.36, synthetic data).
+- **Next action:** owner reviews and commits, rotates the listed credentials, then the multitenant database architecture and security design prompt.
+
+## 2026-10-12 - Slice M0 MatterForge working name and multi-firm database architecture (design)
+
+- **Recorded:** 2026-10-12 02:15 EDT (UTC−04:00). **Not committed** (same working tree as F1).
+- **Objective and scope:** adopt the working product name MatterForge without breaking identifiers, and design the multi-firm (tenant = law firm) MySQL architecture, controls, and operations. Validate the design SQL on a disposable database. Implementing tenancy, deploying, importing case data, and touching existing databases were all out of scope, and none was done.
+
+### Changes
+
+- Branding (user-visible only): `README.md` title and intro, `Markdown/README.md` title, `frontend/index.html` `<title>`, the Swagger title in `backend/Program.cs`. Every other identifier is unchanged and classified in `Markdown/product/naming-and-rename.md`: namespaces, JWT issuer and audience, `ConnectionStrings:LawFirm`, `UserSecretsId`, the localStorage key, the Git remote, database names, and the demo firm branding.
+- **Folder rename: not performed.** The API (`backend\bin\Debug`) and the Vite dev server were running from the folder, and the Cursor workspace was open. No duplicate repository was created. The manual steps are recorded.
+- New design SQL in `db/design/`: control plane (01); generated current firm schema (10, from `dotnet-ef migrations script`); required additions (11); future structures (12); ledger triggers (13); pooled alternative (20); synthetic data (40); representative queries (50); engine checks (60); money checks (70); `run-validation.ps1`; `validation/mysql-8.0.36-validation.log`; `README.md`.
+- New docs:
+  - `Markdown/database/ADR-002-multitenant-architecture.md`, `data-dictionary.md`, `query-and-index-spec.md`;
+  - `Markdown/security/multitenant-threat-model.md`;
+  - `Markdown/operations/fleet-provisioning-and-migration-runbook.md`, `recovery-and-offboarding-runbook.md`;
+  - `Markdown/delivery/multitenant-acceptance-matrix.md`, `multitenant-implementation-plan.md`;
+  - `Markdown/product/naming-and-rename.md`.
+- Updated: ADR-001 (pointer to ADR-002), open decisions, gap map (design notes only; no status upgraded), roadmap, `Markdown/README.md` index, database and security READMEs, `ProgressPlan.md`, and `.gitignore`. The `.gitignore` change is an exception so the validation log is tracked despite `*.log`.
+
+### Decisions (proposed; owner review pending)
+
+- **Database per firm (option B)**, refined with:
+  - placement cells with connection budgets;
+  - small per-firm pools;
+  - per-account `MAX_USER_CONNECTIONS`;
+  - generated database names `mf_f_<32hex>`;
+  - a `firm_identity` check on every connection lease;
+  - **table-level runtime grants from a manifest**;
+  - a separate migration account;
+  - a privileged DEFINER step for triggers.
+- The strongest alternative is the hybrid (option C). Reconsideration triggers are listed in ADR-002.
+- Money is DECIMAL(19,2) with a currency code. Legal dates are DATE plus zone or jurisdiction. Append-only tables use bigint ids plus a PublicId. Approvals are bound to a content hash.
+
+### Checks run (actual results)
+
+- `run-validation.ps1` on a uniquely named `mysql:8.0.36` container. The random root password was never printed, and the container was removed at the end. Final run 06:01:44–06:03:29 UTC: every check matched its expectation. That covers E1–E12b, G1–G16b, P1–P4b, L1–L18, R1–R4, and plans Q0–Q8c. The log has 51 expected ERROR lines; a grep found no credentials.
+- `dotnet test backend.IntegrationTests -c EfDesign` after the `Program.cs` title change: **44 passed, 0 failed** (this also rebuilt the API project).
+- Every acceptance id referenced in the threat model exists in the acceptance matrix (script check).
+
+### Failures during the session, and fixes
+
+- **Trigger creation as the restricted migration user failed with ERROR 1419** (binary logging on, `log_bin_trust_function_creators = 0`). This is a real finding. The triggers moved to file 13, and the validation now shows both the failure and the privileged `CREATE DEFINER` path.
+- Early query plans showed table scans. The cause was GUIDs bound as utf8mb4 user variables against `ascii_general_ci` columns, also a real finding (kept as Q0). The checks now bind ascii-collated values.
+- G11 at first reported 0 rows updated because the value was unchanged. The check now writes a new value.
+- The R4 expectation was corrected from 1203 to the observed **1226**.
+- Script issues under Windows PowerShell 5.1: native stderr raised errors under `ErrorActionPreference Stop`, and console output was redirected into a folder that didn't exist yet. Both were fixed in the script.
+- A table-level REVOKE can't carve rights out of a database-level grant (1147, and the write still succeeded). This changed the grant design to table-level only.
+
+### Checks not run, and why
+
+- No application multi-firm code exists, so every application-level acceptance case is **Designed** only.
+- No managed host was inspected. The connection limits, backup granularity, and costs in the docs are placeholders or measurements from the local container. RPO and RTO are unverified.
+- No load test was run. Synthetic firm A is about 506 MB, so no scale or latency claim is made.
+- The existing development database was not baselined (forbidden in this stage). Credentials were not rotated (owner action).
+- The frontend build and lint were not re-run. The only frontend change is the `<title>` text.
+- F2's same-transaction audit (G16) is still open.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope (design artifacts plus disposable MySQL 8.0.36 engine validation with synthetic data). Not production ready. Branding not cleared. Folder not renamed.
+- **Next action:**
+  1. The owner optionally renames the folder by hand: stop terminals and processes, close the workspace, rename it in File Explorer, and reopen `D:\Documents\Projects\MatterForge`.
+  2. The owner reviews and commits F1 and M0.
+  3. Rotate the credentials.
+  4. Start T1 with the prompt below. If the folder was renamed, update the path first.
+
+#### Prompt for T1
+
+```text
+Repository: D:\Documents\Projects\LearnCSharpDotNet (MatterForge, working name). Follow AGENTS.md: read ProgressPlan.md, the latest SLICE_HISTORY.md entries, ADR-002, the multi-firm threat model, the acceptance matrix, and the implementation plan before changing anything; inspect the code rather than trusting the docs.
+
+Implement plan step T1 only: a minimal control-plane catalog, trusted firm resolution, and per-firm DbContext routing.
+1. A ControlPlaneDbContext with EF migrations for firms, firm_domains, database_servers, and firm_placements only (shape per db/design/01-control-plane.sql), on its own database and connection-string key. Do not change ConnectionStrings:LawFirm, the JWT issuer or audience, the namespaces, or the user-secrets id.
+2. Firm resolution from the request host, through a verified domain, an active firm, and an active placement. No firm selector is accepted from headers, body, query, or route. Unknown or unverified hosts and suspended firms fail closed before any firm query. Store the resolved firm in an immutable per-request firm context.
+3. A per-firm LawFirmDbContext factory that uses that placement's runtime connection string. Secrets come from configuration or user secrets in tests; never log them. On each connection lease, read firm_identity and compare it with the resolved firm. A mismatch returns 503 and logs a code without data.
+4. Add the firm_identity table to the firm schema through a migration.
+5. Tests in backend.IntegrationTests on real MySQL 8.0.36 (no in-memory provider): one container, a control database, and two synthetic firm databases with deliberately overlapping matter ids. Each firm has a restricted runtime account with table-level grants (no database-level grants, no DDL; firm_identity SELECT-only). Cover AT-RES-01, AT-RES-02, AT-RES-03, AT-RES-05, AT-RES-06, AT-AUTHZ-01, AT-CTX-01 (concurrent interleaved requests), AT-CTX-02, AT-DB-01, and AT-REG-01 (all 44 existing tests still pass, routed to a firm). Show fail-before and pass-after where applicable.
+Out of scope: memberships and identity (T2), the provisioner, the fleet migrator, storage, billing, deployment, real data, and any existing non-test database. Do not rewrite Git history or print secrets.
+Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry (including failures), updating the acceptance-matrix statuses and the gap map rows G01 and G02, and reporting the exact commands and results.
+```

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Access;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Audit;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
@@ -48,17 +49,21 @@ public sealed class CalendarEndpoints : IEndpointModule
         DateTimeOffset? fromUtc,
         DateTimeOffset? toUtc,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        var actorId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub") ?? string.Empty;
-        var canReadAllStaffEntries =
-            user.IsInRole(AuthRoles.Attorney) ||
-            user.IsInRole(AuthRoles.Paralegal) ||
-            user.IsInRole(AuthRoles.Admin);
+        var actorId = ActorClaims.GetActorId(user);
+        var canReadAllStaffEntries = ActorClaims.IsStaff(user);
+        var readableMatterNumbers = access.ReadableMatters(user).Select(matter => matter.MatterNumber);
+        // Entries whose reference names no matter (legacy free text) stay visible; linked entries follow matter access.
         var query = dbContext.CalendarEntries
             .AsNoTracking()
-            .AsQueryable();
+            .Where(entry =>
+                entry.MatterReference == null ||
+                entry.MatterReference == string.Empty ||
+                readableMatterNumbers.Contains(entry.MatterReference) ||
+                !dbContext.MatterRecords.Any(matter => matter.MatterNumber == entry.MatterReference));
 
         if (fromUtc.HasValue)
         {
@@ -116,18 +121,20 @@ public sealed class CalendarEndpoints : IEndpointModule
     private static async Task<IResult> CreateEntry(
         CreateCalendarEntryRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
         var validationErrors = ValidateEntryRequest(request);
+        var matterReference = await ResolveWritableMatterReferenceAsync(request.MatterReference, access, user, validationErrors, cancellationToken);
         if (validationErrors.Count > 0)
         {
             return httpContext.ValidationError("Calendar entry request is invalid.", validationErrors);
         }
 
-        var actorId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub") ?? string.Empty;
+        var actorId = ActorClaims.GetActorId(user);
         var actorName = user.FindFirstValue("name") ?? user.FindFirstValue(ClaimTypes.Email) ?? "Unknown";
         var entry = new CalendarEntry
         {
@@ -142,7 +149,7 @@ public sealed class CalendarEndpoints : IEndpointModule
             ScheduledAtUtc = request.ScheduledAtUtc,
             IsAllDay = request.IsAllDay,
             TimeZone = request.TimeZone.Trim(),
-            MatterReference = request.MatterReference?.Trim(),
+            MatterReference = matterReference,
             SourceReference = request.SourceReference?.Trim(),
             VerifiedAtUtc = request.VerifiedAtUtc,
             VerifiedByActorId = request.VerifiedByActorId?.Trim(),
@@ -200,22 +207,23 @@ public sealed class CalendarEndpoints : IEndpointModule
         Guid entryId,
         UpdateCalendarEntryRequest request,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
+        var (entry, denied) = await FindWritableEntryAsync(entryId, dbContext, access, user, httpContext, cancellationToken);
+        if (entry is null)
+        {
+            return denied!;
+        }
+
         var validationErrors = ValidateEntryRequest(request);
+        var matterReference = await ResolveWritableMatterReferenceAsync(request.MatterReference, access, user, validationErrors, cancellationToken);
         if (validationErrors.Count > 0)
         {
             return httpContext.ValidationError("Calendar entry request is invalid.", validationErrors);
-        }
-
-        var entry = await dbContext.CalendarEntries.FirstOrDefaultAsync(existingEntry => existingEntry.Id == entryId, cancellationToken);
-        if (entry is null)
-        {
-            return Results.NotFound(new ApiErrorResponse(
-                httpContext.GetCorrelationId(),
-                new ApiError("calendar_entry_not_found", "Calendar entry was not found.")));
         }
 
         entry.Title = request.Title.Trim();
@@ -228,7 +236,7 @@ public sealed class CalendarEndpoints : IEndpointModule
         entry.ScheduledAtUtc = request.ScheduledAtUtc;
         entry.IsAllDay = request.IsAllDay;
         entry.TimeZone = request.TimeZone.Trim();
-        entry.MatterReference = request.MatterReference?.Trim();
+        entry.MatterReference = matterReference;
         entry.SourceReference = request.SourceReference?.Trim();
         entry.VerifiedAtUtc = request.VerifiedAtUtc;
         entry.VerifiedByActorId = request.VerifiedByActorId?.Trim();
@@ -275,16 +283,16 @@ public sealed class CalendarEndpoints : IEndpointModule
     private static async Task<IResult> DeleteEntry(
         Guid entryId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        var entry = await dbContext.CalendarEntries.FirstOrDefaultAsync(existingEntry => existingEntry.Id == entryId, cancellationToken);
+        var (entry, denied) = await FindWritableEntryAsync(entryId, dbContext, access, user, httpContext, cancellationToken);
         if (entry is null)
         {
-            return Results.NotFound(new ApiErrorResponse(
-                httpContext.GetCorrelationId(),
-                new ApiError("calendar_entry_not_found", "Calendar entry was not found.")));
+            return denied!;
         }
 
         dbContext.CalendarEntries.Remove(entry);
@@ -304,17 +312,16 @@ public sealed class CalendarEndpoints : IEndpointModule
     private static async Task<IResult> AcknowledgeEntry(
         Guid entryId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        var entry = await dbContext.CalendarEntries.FirstOrDefaultAsync(existingEntry => existingEntry.Id == entryId, cancellationToken);
+        var (entry, denied) = await FindWritableEntryAsync(entryId, dbContext, access, user, httpContext, cancellationToken);
         if (entry is null)
         {
-            return Results.NotFound(new ApiErrorResponse(
-                httpContext.GetCorrelationId(),
-                new ApiError("calendar_entry_not_found", "Calendar entry was not found.")));
+            return denied!;
         }
 
         if (entry.IsAcknowledged)
@@ -340,16 +347,16 @@ public sealed class CalendarEndpoints : IEndpointModule
     private static async Task<IResult> CompleteEntry(
         Guid entryId,
         LawFirmDbContext dbContext,
+        IMatterAccessService access,
         IAuditTrailService auditTrailService,
         HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        var entry = await dbContext.CalendarEntries.FirstOrDefaultAsync(existingEntry => existingEntry.Id == entryId, cancellationToken);
+        var (entry, denied) = await FindWritableEntryAsync(entryId, dbContext, access, user, httpContext, cancellationToken);
         if (entry is null)
         {
-            return Results.NotFound(new ApiErrorResponse(
-                httpContext.GetCorrelationId(),
-                new ApiError("calendar_entry_not_found", "Calendar entry was not found.")));
+            return denied!;
         }
 
         if (entry.IsCompleted)
@@ -370,6 +377,76 @@ public sealed class CalendarEndpoints : IEndpointModule
             cancellationToken);
 
         return Results.Ok();
+    }
+
+    /// <summary>
+    /// Loads an entry for modification. Entries linked to a matter the caller cannot read are reported as not
+    /// found; linked to a matter the caller can read but not change, as forbidden.
+    /// </summary>
+    private static async Task<(CalendarEntry? Entry, IResult? Denied)> FindWritableEntryAsync(
+        Guid entryId,
+        LawFirmDbContext dbContext,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var notFound = Results.NotFound(new ApiErrorResponse(
+            httpContext.GetCorrelationId(),
+            new ApiError("calendar_entry_not_found", "Calendar entry was not found.")));
+
+        var entry = await dbContext.CalendarEntries.FirstOrDefaultAsync(existingEntry => existingEntry.Id == entryId, cancellationToken);
+        if (entry is null)
+        {
+            return (null, notFound);
+        }
+
+        if (string.IsNullOrEmpty(entry.MatterReference))
+        {
+            return (entry, null);
+        }
+
+        var linkedMatterId = await dbContext.MatterRecords
+            .Where(matter => matter.MatterNumber == entry.MatterReference)
+            .Select(matter => (Guid?)matter.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (linkedMatterId is null || await access.CanWriteAsync(user, linkedMatterId.Value, cancellationToken))
+        {
+            return (entry, null);
+        }
+
+        return await access.CanReadAsync(user, linkedMatterId.Value, cancellationToken)
+            ? (null, MatterAccessResults.MatterWriteForbidden(httpContext))
+            : (null, notFound);
+    }
+
+    /// <summary>
+    /// New and updated entries may only reference a matter the caller can change. A matter the caller cannot
+    /// reach is reported the same way as a nonexistent one. Returns the canonical matter number.
+    /// </summary>
+    private static async Task<string?> ResolveWritableMatterReferenceAsync(
+        string? requestedReference,
+        IMatterAccessService access,
+        ClaimsPrincipal user,
+        Dictionary<string, string[]> validationErrors,
+        CancellationToken cancellationToken)
+    {
+        var trimmed = requestedReference?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        var matterNumber = await access.WritableMatters(user)
+            .Where(matter => matter.MatterNumber == trimmed)
+            .Select(matter => matter.MatterNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (matterNumber is null)
+        {
+            validationErrors["matterReference"] = ["Matter reference was not found."];
+        }
+
+        return matterNumber;
     }
 
     private static Dictionary<string, string[]> ValidateEntryRequest(IWriteCalendarEntryRequest request)

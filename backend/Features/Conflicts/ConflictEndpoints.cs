@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Access;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Audit;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
@@ -45,7 +46,7 @@ public sealed class ConflictEndpoints : IEndpointModule
 
         var normalizedQuery = request.Query.Trim();
         var loweredQuery = normalizedQuery.ToLowerInvariant();
-        var canSeeRestrictedDetails = user.IsInRole(AuthRoles.Attorney) || user.IsInRole(AuthRoles.Admin);
+        var canSeeRestrictedDetails = PartyVisibility.CanViewRestricted(user);
 
         var parties = await dbContext.Parties
             .AsNoTracking()
@@ -62,21 +63,23 @@ public sealed class ConflictEndpoints : IEndpointModule
                 continue;
             }
 
-            var similarityScore = ComputeSimilarityScore(loweredQuery, party.DisplayName.ToLowerInvariant());
-            var safeName = party.IsRestricted && !canSeeRestrictedDetails
-                ? "Restricted Party"
-                : party.DisplayName;
-            var safeReason = party.IsRestricted && !canSeeRestrictedDetails
-                ? "Match found in restricted records. Ask an attorney/admin to review details."
-                : matchReason;
-
-            matches.Add(new ConflictMatchResponse(
-                party.Id,
-                safeName,
-                party.PartyType,
-                party.IsRestricted,
-                Math.Round(similarityScore, 3),
-                safeReason));
+            var similarityScore = Math.Round(ComputeSimilarityScore(loweredQuery, party.DisplayName.ToLowerInvariant()), 3);
+            matches.Add(party.IsRestricted && !canSeeRestrictedDetails
+                // A fresh id per result: the real id would let the caller correlate or target the hidden party.
+                ? new ConflictMatchResponse(
+                    Guid.NewGuid(),
+                    PartyVisibility.MaskedDisplayName,
+                    PartyVisibility.MaskedPartyType,
+                    true,
+                    similarityScore,
+                    PartyVisibility.MaskedMatchReason)
+                : new ConflictMatchResponse(
+                    party.Id,
+                    party.DisplayName,
+                    party.PartyType,
+                    party.IsRestricted,
+                    similarityScore,
+                    matchReason));
         }
 
         matches = matches

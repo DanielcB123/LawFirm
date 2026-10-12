@@ -1,4 +1,140 @@
-# ProgressPlan: Clio-Parity Buildout
+# ProgressPlan
+
+**Last updated:** 2026-10-12 02:15 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+
+Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Mission and first firm
+
+One application that replaces a firm's separate website, intake/CRM, and practice-management products, later offered as multitenant SaaS where **the tenant is a law firm**. First firm: **Maldanado and Benitez Law** (construction law, litigation, personal injury). Details: [first firm](Markdown/product/first-firm.md), [vision and scope](Markdown/product/vision-and-scope.md). No real firm or client data is in the repository; seed data is fictional (`parkerreedlaw.com`).
+
+## Stack
+
+.NET 8 minimal API (`backend/`), EF Core 8.0.13 with Pomelo 8.0.3 on MySQL 8 (server version pinned to 8.0.36), React + TypeScript + Vite (`frontend/`), integration tests in `backend.IntegrationTests/` (xUnit, `WebApplicationFactory`, Testcontainers 3.10.0). Details: [stack and runtime](Markdown/architecture/stack-and-runtime.md), [codebase audit](Markdown/architecture/current-codebase-audit.md).
+
+## Naming status (two separate facts)
+
+- **Branding:** "MatterForge" is a **working product name**, not cleared public branding. No trademark or domain clearance has been done. It is applied to the README titles, the browser title, and the Swagger title only.
+- **Repository folder:** **not renamed.** It is still `D:\Documents\Projects\LearnCSharpDotNet`. The rename was unsafe because the API and the Vite dev server were running from the folder and the Cursor workspace was open. The four manual steps and the identifier inventory are in the [naming and rename record](Markdown/product/naming-and-rename.md). Namespaces, JWT issuer and audience, connection-string key, user-secrets id, localStorage key, Git remote, and database names are unchanged on purpose.
+
+## Tenancy status
+
+**Single firm only in code.** One connection string, one database, no firm identity anywhere in the schema or tokens. Cross-firm isolation in the application does not exist and has not been tested.
+
+**Architecture: designed, not implemented.** [ADR-002](Markdown/database/ADR-002-multitenant-architecture.md) refines ADR-001: database per firm, plus placement cells, connection budgets, table-level runtime grants, a `firm_identity` check, and a privileged trigger step. The strongest alternative is a hybrid. Reviewable SQL and a disposable-MySQL validation run are in [db/design](db/design/README.md). These validate engine behavior only, not the application.
+
+## Capabilities and verification level
+
+| Capability | Code | Verification | Notes |
+|---|---|---|---|
+| Matter-level authorization (staff assignment/grant, client grant, write checks, uniform 404) | Present | **Verified within stated scope**: integration tests on MySQL 8.0.36, single firm | [Policy and matrix](Markdown/security/matter-access-policy.md) |
+| Client portal API (`/api/portal/matters`) | Present | **Verified within stated scope** (API only) | No portal frontend |
+| Restricted-party masking (directory, aliases, relationships, conflicts) | Present | **Verified within stated scope** | Audit metadata still holds names (G16) |
+| Calendar entries scoped by linked matter | Present | **Verified within stated scope** | Link is matter-number text, not a foreign key |
+| EF Core migrations, refusal to touch legacy/unmigrated databases | Present | **Verified within stated scope** on throwaway databases | Legacy baseline runbook not executed on a real database |
+| Demo sign-in gated to Development opt-in; no tracked secrets in current files | Present | Login 503 when disabled is tested; Development opt-in path not exercised | Historical secrets remain in Git history; rotation not done |
+| Parties, conflicts, intake, matters workspace, calendar, consultations, public site | Present (earlier slices) | Build only, plus the authorization tests above | See parity matrix below |
+| Billing, trust, payments, documents binary pipeline, MFA, multitenancy | Absent | — | See [gap map](Markdown/delivery/implementation-gap-map.md) |
+
+## Completed work
+
+| ID | Work | Status |
+|---|---|---|
+| A0 | Repository audit and linked `Markdown/` documentation (commit `91a9ded`) | Verified within stated scope (documentation; links checked; app code unchanged; DB/API not exercised) |
+| F1 | Real-MySQL test harness + matter-level authorization + restricted-party masking (uncommitted working tree) | Verified within stated scope |
+| F2 (part) | Migrations baseline, startup refusal for unmanaged DBs, secrets removed from tracked config, demo identity gated | Implemented—verification pending for existing-DB baselining and Development opt-in; remaining F2 item (same-transaction append-only audit, G16) **Planned** |
+| M0 | MatterForge working-name branding plus multi-firm architecture: ADR-002, data dictionary, query and index spec, threat model, runbooks, acceptance matrix, implementation plan, `db/design` SQL and validation (uncommitted) | **Verified within stated scope**: design SQL applied and checked on disposable MySQL 8.0.36 with synthetic data (log in `db/design/validation/`); docs link-checked. No application multi-firm code; nothing deployed; no existing database touched |
+
+## Current step: M0 multi-firm architecture (design) and working-name branding
+
+**Status: Verified within stated scope.** Not committed. The scope is architecture documentation, reviewable SQL, and validation on a disposable database. It does not implement tenancy or move any records.
+
+| Criterion | Result |
+|---|---|
+| Rename inventory classified; branding changed only where user-visible | Done ([naming record](Markdown/product/naming-and-rename.md)) |
+| Folder rename | **Not done: unsafe while processes were running.** The owner performs the manual steps |
+| Tenancy options compared at 1, 100, 1,000, and 10,000 firms, with reconsideration triggers | Done ([ADR-002](Markdown/database/ADR-002-multitenant-architecture.md)). No hosting costs or limits invented |
+| Control-plane and firm schemas, required versus future | Applied cleanly to disposable MySQL 8.0.36 as a restricted migration user, except triggers: ERROR 1419 led to the privileged DEFINER step |
+| Isolation grants, pooled-model limits, money and approval invariants, races | All checks matched expectations (G1–G16b, P1–P4b, L1–L18, R1–R4) |
+| Representative query plans | Recorded ([query and index spec](Markdown/database/query-and-index-spec.md)). Synthetic data, so no latency or scale claim |
+| Threat model, runbooks, acceptance matrix, plan | Written. Application-level cases are **Designed** only |
+
+## Previous step: F1 matter authorization (+ F2 schema/secrets prerequisites)
+
+**Status: Verified within stated scope.** Not committed. Scope: single firm, API level, synthetic data, disposable MySQL 8.0.36 containers.
+
+Acceptance criteria and result:
+
+| Criterion | Result |
+|---|---|
+| Unauthenticated requests rejected | Pass (10 routes, 401) |
+| Assigned staff can read; unassigned staff denied with 404 identical to nonexistent | Pass |
+| Authorized client sees only granted matters, minimal fields | Pass |
+| Client guessing another client's matter id | Pass (404 identical to nonexistent) |
+| Client creating a document on another client's matter | Pass (403 on staff route, 404 on portal route, no row written) |
+| Direct child-resource ids on inaccessible matters | Pass (404, rows unchanged) |
+| Child reached through a different, accessible parent route | Pass (404, row stays on original matter) |
+| Restricted-party exposure | Pass (directory, alias, relationship, conflicts incl. snapshot) |
+| Revoked access | Pass (staff and client grants) |
+| Lists and calendar filtered | Pass; no search/export/count endpoints exist to test |
+| Admin access documented and tested | Pass (no implicit access; grant gives access) |
+| Grant constraints (one active grant, valid type, matter exists) | Pass (enforced by MySQL) |
+| Migration-backed test schema; unmanaged DB refused | Pass |
+| Fail-before / pass-after | Executed: 26 of 43 failed before enforcement; 44 of 44 pass after |
+
+## Latest check results (2026-10-12)
+
+| Check | Command | Result |
+|---|---|---|
+| Backend build | `dotnet build -o ./.build-out` in `backend/` | Success, 0 warnings, 0 errors |
+| Integration tests | `dotnet test backend.IntegrationTests -c EfDesign` | 44 passed, 0 failed (MySQL 8.0.36 container). Re-run 02:13 EDT after the Swagger title change: 44 passed |
+| Design validation | `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1` | Final run 06:01–06:03 UTC: all checks as expected; 51 expected ERROR lines; container removed; log has no credentials. Earlier runs failed and were fixed (see SLICE_HISTORY M0) |
+| Migration drift | `dotnet tool run dotnet-ef migrations has-pending-model-changes --project backend` | No pending model changes |
+| Frontend build | `npm run build` in `frontend/` | Success |
+| Frontend lint | `npm run lint` in `frontend/` | Fails: 7 errors, 3 warnings, same count as the 2026-10-12 audit baseline; frontend not changed |
+| Markdown relative links | PowerShell check over all 41 `.md` files | 246 relative links, 0 broken |
+
+## Not tested
+
+- Starting the API in Development with real user-secrets, demo login, and seeding against a new database (only the seeder itself is tested, against a throwaway database).
+- Baselining any existing `EnsureCreated` database (runbook only).
+- The frontend against the new API behavior (calendar free-text matter references now get 400; admins now see an empty matter list until granted; conflict match ids for masked matches change every search).
+- Concurrency of grant creation beyond the unique index; performance of the `EXISTS` grant subqueries at scale.
+- Anything cross-firm.
+
+## Prioritized remaining work
+
+| Order | Work | Depends on | Status |
+|---|---|---|---|
+| 1 | Commit this working tree; rotate the credentials listed below | — | Planned (owner action) |
+| 2 | Decide multitenant database architecture and controls | F1 | **Design done (M0)**; owner review of ADR-002 and of the [open decisions](Markdown/delivery/open-decisions.md) pending |
+| 2a | T1: minimal control plane, trusted firm resolution, per-firm DbContext routing, two synthetic firm databases, cross-firm tests ([plan](Markdown/delivery/multitenant-implementation-plan.md)) | Commit (1) | Planned |
+| 3 | F2 remainder: same-transaction, append-only audit (G16) | Migrations (done) | Planned |
+| 4 | F3: lint fixes + CI running build, lint, and the MySQL integration tests (G08) | Tests (done) | Planned |
+| 5 | Frontend: client portal pages; handle 400 on calendar matter reference; show grant management | Portal API (done) | Planned |
+| 6 | F4–F5: control plane, persistent identity/membership, firm context, per-firm DbContext, cross-firm tests | Decision 2 | Planned |
+| 7 | Remaining order F6–F13 in [roadmap](Markdown/delivery/roadmap-and-acceptance.md) | — | Planned |
+
+## Defects, risks, blockers, decisions
+
+- **Blocker for the user's existing local database:** the API now refuses to start against a database created by the old `EnsureCreated` path. Use a new empty database or follow [migration baseline](Markdown/database/migration-baseline.md). If `matters.Id` uses a utf8mb4 collation, the access-grant migration fails with MySQL error 3780 (reproduced on a synthetic table).
+- **Credentials needing rotation (not rotated):** the JWT signing keys formerly in `backend/appsettings.json` and `backend/appsettings.Development.json`, and the MySQL password(s) formerly in those files and in the hard-coded fallback connection string (including the `lawfirm_app` development account). They remain in Git history; history was not rewritten. Demo account passwords in `backend/DEV_AUTH_CREDENTIALS.md` are public by design and must never exist outside local Development.
+- **Decision recorded:** admins have no implicit matter access. **Pending firm confirmation:** attorneys keep firm-wide access until ethical walls exist.
+- **Decision recorded:** clients use separate `/api/portal/matters` routes and DTOs; staff routes reject clients.
+- **Risk:** grant actor ids are free text (no identity directory).
+- **Risk:** the user's running API process holds `backend/bin/Debug`; builds use `-o ./.build-out` or `-c EfDesign`.
+
+## Exact next action and resume instructions
+
+1. Optionally rename the folder by hand: stop project terminals and app processes, close the Cursor workspace, rename `LearnCSharpDotNet` to `MatterForge` in File Explorer, and reopen `D:\Documents\Projects\MatterForge` in Cursor. Update the paths in any prompt afterward.
+2. Review and commit the working tree (F1 plus M0; see SLICE_HISTORY entries `2026-10-12 - Slice F1` and `2026-10-12 - Slice M0`). `.gitignore` already excludes `backend.IntegrationTests/bin/` and `.test-results/` (confirmed with `git check-ignore`). It has a narrow exception so `db/design/validation/*.log` is committed as evidence.
+3. Rotate the credentials above, then set local secrets as in [README.md](README.md#running-locally).
+4. Start T1 with the prompt in the M0 history entry. Inputs: [ADR-002](Markdown/database/ADR-002-multitenant-architecture.md), [threat model](Markdown/security/multitenant-threat-model.md), [acceptance matrix](Markdown/delivery/multitenant-acceptance-matrix.md), [plan](Markdown/delivery/multitenant-implementation-plan.md).
+5. To re-verify: start Docker, then from the repository root run `dotnet test backend.IntegrationTests -c EfDesign` and `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1`.
+
+---
+
+# Clio-parity tracker
 
 ## Purpose
 
@@ -195,7 +331,7 @@ These scores are directional, not legal/compliance guarantees.
 ### Missing for parity
 
 - Rich contact timelines and communication history.
-- Conflict-safe redaction controls beyond current role checks.
+- ~~Conflict-safe redaction controls beyond current role checks.~~ Done 2026-10-12 (F1): `contacts.read.restricted` permission and shared `PartyVisibility` for directory, aliases, relationships, and conflicts.
 - Bulk import/export and dedupe workflows.
 
 ---
@@ -221,7 +357,7 @@ These scores are directional, not legal/compliance guarantees.
 
 ### Missing for parity
 
-- Cross-matter entity graph conflict depth (beyond current direct matching).
+- Cross-matter entity graph conflict depth (beyond current we connect and use the API for rect matching).
 - Waiver templates and approval chains.
 - Conflict packet generation and audit export.
 
@@ -251,7 +387,7 @@ These scores are directional, not legal/compliance guarantees.
 - Matter budget vs actuals.
 - Linked communications stream by matter.
 - Rule-driven matter templates (auto-task packs by matter type).
-- Deeper permissions at matter-level assignment boundaries.
+- ~~Deeper permissions at matter-level assignment boundaries.~~ Done 2026-10-12 (F1): assignment/grant enforcement on every `/matters-v2` route; see [matter access policy](Markdown/security/matter-access-policy.md). Ethical walls still missing.
 
 ---
 
@@ -456,7 +592,7 @@ These scores are directional, not legal/compliance guarantees.
   - `backend/Infrastructure/Auth/DemoUserStore.cs`
 - Placeholder client portal policy endpoint:
   - `backend/Features/Authorization/AuthorizationDemoEndpoints.cs`
-- No client-facing portal routes/pages beyond public marketing site.
+- Client-scoped portal API (2026-10-12, F1): `backend/Features/ClientPortal/ClientPortalEndpoints.cs` (`/api/portal/matters`, own documents, document submission) using Client grants. No portal frontend pages yet.
 
 ### Missing for parity
 
@@ -643,7 +779,7 @@ Estimated current parity toward full Clio replacement:
 - [ ] Create `Invoice` and `InvoiceLine` domain and APIs.
 - [ ] Create trust/operating ledger domain.
 - [ ] Implement payment provider abstraction + webhooks.
-- [ ] Build client portal routes and backend scopes.
+- [ ] Build client portal routes and backend scopes. (Backend scopes and matter/document API done 2026-10-12; frontend pages, publication, messaging remain.)
 - [ ] Build integration framework and first connectors.
 - [ ] Build intake template engine and workflow automations.
 - [ ] Build document upload/versioning/e-sign.

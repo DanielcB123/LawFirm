@@ -17,6 +17,9 @@ public static class AuthPolicies
     public const string MatterReadAll = nameof(MatterReadAll);
     public const string MatterUpdateAssigned = nameof(MatterUpdateAssigned);
     public const string MatterUpdateAll = nameof(MatterUpdateAll);
+    public const string MatterStaffRead = nameof(MatterStaffRead);
+    public const string MatterStaffWrite = nameof(MatterStaffWrite);
+    public const string ClientMatterPortal = nameof(ClientMatterPortal);
     public const string DocumentUpload = nameof(DocumentUpload);
     public const string DocumentReview = nameof(DocumentReview);
     public const string BillingReadOwn = nameof(BillingReadOwn);

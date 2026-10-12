@@ -3,6 +3,8 @@
 [Home](../README.md) · [Portal](../modules/client-portal.md) · [Sources](../research/sources.md)
 
 > **Current implementation (audited 2026-10-12):** Role and permission claims only. No matter grants, ethical walls, or audience model. Restricted parties are masked in conflict search but **not** in `/api/parties`. See G10–G15 in the [gap map](../delivery/implementation-gap-map.md).
+>
+> **Update 2026-10-12 (F1, uncommitted):** matter grants (Staff and Client, revocable) and server-side assignment checks now exist. Restricted parties are hidden in `/api/parties`, protected on alias and relationship writes, and masked with opaque ids in conflicts. All of this is verified on MySQL for a single firm ([matter access policy](matter-access-policy.md)). Ethical walls, an audience model, and intake scoping are still absent (G14, G15).
 
 Texas Rule 1.05 addresses confidentiality and Rule 1.18 addresses prospective clients in the current linked rules [S12]. Confidentiality protection and attorney-client privilege are related but not identical; software labels do not establish privilege. Protect prospective-client records too.
 

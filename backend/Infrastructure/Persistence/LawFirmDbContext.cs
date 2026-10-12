@@ -18,6 +18,7 @@ public sealed class LawFirmDbContext(DbContextOptions<LawFirmDbContext> options)
     public DbSet<MatterTask> MatterTasks => Set<MatterTask>();
     public DbSet<MatterDocument> MatterDocuments => Set<MatterDocument>();
     public DbSet<MatterTimelineAction> MatterTimelineActions => Set<MatterTimelineAction>();
+    public DbSet<MatterAccessGrant> MatterAccessGrants => Set<MatterAccessGrant>();
     public DbSet<ConsultationRequest> ConsultationRequests => Set<ConsultationRequest>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
@@ -303,6 +304,28 @@ public sealed class LawFirmDbContext(DbContextOptions<LawFirmDbContext> options)
             entity.HasIndex(action => action.OccurredAtUtc);
         });
 
+        modelBuilder.Entity<MatterAccessGrant>(entity =>
+        {
+            entity.ToTable("matter_access_grants", table =>
+                table.HasCheckConstraint("CK_matter_access_grants_GrantType", "GrantType IN ('Client', 'Staff')"));
+            entity.HasKey(grant => grant.Id);
+            entity.Property(grant => grant.ActorId).HasMaxLength(128).IsRequired();
+            entity.Property(grant => grant.GrantType).HasMaxLength(16).IsRequired();
+            entity.Property(grant => grant.GrantedByActorId).HasMaxLength(128).IsRequired();
+            entity.Property(grant => grant.GrantedAtUtc).IsRequired();
+            entity.Property(grant => grant.RevokedByActorId).HasMaxLength(128);
+            entity.Property(grant => grant.RevokedAtUtc);
+            // MySQL has no partial unique index; NULLs never collide, so only one unrevoked grant per matter/actor.
+            entity.Property(grant => grant.ActiveMarker)
+                .HasComputedColumnSql("(CASE WHEN `RevokedAtUtc` IS NULL THEN 1 ELSE NULL END)", stored: true);
+            entity.HasOne(grant => grant.MatterRecord)
+                .WithMany()
+                .HasForeignKey(grant => grant.MatterRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(grant => new { grant.MatterRecordId, grant.ActorId, grant.ActiveMarker }).IsUnique();
+            entity.HasIndex(grant => new { grant.ActorId, grant.RevokedAtUtc });
+        });
+
         modelBuilder.Entity<ConsultationRequest>(entity =>
         {
             entity.ToTable("consultation_requests");
@@ -569,6 +592,26 @@ public sealed class MatterTimelineAction
     public string CreatedByActorId { get; set; } = string.Empty;
     public string CreatedByDisplayName { get; set; } = string.Empty;
     public DateTimeOffset CreatedAtUtc { get; set; }
+}
+
+public static class MatterAccessGrantTypes
+{
+    public const string Client = "Client";
+    public const string Staff = "Staff";
+}
+
+public sealed class MatterAccessGrant
+{
+    public Guid Id { get; set; }
+    public Guid MatterRecordId { get; set; }
+    public MatterRecord MatterRecord { get; set; } = null!;
+    public string ActorId { get; set; } = string.Empty;
+    public string GrantType { get; set; } = MatterAccessGrantTypes.Staff;
+    public string GrantedByActorId { get; set; } = string.Empty;
+    public DateTimeOffset GrantedAtUtc { get; set; }
+    public string? RevokedByActorId { get; set; }
+    public DateTimeOffset? RevokedAtUtc { get; set; }
+    public int? ActiveMarker { get; private set; }
 }
 
 public static class ConsultationStatuses

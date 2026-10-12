@@ -3,6 +3,10 @@
 [Home](../README.md) · [Confidentiality](confidentiality-and-access.md) · [Payments](../billing/payments-and-ledger.md)
 
 > **Current implementation (audited 2026-10-12):** JWT bearer with issuer, audience, and lifetime validation, plus permission policies (`backend/Infrastructure/Auth/*`). Demo users are active in every environment; secrets are tracked in `appsettings*.json`; there is no MFA, revocation, rate limiting, or security test. Existing middleware and policies are not evidence that a path is secure. See G03–G05 and G10–G16 in the [gap map](../delivery/implementation-gap-map.md).
+>
+> **Update 2026-10-12 (F1, uncommitted):** matter-level authorization and restricted-party masking are enforced and tested on MySQL for a single firm ([matter access policy](matter-access-policy.md)). Demo users require an explicit Development opt-in. Tracked config holds no secrets; historical values still need rotation. Still absent: MFA, token revocation, rate limiting, ethical walls, cross-firm controls.
+>
+> **Multi-firm (design only, 2026-10-12):** [threat model and control matrix](multitenant-threat-model.md); [acceptance matrix](../delivery/multitenant-acceptance-matrix.md).
 
 Use a documented threat model and traceable controls informed by OWASP ASVS and its authorization/upload guidance [S15–S17]. Map applicable requirements to actual implementation and evidence; no compliance badge is implied.
 

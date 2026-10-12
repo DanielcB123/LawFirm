@@ -378,6 +378,24 @@ public static class DevelopmentDataSeeder
             }
         }
 
+        if (!await dbContext.MatterAccessGrants.AnyAsync())
+        {
+            var seededMatter = dbContext.MatterRecords.Local.FirstOrDefault(record => record.MatterNumber == "MAT-2026-0001")
+                ?? await dbContext.MatterRecords.FirstOrDefaultAsync(record => record.MatterNumber == "MAT-2026-0001");
+            if (seededMatter is not null)
+            {
+                dbContext.MatterAccessGrants.Add(new MatterAccessGrant
+                {
+                    Id = Guid.NewGuid(),
+                    MatterRecordId = seededMatter.Id,
+                    ActorId = "u-client-001",
+                    GrantType = MatterAccessGrantTypes.Client,
+                    GrantedByActorId = "u-attorney-002",
+                    GrantedAtUtc = DateTimeOffset.UtcNow.AddDays(-2)
+                });
+            }
+        }
+
         if (!await dbContext.ConsultationRequests.AnyAsync())
         {
             dbContext.ConsultationRequests.AddRange(

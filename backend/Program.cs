@@ -1,5 +1,6 @@
 using EnterpriseKnowledgeAssistant.Api.Features.Auth;
 using EnterpriseKnowledgeAssistant.Api.Features.WeatherForecast;
+using EnterpriseKnowledgeAssistant.Api.Infrastructure.Access;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Errors;
@@ -11,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Enterprise Knowledge Assistant API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "MatterForge API", Version = "v1" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -40,11 +41,12 @@ builder.Services.AddLawFirmErrorHandling();
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointModules();
 builder.Services.AddLawFirmAuthorization();
-builder.Services.AddLawFirmPersistence(builder.Configuration);
+builder.Services.AddLawFirmDemoAuthentication(builder.Configuration, builder.Environment);
+builder.Services.AddLawFirmPersistence();
+builder.Services.AddLawFirmAccessControl();
 
 builder.Services.AddScoped<IWeatherForecastService, WeatherForecastService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
-builder.Services.AddSingleton<IDemoUserStore, DemoUserStore>();
 
 var app = builder.Build();
 await app.Services.InitializeLawFirmPersistenceAsync();
@@ -67,3 +69,5 @@ app.UseAuthorization();
 app.MapEndpointModules();
 
 app.Run();
+
+public partial class Program;

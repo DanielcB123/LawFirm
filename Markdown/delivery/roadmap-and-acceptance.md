@@ -1,6 +1,6 @@
 # Delivery sequence and acceptance
 
-[Home](../README.md) · [Gap map](implementation-gap-map.md) · [Open decisions](open-decisions.md) · [Cursor prompt](../../Markldown/CURSOR_PROMPT.md)
+[Home](../README.md) · [Gap map](implementation-gap-map.md) · [Open decisions](open-decisions.md) · [Multi-firm plan](multitenant-implementation-plan.md) · [Cursor prompt](../../Markldown/CURSOR_PROMPT.md)
 
 No time estimates are promised before validating staff capacity. Phase 0 (discovery) documentation is complete as of 2026-10-12; first-firm discovery sessions are not.
 
@@ -22,8 +22,8 @@ Gap IDs refer to the [gap map](implementation-gap-map.md). Each slice is end to 
 
 | Order | Slice | Gaps closed | Why here |
 |---|---|---|---|
-| F1 | **Test harness + matter-level authorization** | G07, G10, G11, G12, G13 | Largest confidentiality defects in current code; independent of tenancy; creates the test pattern every later slice needs |
-| F2 | Migrations baseline + secrets externalization + demo-identity gating + same-transaction audit with append-only grants | G06, G05, G16, part of G03 | Tenancy and every schema change depend on versioned migrations |
+| F1 | **Test harness + matter-level authorization** — *Verified within stated scope 2026-10-12 (uncommitted)* | G07, G10, G11, G12, G13 | Largest confidentiality defects in current code; independent of tenancy; creates the test pattern every later slice needs |
+| F2 | Migrations baseline + secrets externalization + demo-identity gating + same-transaction audit with append-only grants — *migrations, secrets, and demo gating done with F1; audit (G16) Planned; existing-DB baseline and credential rotation pending* | G06, G05, G16, part of G03 | Tenancy and every schema change depend on versioned migrations |
 | F3 | Lint fix + CI pipeline | G08 | Gates F1/F2 tests on every change |
 | F4 | Control plane + persistent identity/membership | G01, G03 | Required before routing to firm databases |
 | F5 | Firm context + per-firm `DbContext` + second synthetic firm + isolation tests | G02 | Implements ADR-001 core; proves cross-firm denial |
@@ -35,6 +35,8 @@ Gap IDs refer to the [gap map](implementation-gap-map.md). Each slice is end to 
 | F11 | Staff MFA / managed IdP | G04 | Before any real case data |
 | F12 | Provision first firm in staging (synthetic data) + restore rehearsal | G64, G60 | Pilot readiness evidence |
 | F13+ | Legal billing → payments/webhooks → trust (integration preferred) → practice extensions | G50–G53, G34 | Financial correctness after foundations |
+
+**Multi-firm architecture (2026-10-12, design only):** [ADR-002](../database/ADR-002-multitenant-architecture.md) refines F4 and F5. Its [implementation plan](multitenant-implementation-plan.md) orders the multi-firm work as T0–T12, and the [acceptance matrix](multitenant-acceptance-matrix.md) holds the cases. The next bounded step is **T1**: a minimal control-plane catalog, trusted firm resolution, and per-firm DbContext routing with two synthetic firm databases and cross-firm tests. T1 covers the routing half of F4 and F5. Persistent identity and membership (T2) follow. T1 may start before F3 (CI), but it then relies on manual test runs. That choice belongs to the owner.
 
 ## First slice in detail (F1)
 **Goal:** a staff member can reach only matters they are assigned or explicitly granted; clients cannot write to matters they are not on; restricted parties are masked everywhere. Each rule has a failing-then-passing integration test.
@@ -48,6 +50,8 @@ Gap IDs refer to the [gap map](implementation-gap-map.md). Each slice is end to 
 7. Update the gap map statuses, [audit](../architecture/current-codebase-audit.md), and [ProgressPlan.md](../../ProgressPlan.md) security notes.
 
 Schema note: F1 adds a table before migrations exist (F2). Either do F2 first, or add the table through the existing raw-DDL path and fold it into the F2 baseline. The second option is recommended so the security fix is not delayed.
+
+**Outcome (2026-10-12):** the migrations baseline was done first after all, because the tests needed a migration-built schema. Grants arrived as a second migration. Tests live in `backend.IntegrationTests/` rather than `backend.Tests`. Fail-before: 26 of 43 failed; pass-after: 44 of 44 passed on MySQL 8.0.36. Policy and evidence: [matter access policy](../security/matter-access-policy.md); history: [SLICE_HISTORY.md](../../SLICE_HISTORY.md).
 
 ## Cross-cutting acceptance suite
 1. Firm A users cannot obtain Firm B records through APIs, URLs, files, search, cache, jobs, exports, analytics, or callbacks.
