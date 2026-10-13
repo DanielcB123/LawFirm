@@ -59,6 +59,8 @@ We are **not embedding Clio**. We are replicating and adapting core module patte
 
 ## Current codebase snapshot
 
+Folder layout and conventions for both halves: [solution and folder structure](Markdown/architecture/solution-structure.md). Open `MatterForge.sln` in an IDE for the backend and test projects.
+
 ### Frontend
 
 - React + TypeScript + Vite
@@ -147,11 +149,15 @@ dotnet run                                                          # serves htt
 
 ### Tests
 
-From the repository root, with Docker running (**executed**, 44 passed): `dotnet test backend.IntegrationTests -c EfDesign`. The tests start a disposable `mysql:8.0.36` container, create the schema with migrations, and use synthetic data only. They never use your configured database.
+From the repository root:
+
+- Integration tests, with Docker running (**executed**, 44 passed): `dotnet test backend.IntegrationTests -c EfDesign`. The tests start a disposable `mysql:8.0.36` container, create the schema with migrations, and use synthetic data only. They never use your configured database.
+- Unit tests, no Docker needed (**executed**, 10 passed): `dotnet test backend.UnitTests -c Release`.
+- Whole solution build (**executed**, 0 warnings): `dotnet build MatterForge.sln -c Release`. Release avoids the `bin/Debug` folder a running API locks.
 
 ### Frontend
 
-From `frontend/`: `npm install` (**inspected**), `npm run dev` (**inspected**; proxies `/api` to `http://localhost:5073` per `vite.config.ts`), `npm run build` (**executed**, success), `npm run lint` (**executed**, fails with 7 errors and 3 warnings that predate this work).
+From `frontend/`: `npm install` (**executed**), `npm run dev` (**inspected**; proxies `/api` to `http://localhost:5073` per `vite.config.ts`), `npm run build` (**executed**, success), `npm test` (**executed**, 4 passed), `npm run lint` (**executed**, fails with 7 errors and 3 warnings that predate this work).
 
 ## Development credentials (local only)
 

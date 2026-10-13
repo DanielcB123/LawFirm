@@ -36,6 +36,7 @@ Rule: change only user-visible product branding; record everything else.
 | `parkerreedlaw.com` in demo e-mails (`ContactPage.tsx`, `WorkspaceLoginPage.tsx`, `DemoUserStore`, `DEV_AUTH_CREDENTIALS.md`) | Fictional demo data | Unchanged |
 | Namespace and project `EnterpriseKnowledgeAssistant.Api` (csproj, `.http`, all `.cs`) | Technical identifier | Unchanged; bounded follow-up below |
 | Test `RootNamespace` `EnterpriseKnowledgeAssistant.IntegrationTests` | Technical identifier | Unchanged; follow-up |
+| Solution file `MatterForge.sln` and test namespace `EnterpriseKnowledgeAssistant.UnitTests` (both added 2026-10-12, slice R1) | New build artifacts | The solution uses the working name because it is new and only groups projects; rename the file freely if the brand changes. The unit-test namespace follows the existing technical prefix |
 | `LawFirmDbContext`, migration designer files | Technical identifier (migration snapshot references the type) | Unchanged |
 | Connection-string key `ConnectionStrings:LawFirm` | Configuration contract (environments and user secrets depend on it) | Unchanged |
 | `UserSecretsId` `lawfirm-platform-api-dev` | Developer secret store location | Unchanged. Changing it orphans local secrets |

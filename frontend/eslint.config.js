@@ -18,5 +18,19 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Code outside a feature imports it through its index.ts, never its internal files.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/features/*/*'],
+              message: 'Import from the feature folder (its index.ts), not from files inside it.',
+            },
+          ],
+        },
+      ],
+    },
   },
 ])

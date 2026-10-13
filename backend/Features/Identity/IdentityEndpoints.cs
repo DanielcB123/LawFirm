@@ -33,11 +33,3 @@ public sealed class IdentityEndpoints : IEndpointModule
             .WithSummary("Returns actor identity details and granted permissions.");
     }
 }
-
-public sealed record ActorProfileResponse(
-    string ActorId,
-    string Email,
-    string DisplayName,
-    string Role,
-    IReadOnlyCollection<string> Permissions,
-    string CorrelationId);

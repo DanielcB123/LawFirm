@@ -1,0 +1,8 @@
+<Project>
+  <!-- Shared defaults for every .NET project under this folder. Project files keep only what differs. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

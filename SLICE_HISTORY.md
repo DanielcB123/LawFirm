@@ -351,3 +351,73 @@ Implement plan step T1 only: a minimal control-plane catalog, trusted firm resol
 Out of scope: memberships and identity (T2), the provisioner, the fleet migrator, storage, billing, deployment, real data, and any existing non-test database. Do not rewrite Git history or print secrets.
 Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry (including failures), updating the acceptance-matrix statuses and the gap map rows G01 and G02, and reporting the exact commands and results.
 ```
+
+## 2026-10-12 - Slice R1 Solution structure, boilerplate, and documentation folder cleanup
+
+- **Recorded:** 2026-10-12 21:45 EDT (UTC−04:00). **Not committed** (working tree on top of `0fc6831`, which contains F1 and M0).
+- **Objective and scope:** research current structure guidance for a .NET minimal API with a React SPA, apply it to the repository, add not-implemented boilerplate for missing modules, and replace the confusing `Markdown/` plus `Markldown/` pair with one documentation folder. Out of scope: any endpoint behavior, schema, or authorization change; the folder rename; the namespace rename; fixing the existing lint errors.
+
+### Changes
+
+- Documentation folder: `git mv Markldown Markdown/archive/original-prompt` (prompt and zip unchanged). Live links updated in `Markdown/README.md`, `Markdown/delivery/roadmap-and-acceptance.md`, `Markdown/architecture/current-codebase-audit.md`, and `AGENTS.md`, whose rule ("do not move or delete it") was replaced at the owner's request. Historical mentions in earlier entries above are left as written.
+- Repository root (new): `MatterForge.sln` (API plus a `tests` folder), `Directory.Build.props` (`Nullable`, `ImplicitUsings`), `Directory.Packages.props` (Central Package Management with the exact versions previously in the project files), `global.json` (SDK 10.0.300, `latestFeature`), `.editorconfig` (suggestion-level style only). Both existing project files now reference packages without versions. `.gitignore` adds `backend.UnitTests/bin/` and `obj/`.
+- Backend moves, no behavior change:
+  - The 20 entity and constant classes left `LawFirmDbContext.cs` for `Infrastructure/Persistence/Entities/{Party,Conflict,Audit,Calendar,Intake,Matter,Consultation}Entities.cs`, keeping the namespace.
+  - Request and response records left the nine endpoint files for `Features/<Module>/Contracts/*Contracts.cs`, keeping each module's namespace.
+  - Swagger setup moved from `Program.cs` to `Infrastructure/OpenApi/OpenApiServiceCollectionExtensions.cs` (same middleware order).
+  - `Features/WeatherForecast` (starter template) was deleted, which removes `/api/weather/forecast` and `/api/weatherforecast`. The `.http` file now calls `/api/health`.
+- Backend boilerplate (**not implemented**; nothing registers or calls it except `TimeProvider`):
+  - `Common/Paging/` (`PageRequest`, `PagedResult<T>`, `ToPagedResultAsync`).
+  - Interfaces: `Infrastructure/Tenancy/IFirmContext.cs`, `Infrastructure/Outbox/` (`IOutbox`, `OutboxEvent`, unregistered `OutboxDispatcher`), `Infrastructure/Storage/IDocumentStorage.cs`, `Infrastructure/Messaging/IEmailSender.cs`, `Infrastructure/Payments/IPaymentGateway.cs`, `Infrastructure/Signatures/ISignatureProvider.cs`.
+  - Empty authenticated route groups: `Features/Documents` (`/documents-v2`), `Engagements`, `Billing` (`/billing-v2`), `Payments`, `Trust`, `Communications`.
+  - `TimeProvider.System` registered in `Program.cs`.
+- Unit tests (new): `backend.UnitTests/` with `Common/PageRequestTests.cs` (10 tests). The API project has `InternalsVisibleTo` for it.
+- Frontend moves (all `git mv`, no UI change intended):
+  - `services/<x>Api.ts` and `types/<x>.ts` became `features/<x>/api.ts` and `types.ts`, each feature with an `index.ts`. Conflict types were split out of the party types into `features/conflicts/types.ts`.
+  - `services/apiClient.ts` became `lib/apiClient.ts`, now prefixed with an optional `VITE_API_BASE_URL` (`config/env.ts`, `vite-env.d.ts`, `.env.example`; empty by default, so request paths are unchanged).
+  - `HealthStatusCard` moved into `features/health`, and `SiteNav` and `SiteFooter` into `components/layout/`.
+  - Pages moved into `pages/public/` and `pages/workspace/`.
+  - Routes moved to `app/AppRoutes.tsx` and providers to `app/AppProviders.tsx`. `AppShell.tsx` keeps the layout and the scroll-reveal effect.
+  - `App.tsx`, `App.css`, and three template assets were deleted.
+- Frontend additions: `features/portal` (API functions and types for the existing `/api/portal/matters` routes; no pages), `features/billing` (draft types), `types/money.ts`, the ESLint `no-restricted-imports` feature-boundary rule, Vitest 5.0.4 (`npm test`, `test:watch`, a `test` block in `vite.config.ts`), and `lib/apiClient.test.ts` (4 tests).
+- Documentation:
+  - New: `Markdown/architecture/solution-structure.md`.
+  - Updated: the architecture README, stack and runtime, the codebase audit (path-update note), `Markdown/README.md`, the gap map (R1 notes on G07, G24, G32, G43, G50–G52, with no status change), sources (S23–S31), the naming record (`MatterForge.sln`), `frontend/src/ARCHITECTURE.md`, `frontend/README.md` (replaced the Vite template text), root `README.md`, `AGENTS.md`, and `ProgressPlan.md`. The ProgressPlan parity tracker had 32 page paths updated.
+
+### Decisions
+
+- Keep one API project with feature folders, the lighter variant the sources describe. Per-module projects, per-module DbContexts, and a `src/`+`tests/` move are deferred, with triggers recorded in the solution-structure decisions table. A per-module DbContext would split migrations across the per-firm fleet runner, and moving top-level folders would break the running processes and every doc link.
+- Entities keep their namespace, because the EF snapshot records CLR names.
+- New placeholder prefixes `/documents-v2` and `/billing-v2` avoid the existing demo stubs.
+- Vitest 3 was tried first. It pulled in a second Vite (7.3.7) next to the project's Vite 8, so it was replaced with Vitest 5.0.4, which uses the project's Vite 8.2.2 (checked with `npm ls vite`).
+
+### Checks run (actual results)
+
+- `dotnet build -o ./.build-out` in `backend/` after the split and before the boilerplate: success, 0 warnings.
+- `dotnet build MatterForge.sln -c Release` on the final tree: success, 0 warnings, 0 errors. The first attempt with `-c EfDesign` failed with MSB4126 because that configuration exists only at project level, not in the solution.
+- `dotnet test backend.UnitTests -c Release --no-build`: 10 passed.
+- `dotnet test backend.IntegrationTests -c EfDesign` on the final backend tree: **44 passed, 0 failed** (disposable `mysql:8.0.36`).
+- `dotnet-ef migrations has-pending-model-changes --project backend --configuration EfDesign`: **failed** at design time with "Connection string 'LawFirm' is not configured". The same command on a clean temporary worktree of `0fc6831` failed identically, so this predates R1 (the F1 run likely had a local connection string). Re-run with a dummy `ConnectionStrings__LawFirm` environment variable that is never opened: "No changes have been made to the model since the last migration."
+- `npm run build`: success. `npm test`: 4 passed.
+- `npm run lint`: 7 errors and 3 warnings. These are the same rules as the baseline (`set-state-in-effect` ×6, `only-export-components` ×1 in `AuthContext.tsx`, `exhaustive-deps` ×3), now reported under `pages/workspace/`. Piping a deep-import probe through `eslint --stdin` confirmed the boundary rule reports it.
+- The running Vite dev server logged a transient import error while files were mid-move, then reloaded and served `src/app/AppRoutes.tsx` with HTTP 200.
+- `npm audit --omit=dev`: 2 moderate advisories in `react-router` 6.x. That dependency was not changed in this slice; not fixed.
+- Markdown relative links (including `#anchors`) across 52 `.md` files: 407 links, 0 broken.
+
+### Checks not run, and why
+
+- The running API (`dotnet run`, started before R1) was not restarted, so the new tree has not been exercised through it. Behavior is covered by the 44 integration tests.
+- Pages were not clicked through in a browser. The type-check and build cover import wiring, not rendering.
+- `db/design/run-validation.ps1`: not re-run (no `db/design` changes).
+- CI: still does not exist.
+
+### Remaining defects and follow-ups
+
+- The design-time `dotnet-ef` commands need a dummy `ConnectionStrings__LawFirm` variable. The design-time factory exists but EF resolves the app's services first. Consider making `AddLawFirmPersistence` defer the missing-value check to first use.
+- Lint errors are unchanged (F3). The `react-router` advisories are open.
+- The temporary worktree used for the `0fc6831` comparison was removed (`git worktree list` shows only the main tree; the folder was deleted after `dotnet build-server shutdown`).
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope (structure and boilerplate; existing behavior covered by integration tests; no runtime behavior change intended). Not production ready.
+- **Next action:** the owner reviews and commits R1. Restart the API and the dev server and click through the public site and workspace once. Then continue with T1 (prompt in the M0 entry) or F3 (lint plus CI).

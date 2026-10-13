@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{json,yml,yaml,props,targets,csproj,xml}]
+indent_size = 2
+
+[*.{ts,tsx,js,jsx,css,html}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# Style preferences match the existing code; severities stay at suggestion so builds are unaffected.
+csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_prefer_braces = true:suggestion
+csharp_using_directive_placement = outside_namespace:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_readonly_field = true:suggestion
+
+# Migrations are generated code.
+[backend/Infrastructure/Persistence/Migrations/*.cs]
+generated_code = true

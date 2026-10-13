@@ -1,13 +1,17 @@
-# Frontend Structure (Minimal, Production-Style)
+# Frontend structure
 
-## Edit Guide
+The full layout, rules, and the steps for adding a feature are in [Markdown/architecture/solution-structure.md](../../Markdown/architecture/solution-structure.md#frontend-frontendsrc).
 
-- Page-level content and layout: `src/pages/HomePage.tsx`
-- Reusable UI component: `src/components/HealthStatusCard.tsx`
-- Feature API call for health endpoint: `src/services/healthApi.ts`
-- Shared HTTP helper behavior: `src/services/apiClient.ts`
-- App shell wiring: `src/app/AppShell.tsx`
+## Where to edit
 
-## Data Flow
+- Routes: `src/app/AppRoutes.tsx`
+- Providers (router, auth): `src/app/AppProviders.tsx`
+- Layout and navigation: `src/app/AppShell.tsx`, `src/components/layout/`
+- A domain's API calls and types: `src/features/<name>/api.ts`, `types.ts`, exported through `index.ts`
+- Screens: `src/pages/public/`, `src/pages/workspace/`
+- HTTP behavior and error mapping: `src/lib/apiClient.ts`
+- Environment variables: `src/config/env.ts`, `frontend/.env.example`
 
-`HomePage` -> `HealthStatusCard` -> `healthApi` -> `apiClient` -> `/api/health`
+## Data flow
+
+`pages/public/HomePage` → `features/health` (`HealthStatusCard` → `getHealthStatus`) → `lib/apiClient` → `/api/health`

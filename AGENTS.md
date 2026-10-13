@@ -5,7 +5,9 @@ At the start of each repository work session, read ProgressPlan.md and the lates
 ## Where things are
 
 - Handoff state: [ProgressPlan.md](ProgressPlan.md), then [SLICE_HISTORY.md](SLICE_HISTORY.md).
-- Canonical design and domain documentation: [Markdown/README.md](Markdown/README.md). The `Markldown/` folder holds the original prompt only; do not move or delete it.
+- Canonical design and domain documentation: [Markdown/README.md](Markdown/README.md). The original prompt and blueprint zip are archived read-only in `Markdown/archive/original-prompt/` (formerly the misspelled root `Markldown/` folder); do not edit or delete them.
+- Solution and folder conventions (backend and frontend): [Markdown/architecture/solution-structure.md](Markdown/architecture/solution-structure.md).
 - Matter access policy: [Markdown/security/matter-access-policy.md](Markdown/security/matter-access-policy.md).
 - Database baseline and migrations: [Markdown/database/migration-baseline.md](Markdown/database/migration-baseline.md).
-- Integration tests (real MySQL in a disposable container, Docker required): `backend.IntegrationTests/`.
+- Integration tests (real MySQL in a disposable container, Docker required): `backend.IntegrationTests/`. Unit tests (no database): `backend.UnitTests/`. Frontend tests: `npm test` in `frontend/`.
+- NuGet versions are set only in `Directory.Packages.props`; project files reference packages without versions.

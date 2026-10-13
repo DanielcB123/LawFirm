@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { getActorProfile, loginWithPassword } from "../../services/authApi";
-import type { ActorProfile, LoginResponse } from "../../types/auth";
+import { getActorProfile, loginWithPassword } from "./api";
+import type { ActorProfile, LoginResponse } from "./types";
 
 type AuthContextValue = {
   token: string | null;

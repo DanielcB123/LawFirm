@@ -29,5 +29,21 @@ Checked October 12, 2026. Primary-source descriptions establish documented mecha
 | S21 | [Azure Database for MySQL Flexible Server backup and restore](https://learn.microsoft.com/en-us/azure/mysql/flexible-server/concepts-backup-restore) | PITR creates a new server; example of server-level restore semantics; hosting not yet selected; checked 2026-10-12 |
 | S22 | [MySQL 8.0 point-in-time recovery](https://dev.mysql.com/doc/refman/8.0/en/point-in-time-recovery.html) | Binary-log PITR follows a full server backup; checked 2026-10-12 |
 
+## Solution structure (2026-10-12)
+
+Consulted for the [solution and folder structure](../architecture/solution-structure.md). These are community and vendor guidance, not standards; the decisions table in that document records where this repository follows or departs from them.
+
+| ID | Source | Relevance |
+|---|---|---|
+| S23 | [Microsoft Learn: Customize the build by folder](https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory) | `Directory.Build.props` scope and import rules |
+| S24 | [Microsoft Learn: Central Package Management](https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management) | `Directory.Packages.props`, versionless `PackageReference` |
+| S25 | [Modular Monolith: Drawing Module Boundaries (.NET Concepts)](https://university.kurz.fyi/dotnet-concepts/modular-monolith-module-boundaries) | Module boundaries; single-project variant; per-module layering is optional; one shared DbContext as a boundary risk |
+| S26 | [fullstackhero modular monolith (.NET 10)](https://fullstackhero.net/docs/architecture/modular-monolith/) | Strict variant: module + contracts projects, per-module DbContext, architecture tests |
+| S27 | [How to Structure Production Apps with Vertical Slice Architecture in .NET in 2026](https://antondevtips.com/blog/how-to-structure-production-apps-with-vertical-slice-architecture-in-dotnet-in-2026) | Feature folders, thin endpoints, shared folder per module, direct DbContext use |
+| S28 | [Project-Guidelines ADR 0008/0009: vertical slices and feature module structure](https://github.com/JSdotNet/Project-Guidelines-MCP/blob/main/guide/adrs/0009-feature-slices-module-structure.md) | Contracts/DTO placement; tests in separate projects |
+| S29 | [dotnet-skills: project structure](https://github.com/wshaddix/dotnet-skills/blob/master/skills/project-structure/SKILL.md) | Root build files, `global.json` with `latestFeature`, `src/` and `tests/` layout |
+| S30 | [Designing Large React Applications (Frontend Prep)](https://frontendprep.io/guides/react/designing-large-react-apps) | Feature modules with `index.ts` public API; lint-enforced boundaries |
+| S31 | [A Practical React Project Structure (DEV Community)](https://dev.to/fanebytes/a-practical-react-project-structure-you-can-reuse-332e) | `app/`, `features/`, `components/`, `lib/` roles; promote shared code out of features |
+
 ## Evidence boundaries
 Database-per-firm is this blueprint's engineering recommendation; Salesforce's model does not mandate it, nor do the legal references. Provider documentation must be checked for the actual chosen engine/version/service. Texas is a planning context to confirm with the firm; no fixed jurisdictional deadline or universal legal retention period is asserted here.

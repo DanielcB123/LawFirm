@@ -10,6 +10,8 @@ backend/obj/
 backend/.build-out/
 backend.IntegrationTests/bin/
 backend.IntegrationTests/obj/
+backend.UnitTests/bin/
+backend.UnitTests/obj/
 .test-results/
 backend/*.db
 backend/*.db-*

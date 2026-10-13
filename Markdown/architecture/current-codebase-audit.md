@@ -14,6 +14,12 @@
 >
 > Details: [matter access policy](../security/matter-access-policy.md), [migration baseline](../database/migration-baseline.md), [SLICE_HISTORY.md](../../SLICE_HISTORY.md).
 
+> **Path update, 2026-10-12 (slice R1).** Files cited below moved without behavior changes ([solution structure](solution-structure.md)):
+> - Frontend pages are now under `pages/public/` and `pages/workspace/` (for example `pages/workspace/WorkspaceWorklistsPage.tsx`, `pages/workspace/TasksCalendarPage.tsx`).
+> - `services/<x>Api.ts` and `types/<x>.ts` became `features/<x>/api.ts` and `features/<x>/types.ts`. `services/apiClient.ts` is now `lib/apiClient.ts`.
+> - `App.tsx`, `App.css`, and the template assets were deleted. Routes moved from `app/AppShell.tsx` to `app/AppRoutes.tsx`.
+> - Backend entity classes moved from `LawFirmDbContext.cs` into `Infrastructure/Persistence/Entities/`, and request/response records into `Features/<Module>/Contracts/`. `Features/WeatherForecast` was deleted.
+
 ## Evidence labels
 
 | Label | Meaning |
@@ -29,7 +35,7 @@ No automated tests exist in the repository, so no behavior below is test-verifie
 
 | Area | Finding | Evidence |
 |---|---|---|
-| Root | `backend/`, `frontend/`, `Markldown/` (prompt + blueprint zip; folder name is misspelled and was left untouched), `README.md`, `ProgressPlan.md`, `SLICE_HISTORY.md`, `.gitignore` | Inspected |
+| Root | `backend/`, `frontend/`, `Markldown/` (prompt + blueprint zip; misspelled folder, moved to `Markdown/archive/original-prompt/` on 2026-10-12, slice R1), `README.md`, `ProgressPlan.md`, `SLICE_HISTORY.md`, `.gitignore` | Inspected |
 | Instructions | No `AGENTS.md`, `.cursor/rules`, or contributor guide found | Inspected (glob) |
 | Backend entry | `backend/Program.cs` — minimal API host, Swagger in Development only, HTTPS redirection, authN/authZ, endpoint modules under `/api` | Inspected |
 | Backend manifest | `backend/EnterpriseKnowledgeAssistant.Api.csproj` — `net8.0`; JwtBearer 8.0.11, Pomelo.EntityFrameworkCore.MySql 8.0.3, Swashbuckle 6.8.1. No lockfile (`packages.lock.json` absent) | Inspected |

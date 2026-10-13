@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-12 02:15 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-12 21:45 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -10,7 +10,7 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 
 ## Stack
 
-.NET 8 minimal API (`backend/`), EF Core 8.0.13 with Pomelo 8.0.3 on MySQL 8 (server version pinned to 8.0.36), React + TypeScript + Vite (`frontend/`), integration tests in `backend.IntegrationTests/` (xUnit, `WebApplicationFactory`, Testcontainers 3.10.0). Details: [stack and runtime](Markdown/architecture/stack-and-runtime.md), [codebase audit](Markdown/architecture/current-codebase-audit.md).
+.NET 8 minimal API (`backend/`), EF Core 8.0.13 with Pomelo 8.0.3 on MySQL 8 (server version pinned to 8.0.36), React + TypeScript + Vite (`frontend/`), integration tests in `backend.IntegrationTests/` (xUnit, `WebApplicationFactory`, Testcontainers 3.10.0), unit tests in `backend.UnitTests/`, frontend tests with Vitest. `MatterForge.sln` with Central Package Management at the root. Details: [stack and runtime](Markdown/architecture/stack-and-runtime.md), [solution structure](Markdown/architecture/solution-structure.md), [codebase audit](Markdown/architecture/current-codebase-audit.md).
 
 ## Naming status (two separate facts)
 
@@ -41,13 +41,29 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | ID | Work | Status |
 |---|---|---|
 | A0 | Repository audit and linked `Markdown/` documentation (commit `91a9ded`) | Verified within stated scope (documentation; links checked; app code unchanged; DB/API not exercised) |
-| F1 | Real-MySQL test harness + matter-level authorization + restricted-party masking (uncommitted working tree) | Verified within stated scope |
+| F1 | Real-MySQL test harness + matter-level authorization + restricted-party masking (committed `0fc6831`) | Verified within stated scope |
 | F2 (part) | Migrations baseline, startup refusal for unmanaged DBs, secrets removed from tracked config, demo identity gated | Implemented—verification pending for existing-DB baselining and Development opt-in; remaining F2 item (same-transaction append-only audit, G16) **Planned** |
-| M0 | MatterForge working-name branding plus multi-firm architecture: ADR-002, data dictionary, query and index spec, threat model, runbooks, acceptance matrix, implementation plan, `db/design` SQL and validation (uncommitted) | **Verified within stated scope**: design SQL applied and checked on disposable MySQL 8.0.36 with synthetic data (log in `db/design/validation/`); docs link-checked. No application multi-firm code; nothing deployed; no existing database touched |
+| R1 | Solution structure: root build files, backend entity/contract split, not-implemented module and provider boilerplate, unit test project, feature-based frontend, Vitest, `Markldown/` archived under `Markdown/` (uncommitted) | **Verified within stated scope**: solution build, 44 integration + 10 unit + 4 frontend tests, no EF model change, frontend build; lint at baseline. No runtime behavior change intended or observed |
+| M0 | MatterForge working-name branding plus multi-firm architecture: ADR-002, data dictionary, query and index spec, threat model, runbooks, acceptance matrix, implementation plan, `db/design` SQL and validation (committed `0fc6831`) | **Verified within stated scope**: design SQL applied and checked on disposable MySQL 8.0.36 with synthetic data (log in `db/design/validation/`); docs link-checked. No application multi-firm code; nothing deployed; no existing database touched |
 
-## Current step: M0 multi-firm architecture (design) and working-name branding
+## Current step: R1 solution structure, boilerplate, and documentation folder cleanup
 
-**Status: Verified within stated scope.** Not committed. The scope is architecture documentation, reviewable SQL, and validation on a disposable database. It does not implement tenancy or move any records.
+**Status: Verified within stated scope.** Not committed (working tree on top of `0fc6831`). Scope: file and folder organization, root build files, not-implemented boilerplate, test scaffolding, and documentation. No endpoint behavior, schema, or authorization rule changed. Full detail: [SLICE_HISTORY.md](SLICE_HISTORY.md) entry `2026-10-12 - Slice R1`, and [solution structure](Markdown/architecture/solution-structure.md).
+
+| Criterion | Result |
+|---|---|
+| One documentation folder | Done: `Markldown/` moved with `git mv` to `Markdown/archive/original-prompt/`; live links updated; AGENTS.md rule updated |
+| Backend root build files | Done: `MatterForge.sln`, `Directory.Build.props`, `Directory.Packages.props` (same package versions as before), `global.json`, `.editorconfig` |
+| Backend split without behavior change | Done: entities into `Infrastructure/Persistence/Entities/`, contracts into `Features/<Module>/Contracts/` (namespaces unchanged), Swagger setup into `Infrastructure/OpenApi/`; template `Features/WeatherForecast` deleted. 44 of 44 integration tests pass; no EF model changes |
+| Backend boilerplate | Done, **not implemented**: `Common/Paging`; `IFirmContext`, `IOutbox` + unregistered `OutboxDispatcher`, `IDocumentStorage`, `IEmailSender`, `IPaymentGateway`, `ISignatureProvider`; empty authenticated route groups for Documents, Engagements, Billing, Payments, Trust, Communications; `TimeProvider.System` registered |
+| Unit test project | Done: `backend.UnitTests` (10 tests, paging) |
+| Frontend feature layout | Done: `app/` (providers, routes, shell), `features/<x>/` with `index.ts`, `lib/apiClient.ts`, `config/env.ts`, `components/layout/`, `pages/public/` and `pages/workspace/`; template `App.tsx`/`App.css`/assets deleted; lint rule blocks deep feature imports |
+| Frontend boilerplate | Done: `features/portal` (calls the existing `/api/portal/matters` routes; no pages yet), `features/billing` draft types, `types/money.ts`, `.env.example`, Vitest (4 tests) |
+| Lint | Unchanged at the baseline: 7 errors, 3 warnings, all pre-existing |
+
+## Previous step: M0 multi-firm architecture (design) and working-name branding
+
+**Status: Verified within stated scope.** Committed in `0fc6831`. The scope is architecture documentation, reviewable SQL, and validation on a disposable database. It does not implement tenancy or move any records.
 
 | Criterion | Result |
 |---|---|
@@ -59,9 +75,9 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | Representative query plans | Recorded ([query and index spec](Markdown/database/query-and-index-spec.md)). Synthetic data, so no latency or scale claim |
 | Threat model, runbooks, acceptance matrix, plan | Written. Application-level cases are **Designed** only |
 
-## Previous step: F1 matter authorization (+ F2 schema/secrets prerequisites)
+## Earlier step: F1 matter authorization (+ F2 schema/secrets prerequisites)
 
-**Status: Verified within stated scope.** Not committed. Scope: single firm, API level, synthetic data, disposable MySQL 8.0.36 containers.
+**Status: Verified within stated scope.** Committed in `0fc6831`. Scope: single firm, API level, synthetic data, disposable MySQL 8.0.36 containers.
 
 Acceptance criteria and result:
 
@@ -82,17 +98,21 @@ Acceptance criteria and result:
 | Migration-backed test schema; unmanaged DB refused | Pass |
 | Fail-before / pass-after | Executed: 26 of 43 failed before enforcement; 44 of 44 pass after |
 
-## Latest check results (2026-10-12)
+## Latest check results (2026-10-12, slice R1, about 21:20–21:45 EDT)
 
 | Check | Command | Result |
 |---|---|---|
-| Backend build | `dotnet build -o ./.build-out` in `backend/` | Success, 0 warnings, 0 errors |
-| Integration tests | `dotnet test backend.IntegrationTests -c EfDesign` | 44 passed, 0 failed (MySQL 8.0.36 container). Re-run 02:13 EDT after the Swagger title change: 44 passed |
-| Design validation | `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1` | Final run 06:01–06:03 UTC: all checks as expected; 51 expected ERROR lines; container removed; log has no credentials. Earlier runs failed and were fixed (see SLICE_HISTORY M0) |
-| Migration drift | `dotnet tool run dotnet-ef migrations has-pending-model-changes --project backend` | No pending model changes |
+| Solution build | `dotnet build MatterForge.sln -c Release` | Success, 0 warnings, 0 errors |
+| Backend build (alternate output) | `dotnet build -o ./.build-out` in `backend/` | Success, 0 warnings (run after the entity/contract split, before boilerplate; the solution build above covers the final tree) |
+| Integration tests | `dotnet test backend.IntegrationTests -c EfDesign` | 44 passed, 0 failed (MySQL 8.0.36 container), on the final backend tree |
+| Unit tests | `dotnet test backend.UnitTests -c Release --no-build` | 10 passed |
+| Migration drift | `dotnet tool run dotnet-ef migrations has-pending-model-changes --project backend --configuration EfDesign` with a dummy `ConnectionStrings__LawFirm` environment variable (never opened) | "No changes have been made to the model since the last migration." Without the variable the command fails at design time with "Connection string 'LawFirm' is not configured"; the same failure happens on an untouched checkout of `0fc6831`, so it predates R1 |
 | Frontend build | `npm run build` in `frontend/` | Success |
-| Frontend lint | `npm run lint` in `frontend/` | Fails: 7 errors, 3 warnings, same count as the 2026-10-12 audit baseline; frontend not changed |
-| Markdown relative links | PowerShell check over all 41 `.md` files | 246 relative links, 0 broken |
+| Frontend tests | `npm test` in `frontend/` | 4 passed (Vitest 5.0.4) |
+| Frontend lint | `npm run lint` in `frontend/` | Fails: 7 errors, 3 warnings, the same rules and counts as the audit baseline (files now under `pages/workspace/`); the new boundary rule fires on a deep-import probe and reports nothing in the tree |
+| npm audit (production deps) | `npm audit --omit=dev` | 2 moderate advisories in `react-router` 6.x; `react-router-dom` `^6.30.1` is unchanged by R1. Not fixed |
+| Design validation | `db/design/run-validation.ps1` | Not re-run (no `db/design` changes); last run passed during M0 |
+| Markdown relative links | PowerShell check over all 52 `.md` files, anchors included | 407 relative links, 0 broken |
 
 ## Not tested
 
@@ -106,12 +126,12 @@ Acceptance criteria and result:
 
 | Order | Work | Depends on | Status |
 |---|---|---|---|
-| 1 | Commit this working tree; rotate the credentials listed below | — | Planned (owner action) |
+| 1 | Review and commit the R1 working tree; rotate the credentials listed below | — | Planned (owner action) |
 | 2 | Decide multitenant database architecture and controls | F1 | **Design done (M0)**; owner review of ADR-002 and of the [open decisions](Markdown/delivery/open-decisions.md) pending |
 | 2a | T1: minimal control plane, trusted firm resolution, per-firm DbContext routing, two synthetic firm databases, cross-firm tests ([plan](Markdown/delivery/multitenant-implementation-plan.md)) | Commit (1) | Planned |
 | 3 | F2 remainder: same-transaction, append-only audit (G16) | Migrations (done) | Planned |
-| 4 | F3: lint fixes + CI running build, lint, and the MySQL integration tests (G08) | Tests (done) | Planned |
-| 5 | Frontend: client portal pages; handle 400 on calendar matter reference; show grant management | Portal API (done) | Planned |
+| 4 | F3: lint fixes + CI running `dotnet build MatterForge.sln`, both test projects, frontend build, lint, and `npm test` (G08). Decide TanStack Query there (it removes the `set-state-in-effect` pattern). Upgrade `react-router-dom` for the audit advisories | Tests (done) | Planned |
+| 5 | Frontend: client portal pages (use `features/portal`, add `pages/portal/`); handle 400 on calendar matter reference; show grant management | Portal API (done) | Planned |
 | 6 | F4–F5: control plane, persistent identity/membership, firm context, per-firm DbContext, cross-firm tests | Decision 2 | Planned |
 | 7 | Remaining order F6–F13 in [roadmap](Markdown/delivery/roadmap-and-acceptance.md) | — | Planned |
 
@@ -122,15 +142,17 @@ Acceptance criteria and result:
 - **Decision recorded:** admins have no implicit matter access. **Pending firm confirmation:** attorneys keep firm-wide access until ethical walls exist.
 - **Decision recorded:** clients use separate `/api/portal/matters` routes and DTOs; staff routes reject clients.
 - **Risk:** grant actor ids are free text (no identity directory).
-- **Risk:** the user's running API process holds `backend/bin/Debug`; builds use `-o ./.build-out` or `-c EfDesign`.
+- **Risk:** the user's running API process holds `backend/bin/Debug`; builds use `-o ./.build-out`, `-c EfDesign` (project level only), or `-c Release` (solution level).
+- **Note (R1):** the running `dotnet run` process was started before R1 and still serves the old build until restarted. After restart it builds the new tree; behavior should be identical except that `/api/weather/forecast` and `/api/weatherforecast` (template routes) no longer exist.
+- **Note (R1):** boilerplate interfaces and empty route groups are placeholders. Nothing registers or calls them; don't count them as features.
 
 ## Exact next action and resume instructions
 
 1. Optionally rename the folder by hand: stop project terminals and app processes, close the Cursor workspace, rename `LearnCSharpDotNet` to `MatterForge` in File Explorer, and reopen `D:\Documents\Projects\MatterForge` in Cursor. Update the paths in any prompt afterward.
-2. Review and commit the working tree (F1 plus M0; see SLICE_HISTORY entries `2026-10-12 - Slice F1` and `2026-10-12 - Slice M0`). `.gitignore` already excludes `backend.IntegrationTests/bin/` and `.test-results/` (confirmed with `git check-ignore`). It has a narrow exception so `db/design/validation/*.log` is committed as evidence.
+2. Review and commit the R1 working tree (SLICE_HISTORY entry `2026-10-12 - Slice R1`). F1 and M0 are already in `0fc6831`. `.gitignore` excludes `backend.UnitTests/bin/` and `obj/` as well as the integration test outputs.
 3. Rotate the credentials above, then set local secrets as in [README.md](README.md#running-locally).
 4. Start T1 with the prompt in the M0 history entry. Inputs: [ADR-002](Markdown/database/ADR-002-multitenant-architecture.md), [threat model](Markdown/security/multitenant-threat-model.md), [acceptance matrix](Markdown/delivery/multitenant-acceptance-matrix.md), [plan](Markdown/delivery/multitenant-implementation-plan.md).
-5. To re-verify: start Docker, then from the repository root run `dotnet test backend.IntegrationTests -c EfDesign` and `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1`.
+5. To re-verify: start Docker, then from the repository root run `dotnet build MatterForge.sln -c Release`, `dotnet test backend.UnitTests -c Release`, `dotnet test backend.IntegrationTests -c EfDesign`, and `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1`; in `frontend/` run `npm run build` and `npm test`.
 
 ---
 
@@ -213,26 +235,35 @@ These scores are directional, not legal/compliance guarantees.
 - Audit trail:
   - `backend/Infrastructure/Audit/AuditTrailService.cs`
 
+### Backend scaffolding (not implemented; added 2026-10-12, slice R1)
+
+These score nothing toward parity. They fix where future code goes ([solution structure](Markdown/architecture/solution-structure.md)):
+
+- Empty, authenticated route groups: `backend/Features/{Documents,Engagements,Billing,Payments,Trust,Communications}/`
+- Provider interfaces: `backend/Infrastructure/{Tenancy,Outbox,Storage,Messaging,Payments,Signatures}/`
+- Paging primitives: `backend/Common/Paging/`
+- Frontend: `frontend/src/features/portal` (wired to the existing portal API, no pages), `frontend/src/features/billing` (draft types)
+
 ### Frontend modules present
 
 - Public site and contact funnel:
-  - `frontend/src/pages/HomePage.tsx`
-  - `frontend/src/pages/AboutPage.tsx`
-  - `frontend/src/pages/PracticeAreasPage.tsx`
-  - `frontend/src/pages/AttorneysPage.tsx`
-  - `frontend/src/pages/ContactPage.tsx`
+  - `frontend/src/pages/public/HomePage.tsx`
+  - `frontend/src/pages/public/AboutPage.tsx`
+  - `frontend/src/pages/public/PracticeAreasPage.tsx`
+  - `frontend/src/pages/public/AttorneysPage.tsx`
+  - `frontend/src/pages/public/ContactPage.tsx`
 - Authenticated workspace:
-  - `frontend/src/pages/WorkspaceHomePage.tsx`
-  - `frontend/src/pages/WorkspaceWorklistsPage.tsx`
-  - `frontend/src/pages/TasksCalendarPage.tsx`
-  - `frontend/src/pages/PartiesPage.tsx`
-  - `frontend/src/pages/ConflictChecksPage.tsx`
-  - `frontend/src/pages/IntakeBoardPage.tsx`
-  - `frontend/src/pages/IntakeDetailPage.tsx`
-  - `frontend/src/pages/MattersPage.tsx`
-  - `frontend/src/pages/MatterWorkspacePage.tsx`
-  - `frontend/src/pages/MatterWorkspaceTabs.tsx`
-  - `frontend/src/pages/WorkspaceConsultationsPage.tsx`
+  - `frontend/src/pages/workspace/WorkspaceHomePage.tsx`
+  - `frontend/src/pages/workspace/WorkspaceWorklistsPage.tsx`
+  - `frontend/src/pages/workspace/TasksCalendarPage.tsx`
+  - `frontend/src/pages/workspace/PartiesPage.tsx`
+  - `frontend/src/pages/workspace/ConflictChecksPage.tsx`
+  - `frontend/src/pages/workspace/IntakeBoardPage.tsx`
+  - `frontend/src/pages/workspace/IntakeDetailPage.tsx`
+  - `frontend/src/pages/workspace/MattersPage.tsx`
+  - `frontend/src/pages/workspace/MatterWorkspacePage.tsx`
+  - `frontend/src/pages/workspace/MatterWorkspaceTabs.tsx`
+  - `frontend/src/pages/workspace/WorkspaceConsultationsPage.tsx`
 
 ---
 
@@ -253,9 +284,9 @@ These scores are directional, not legal/compliance guarantees.
 ### Evidence
 
 - Multi-page public site with modern UI:
-  - `frontend/src/pages/HomePage.tsx`, `AboutPage.tsx`, `PracticeAreasPage.tsx`, `AttorneysPage.tsx`
+  - `frontend/src/pages/public/HomePage.tsx`, `AboutPage.tsx`, `PracticeAreasPage.tsx`, `AttorneysPage.tsx`
 - Contact + appointment request modal with available slots:
-  - `frontend/src/pages/ContactPage.tsx`
+  - `frontend/src/pages/public/ContactPage.tsx`
   - `backend/Features/Consultations/ConsultationsEndpoints.cs`
 
 ### Missing for parity
@@ -287,8 +318,8 @@ These scores are directional, not legal/compliance guarantees.
 - Stage history + notes:
   - `LawFirmDbContext` entities `IntakeStageHistory`, `IntakeNote`
 - Kanban board and detail workflow:
-  - `frontend/src/pages/IntakeBoardPage.tsx`
-  - `frontend/src/pages/IntakeDetailPage.tsx`
+  - `frontend/src/pages/workspace/IntakeBoardPage.tsx`
+  - `frontend/src/pages/workspace/IntakeDetailPage.tsx`
 - Convert accepted intake to matter:
   - `POST /intake/{id}/convert-to-matter`
 
@@ -326,7 +357,7 @@ These scores are directional, not legal/compliance guarantees.
 - Party creation/search/aliases/relationships:
   - `backend/Features/Parties/PartiesEndpoints.cs`
 - UI create/search:
-  - `frontend/src/pages/PartiesPage.tsx`
+  - `frontend/src/pages/workspace/PartiesPage.tsx`
 
 ### Missing for parity
 
@@ -353,7 +384,7 @@ These scores are directional, not legal/compliance guarantees.
   - `backend/Features/Conflicts/ConflictEndpoints.cs`
 - Restricted match masking for unauthorized roles.
 - UI workflow:
-  - `frontend/src/pages/ConflictChecksPage.tsx`
+  - `frontend/src/pages/workspace/ConflictChecksPage.tsx`
 
 ### Missing for parity
 
@@ -378,9 +409,9 @@ These scores are directional, not legal/compliance guarantees.
 
 - Matter list/detail/history/tasks/doc metadata/timeline:
   - `backend/Features/Matters/MattersEndpoints.cs`
-  - `frontend/src/pages/MattersPage.tsx`
-  - `frontend/src/pages/MatterWorkspacePage.tsx`
-  - `frontend/src/pages/MatterWorkspaceTabs.tsx`
+  - `frontend/src/pages/workspace/MattersPage.tsx`
+  - `frontend/src/pages/workspace/MatterWorkspacePage.tsx`
+  - `frontend/src/pages/workspace/MatterWorkspaceTabs.tsx`
 
 ### Missing for parity
 
@@ -407,9 +438,9 @@ These scores are directional, not legal/compliance guarantees.
 - Calendar CRUD with reminders, owner/backup, ack/complete:
   - `backend/Features/Calendar/CalendarEndpoints.cs`
 - Month/week/day UI with creation/edit/delete:
-  - `frontend/src/pages/TasksCalendarPage.tsx`
+  - `frontend/src/pages/workspace/TasksCalendarPage.tsx`
 - Workspace worklists tied to task state:
-  - `frontend/src/pages/WorkspaceWorklistsPage.tsx`
+  - `frontend/src/pages/workspace/WorkspaceWorklistsPage.tsx`
 
 ### Missing for parity
 
@@ -435,9 +466,9 @@ These scores are directional, not legal/compliance guarantees.
 - Available slot generation and booking conflict checks:
   - `backend/Features/Consultations/ConsultationsEndpoints.cs`
 - Public contact modal scheduler:
-  - `frontend/src/pages/ContactPage.tsx`
+  - `frontend/src/pages/public/ContactPage.tsx`
 - Internal queue with status/assignment/notes:
-  - `frontend/src/pages/WorkspaceConsultationsPage.tsx`
+  - `frontend/src/pages/workspace/WorkspaceConsultationsPage.tsx`
 
 ### Missing for parity
 
@@ -462,7 +493,7 @@ These scores are directional, not legal/compliance guarantees.
 
 - Matter document metadata CRUD + review status:
   - `backend/Features/Matters/MattersEndpoints.cs`
-  - `MatterDocuments` tab in `frontend/src/pages/MatterWorkspaceTabs.tsx`
+  - `MatterDocuments` tab in `frontend/src/pages/workspace/MatterWorkspaceTabs.tsx`
 
 ### Missing for parity
 
@@ -617,8 +648,8 @@ These scores are directional, not legal/compliance guarantees.
 ### Evidence
 
 - Operational dashboard cards + worklists:
-  - `frontend/src/pages/WorkspaceHomePage.tsx`
-  - `frontend/src/pages/WorkspaceWorklistsPage.tsx`
+  - `frontend/src/pages/workspace/WorkspaceHomePage.tsx`
+  - `frontend/src/pages/workspace/WorkspaceWorklistsPage.tsx`
 - No dedicated reporting backend or KPI data warehouse layer.
 
 ### Missing for parity
