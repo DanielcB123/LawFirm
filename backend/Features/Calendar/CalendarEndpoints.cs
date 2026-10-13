@@ -136,6 +136,11 @@ public sealed class CalendarEndpoints : IEndpointModule
 
         var actorId = ActorClaims.GetActorId(user);
         var actorName = user.FindFirstValue("name") ?? user.FindFirstValue(ClaimTypes.Email) ?? "Unknown";
+        if (!TryResolveVerification(request, user, actorId, actorName, forUpdate: false, existingEntry: null, out var verification, out var verificationErrors))
+        {
+            return httpContext.ValidationError("Calendar entry request is invalid.", verificationErrors);
+        }
+
         var entry = new CalendarEntry
         {
             Id = Guid.NewGuid(),
@@ -151,9 +156,9 @@ public sealed class CalendarEndpoints : IEndpointModule
             TimeZone = request.TimeZone.Trim(),
             MatterReference = matterReference,
             SourceReference = request.SourceReference?.Trim(),
-            VerifiedAtUtc = request.VerifiedAtUtc,
-            VerifiedByActorId = request.VerifiedByActorId?.Trim(),
-            VerifiedByDisplayName = request.VerifiedByDisplayName?.Trim(),
+            VerifiedAtUtc = verification.VerifiedAtUtc,
+            VerifiedByActorId = verification.VerifiedByActorId,
+            VerifiedByDisplayName = verification.VerifiedByDisplayName,
             OverrideReason = request.OverrideReason?.Trim(),
             RemindersJson = JsonSerializer.Serialize((request.ReminderOffsetsMinutes ?? []).Distinct().OrderBy(minutes => minutes).ToArray()),
             CreatedByActorId = actorId,
@@ -238,9 +243,16 @@ public sealed class CalendarEndpoints : IEndpointModule
         entry.TimeZone = request.TimeZone.Trim();
         entry.MatterReference = matterReference;
         entry.SourceReference = request.SourceReference?.Trim();
-        entry.VerifiedAtUtc = request.VerifiedAtUtc;
-        entry.VerifiedByActorId = request.VerifiedByActorId?.Trim();
-        entry.VerifiedByDisplayName = request.VerifiedByDisplayName?.Trim();
+        var actorId = ActorClaims.GetActorId(user);
+        var actorName = user.FindFirstValue("name") ?? user.FindFirstValue(ClaimTypes.Email) ?? "Unknown";
+        if (!TryResolveVerification(request, user, actorId, actorName, forUpdate: true, existingEntry: entry, out var verification, out var verificationErrors))
+        {
+            return httpContext.ValidationError("Calendar entry request is invalid.", verificationErrors);
+        }
+
+        entry.VerifiedAtUtc = verification.VerifiedAtUtc;
+        entry.VerifiedByActorId = verification.VerifiedByActorId;
+        entry.VerifiedByDisplayName = verification.VerifiedByDisplayName;
         entry.OverrideReason = request.OverrideReason?.Trim();
         entry.RemindersJson = JsonSerializer.Serialize((request.ReminderOffsetsMinutes ?? []).Distinct().OrderBy(minutes => minutes).ToArray());
 
@@ -478,5 +490,45 @@ public sealed class CalendarEndpoints : IEndpointModule
         }
 
         return errors;
+    }
+
+    private static bool TryResolveVerification(
+        IWriteCalendarEntryRequest request,
+        ClaimsPrincipal user,
+        string actorId,
+        string actorName,
+        bool forUpdate,
+        CalendarEntry? existingEntry,
+        out (DateTimeOffset? VerifiedAtUtc, string? VerifiedByActorId, string? VerifiedByDisplayName) verification,
+        out Dictionary<string, string[]> errors)
+    {
+        errors = new Dictionary<string, string[]>();
+        var requestedVerification =
+            request.VerifiedAtUtc.HasValue ||
+            !string.IsNullOrWhiteSpace(request.VerifiedByActorId) ||
+            !string.IsNullOrWhiteSpace(request.VerifiedByDisplayName);
+
+        var canVerify = user.IsInRole(AuthRoles.Attorney) || user.IsInRole(AuthRoles.Admin);
+        if (requestedVerification && !canVerify)
+        {
+            errors["verifiedAtUtc"] = ["Only attorneys and admins may verify deadlines."];
+            verification = default;
+            return false;
+        }
+
+        if (requestedVerification)
+        {
+            verification = (DateTimeOffset.UtcNow, actorId, actorName);
+            return true;
+        }
+
+        if (forUpdate && existingEntry is not null)
+        {
+            verification = (existingEntry.VerifiedAtUtc, existingEntry.VerifiedByActorId, existingEntry.VerifiedByDisplayName);
+            return true;
+        }
+
+        verification = (null, null, null);
+        return true;
     }
 }

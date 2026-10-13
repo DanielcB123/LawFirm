@@ -421,3 +421,108 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 
 - **Outcome:** Verified within stated scope (structure and boilerplate; existing behavior covered by integration tests; no runtime behavior change intended). Not production ready.
 - **Next action:** the owner reviews and commits R1. Restart the API and the dev server and click through the public site and workspace once. Then continue with T1 (prompt in the M0 entry) or F3 (lint plus CI).
+
+## 2026-10-13 - Slice A1 Architecture sweep, standards comparison, and SaaS onboarding runbook
+
+- **Recorded:** 2026-10-13 14:20 EDT (UTC−04:00). **Not committed** (working tree on top of `0fc6831` plus uncommitted R1 documentation changes).
+- **Objective and scope:** perform a repository-wide source sweep to map module communication, identify current vulnerabilities/risk points, compare implementation against documented architecture standards without bias, and create a formal runbook for onboarding a new law-firm SaaS tenant. Out of scope: code behavior changes, schema changes, new tests, or deployment changes.
+
+### Changes
+
+- New architecture evidence documents:
+  - `Markdown/architecture/module-interaction-and-vulnerability-sweep-2026-10-13.md`
+  - `Markdown/architecture/architecture-standards-comparison-2026-10-13.md`
+- New operations runbook:
+  - `Markdown/operations/saas-firm-onboarding-runbook.md`
+- Cross-document synchronization:
+  - `Markdown/README.md` links for the new architecture and operations docs.
+  - `Markdown/architecture/README.md` link bar updated with the sweep and standards comparison.
+  - `Markdown/operations/reliability-and-recovery.md` link bar updated with the SaaS onboarding runbook.
+  - `Markdown/delivery/implementation-gap-map.md` intro note updated to reference the 2026-10-13 sweep and revalidated risk rows.
+  - `Markdown/delivery/roadmap-and-acceptance.md` updated with a note linking the new architecture and onboarding artifacts.
+  - `ProgressPlan.md` updated: last-updated timestamp, completed-work row `A1`, new current-step section, revalidated risk bullets, and next-action updates.
+
+### Findings captured
+
+- Module wiring is coherent and largely follows the modular-monolith conventions in `Markdown/architecture/solution-structure.md`.
+- Highest-priority revalidated risk areas remain:
+  - consultation slot race (G20),
+  - public endpoint abuse controls absent (G22),
+  - intake acceptance not tightly bound to conflict review context (G23),
+  - caller-controlled calendar verification fields (G30),
+  - non-atomic audit persistence and unbounded correlation id handling (G16).
+- Architecture-standards verdict captured explicitly: structural standards are mostly met; multi-firm SaaS runtime standards are not yet met.
+
+### Checks run (actual results)
+
+- No build/test/lint commands were re-run in this slice.
+- Verification method: static source and documentation inspection only.
+
+### Checks not run, and why
+
+- Runtime/API execution: out of scope for this documentation and assessment slice.
+- Integration and unit tests: unchanged code paths; no implementation changes were made.
+- Markdown link checker: not run in this slice; links were updated carefully by direct path.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope (documentation and assessment artifacts only). No claim of runtime behavior change or production readiness.
+- **Next action:** commit R1 + A1 documentation changes; then resume implementation on T1 (firm resolution and per-firm routing) or F3 (lint + CI), with G16/G20/G22/G23/G30 as priority risk closures.
+
+## 2026-10-13 - Slice A2 Vulnerability hardening implementation
+
+- **Recorded:** 2026-10-13 15:45 EDT (UTC−04:00). **Not committed** (working tree on top of `0fc6831` plus uncommitted R1/A1 docs work).
+- **Objective and scope:** close or reduce the highest-priority vulnerabilities identified in A1: consultation double-booking race (G20), anonymous abuse controls (G22), intake acceptance conflict-binding (G23), calendar verifier spoofing (G30), and unbounded correlation-id input (part of G16). Out of scope: multitenancy, billing/trust, audit atomicity redesign, and immutable audit-table permissions.
+
+### Changes
+
+- Backend hardening:
+  - `backend/Program.cs`
+    - Added ASP.NET Core rate limiter registration and middleware.
+    - Added policy `PublicConsultationCreate` (fixed window, per remote IP).
+  - `backend/Features/Consultations/ConsultationsEndpoints.cs`
+    - Added `.RequireRateLimiting("PublicConsultationCreate")` to public consultation create route.
+    - Added per-slot MySQL named lock (`GET_LOCK`/`RELEASE_LOCK`) around validation and insert to serialize booking for the same slot.
+    - Returns validation error when the slot lock cannot be acquired quickly.
+  - `backend/Features/Intake/IntakeEndpoints.cs`
+    - Strengthened acceptance checks: intake must already reference a conflict check and approved decision must belong to that same check.
+  - `backend/Features/Calendar/CalendarEndpoints.cs`
+    - Verification metadata (`VerifiedAtUtc`, `VerifiedByActorId`, `VerifiedByDisplayName`) is now server-controlled.
+    - Only attorney/admin callers can set verification intent.
+  - `backend/Infrastructure/Errors/CorrelationIdMiddleware.cs`
+    - Added sanitization/allowlist and bounded correlation-id generation.
+    - Oversized values now map to stable hash-based correlation IDs.
+- Integration test updates:
+  - `backend.IntegrationTests/Infrastructure/MySqlApiFixture.cs`
+    - Fixed runtime connection-string key override to `ConnectionStrings:LawFirm`.
+  - `backend.IntegrationTests/Infrastructure/TestData.cs`
+    - Added `IntakeManager()` test actor helper.
+  - `backend.IntegrationTests/VulnerabilityHardeningTests.cs` (new)
+    - Added tests for:
+      - serialized consultation booking for same slot,
+      - intake rejection when approved decision is from another conflict check,
+      - calendar verification metadata hardening,
+      - correlation-id sanitization/bounds.
+- Documentation and tracking sync:
+  - `Markdown/delivery/implementation-gap-map.md` rows G16, G20, G22, G23, G30 updated with new status/evidence.
+  - `Markdown/architecture/module-interaction-and-vulnerability-sweep-2026-10-13.md` updated with A2 implementation note and residual-risk framing.
+  - `ProgressPlan.md` updated for A2 status and next actions.
+
+### Checks run (actual results)
+
+- `dotnet test backend.IntegrationTests -c EfDesign` (initial run): failed 2 tests (test-shape issues in the new test file only), then fixed.
+- `dotnet test backend.IntegrationTests -c EfDesign` (after fixes): **Passed, 48/48**.
+- `dotnet build MatterForge.sln -c Release`: **Success, 0 warnings, 0 errors**.
+- Cursor diagnostics (`ReadLints`) on edited backend and test files: no lints reported.
+
+### Checks not run, and why
+
+- `dotnet test backend.UnitTests -c Release`: unchanged unit-test target; no paging logic touched.
+- Frontend build/lint/tests: backend-only implementation slice.
+- `db/design/run-validation.ps1`: no `db/design` changes.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope. High-priority vulnerabilities are reduced with runtime controls and integration evidence. Not production ready and not "100% secure."
+- **Residuals still open:** audit atomicity/immutability (G16), CAPTCHA/bot controls for public intake (G22), deeper party-set conflict-binding semantics (G23), and full legal deadline provenance model (G30).
+- **Next action:** implement F2 remainder for same-transaction append-only audit (G16), then F3 lint+CI, then T1 multi-firm routing.

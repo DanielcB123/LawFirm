@@ -39,7 +39,7 @@ public sealed class MySqlApiFixture : IAsyncLifetime
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.UseSetting("ConnectionStrings:LearnCSharpDotNet", ConnectionString);
+            builder.UseSetting("ConnectionStrings:LawFirm", ConnectionString);
             builder.UseSetting("Jwt:Issuer", "LearnCSharpDotNet-tests");
             builder.UseSetting("Jwt:Audience", "LearnCSharpDotNet-tests");
             builder.UseSetting("Jwt:SigningKey", signingKey);

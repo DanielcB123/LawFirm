@@ -25,6 +25,8 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Architecture | [Current codebase audit](architecture/current-codebase-audit.md) | What exists today, with file evidence |
 | Architecture | [Stack and runtime](architecture/stack-and-runtime.md) | Actual frameworks and versions kept |
 | Architecture | [Application architecture](architecture/README.md) | Modules, boundaries, integration strategy |
+| Architecture | [Module interaction and vulnerability sweep (2026-10-13)](architecture/module-interaction-and-vulnerability-sweep-2026-10-13.md) | Evidence-based communication map and risk findings |
+| Architecture | [Architecture standards comparison (2026-10-13)](architecture/architecture-standards-comparison-2026-10-13.md) | Neutral standards check: meets, partial, and missing |
 | Architecture | [Solution and folder structure](architecture/solution-structure.md) | Backend and frontend layout, research behind it, how to add a module |
 | Database | [Database overview](database/README.md) | Vocabulary and storage responsibilities |
 | Database | [Tenancy research](database/tenancy-research.md) | Primary-source analysis and tradeoffs |
@@ -52,6 +54,7 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Security | [Multi-firm threat model](security/multitenant-threat-model.md) | Threats T1–T32, controls, residual risks |
 | Operations | [Recovery and reliability](operations/reliability-and-recovery.md) | Restore, incidents, monitoring |
 | Operations | [Fleet provisioning and migration](operations/fleet-provisioning-and-migration-runbook.md) | Idempotent provisioning, fleet migrations, first-firm move |
+| Operations | [SaaS firm onboarding runbook](operations/saas-firm-onboarding-runbook.md) | End-to-end process for onboarding a new law-firm tenant |
 | Operations | [Recovery and offboarding](operations/recovery-and-offboarding-runbook.md) | Pools, noisy neighbor, one-firm restore, movement, deletion |
 | Integrations | [Provider integration contracts](integrations/README.md) | Failure handling and licensed services |
 | Delivery | [Implementation gap map](delivery/implementation-gap-map.md) | Requirement → current code → change → evidence |

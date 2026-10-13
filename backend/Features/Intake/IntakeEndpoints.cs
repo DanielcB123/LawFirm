@@ -290,8 +290,23 @@ public sealed class IntakeEndpoints : IEndpointModule
                 });
             }
 
+            if (!record.ConflictCheckId.HasValue)
+            {
+                return httpContext.ValidationError("Accepted transition requires approved conflict decision.", new Dictionary<string, string[]>
+                {
+                    ["approvedConflictDecisionId"] = ["Intake record must reference the reviewed conflict check before acceptance."]
+                });
+            }
+
+            if (conflictDecision.ConflictCheckId != record.ConflictCheckId.Value)
+            {
+                return httpContext.ValidationError("Accepted transition requires approved conflict decision.", new Dictionary<string, string[]>
+                {
+                    ["approvedConflictDecisionId"] = ["Conflict decision does not belong to this intake's conflict check."]
+                });
+            }
+
             record.ApprovedConflictDecisionId = request.ApprovedConflictDecisionId;
-            record.ConflictCheckId = conflictDecision.ConflictCheckId;
         }
 
         var actorId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub") ?? string.Empty;

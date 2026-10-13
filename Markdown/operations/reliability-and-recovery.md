@@ -1,6 +1,6 @@
 # Reliability, incident handling, and recovery
 
-[Home](../README.md) · [Provisioning](../database/provisioning-and-migrations.md) · [Roadmap](../delivery/roadmap-and-acceptance.md)
+[Home](../README.md) · [Provisioning](../database/provisioning-and-migrations.md) · [SaaS firm onboarding](saas-firm-onboarding-runbook.md) · [Roadmap](../delivery/roadmap-and-acceptance.md)
 
 > **Current implementation (audited 2026-10-12):** No hosting, backups, monitoring, or runbooks exist in the repository. Health endpoints `/api/health` and `/api/health/ready` exist, but no checks are registered. MySQL restore semantics are in [ADR-001](../database/ADR-001-tenancy.md). See G60–G62 in the [gap map](../delivery/implementation-gap-map.md).
 

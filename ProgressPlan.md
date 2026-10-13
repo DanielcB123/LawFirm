@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-12 21:45 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-13 15:45 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -45,23 +45,27 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | F2 (part) | Migrations baseline, startup refusal for unmanaged DBs, secrets removed from tracked config, demo identity gated | Implemented—verification pending for existing-DB baselining and Development opt-in; remaining F2 item (same-transaction append-only audit, G16) **Planned** |
 | R1 | Solution structure: root build files, backend entity/contract split, not-implemented module and provider boilerplate, unit test project, feature-based frontend, Vitest, `Markldown/` archived under `Markdown/` (uncommitted) | **Verified within stated scope**: solution build, 44 integration + 10 unit + 4 frontend tests, no EF model change, frontend build; lint at baseline. No runtime behavior change intended or observed |
 | M0 | MatterForge working-name branding plus multi-firm architecture: ADR-002, data dictionary, query and index spec, threat model, runbooks, acceptance matrix, implementation plan, `db/design` SQL and validation (committed `0fc6831`) | **Verified within stated scope**: design SQL applied and checked on disposable MySQL 8.0.36 with synthetic data (log in `db/design/validation/`); docs link-checked. No application multi-firm code; nothing deployed; no existing database touched |
+| A1 | Repository-wide module communication sweep, vulnerability mapping, architecture-standards comparison, and SaaS firm onboarding runbook docs | **Verified within stated scope**: static source and docs inspection, architecture comparison artifacts, onboarding runbook authored. No runtime behavior or schema change; no builds/tests re-run in this docs-only slice |
+| A2 | Vulnerability hardening for consultation booking, public abuse controls, intake conflict binding, calendar verification spoofing, and correlation-id sanitation | **Verified within stated scope**: solution build and integration tests (48/48). No multitenancy, no billing/trust, and no audit-atomicity redesign in this slice |
 
-## Current step: R1 solution structure, boilerplate, and documentation folder cleanup
+## Current step: A2 vulnerability hardening implementation
 
-**Status: Verified within stated scope.** Not committed (working tree on top of `0fc6831`). Scope: file and folder organization, root build files, not-implemented boilerplate, test scaffolding, and documentation. No endpoint behavior, schema, or authorization rule changed. Full detail: [SLICE_HISTORY.md](SLICE_HISTORY.md) entry `2026-10-12 - Slice R1`, and [solution structure](Markdown/architecture/solution-structure.md).
+**Status: Verified within stated scope.** Not committed (working tree on top of `0fc6831` plus R1/A1 uncommitted work). Scope: backend implementation hardening and integration tests for the highest-priority vulnerabilities documented in A1.
 
 | Criterion | Result |
 |---|---|
-| One documentation folder | Done: `Markldown/` moved with `git mv` to `Markdown/archive/original-prompt/`; live links updated; AGENTS.md rule updated |
-| Backend root build files | Done: `MatterForge.sln`, `Directory.Build.props`, `Directory.Packages.props` (same package versions as before), `global.json`, `.editorconfig` |
-| Backend split without behavior change | Done: entities into `Infrastructure/Persistence/Entities/`, contracts into `Features/<Module>/Contracts/` (namespaces unchanged), Swagger setup into `Infrastructure/OpenApi/`; template `Features/WeatherForecast` deleted. 44 of 44 integration tests pass; no EF model changes |
-| Backend boilerplate | Done, **not implemented**: `Common/Paging`; `IFirmContext`, `IOutbox` + unregistered `OutboxDispatcher`, `IDocumentStorage`, `IEmailSender`, `IPaymentGateway`, `ISignatureProvider`; empty authenticated route groups for Documents, Engagements, Billing, Payments, Trust, Communications; `TimeProvider.System` registered |
-| Unit test project | Done: `backend.UnitTests` (10 tests, paging) |
-| Frontend feature layout | Done: `app/` (providers, routes, shell), `features/<x>/` with `index.ts`, `lib/apiClient.ts`, `config/env.ts`, `components/layout/`, `pages/public/` and `pages/workspace/`; template `App.tsx`/`App.css`/assets deleted; lint rule blocks deep feature imports |
-| Frontend boilerplate | Done: `features/portal` (calls the existing `/api/portal/matters` routes; no pages yet), `features/billing` draft types, `types/money.ts`, `.env.example`, Vitest (4 tests) |
-| Lint | Unchanged at the baseline: 7 errors, 3 warnings, all pre-existing |
+| Consultation double-booking race | Implemented per-slot MySQL named lock around conflict check + insert in `Features/Consultations/ConsultationsEndpoints.cs`; parallel booking test added and passing |
+| Public abuse controls | Added fixed-window rate limiting policy for anonymous consultation POST route in `Program.cs` and applied it on the endpoint |
+| Intake conflict-binding | Acceptance now requires intake `ConflictCheckId` and rejects approved decisions from other checks |
+| Calendar verifier spoofing | Verification identity/timestamp now server-controlled and verification intent allowed only for attorney/admin requests |
+| Correlation id hardening | Added sanitization and bounded correlation-id generation for untrusted request headers |
+| Test evidence | New integration tests in `backend.IntegrationTests/VulnerabilityHardeningTests.cs`; suite now 48/48 passing |
 
-## Previous step: M0 multi-firm architecture (design) and working-name branding
+## Previous step: A1 architecture evidence refresh and SaaS onboarding runbook
+
+## Earlier step: R1 solution structure, boilerplate, and documentation folder cleanup
+
+## Earlier step: M0 multi-firm architecture (design) and working-name branding
 
 **Status: Verified within stated scope.** Committed in `0fc6831`. The scope is architecture documentation, reviewable SQL, and validation on a disposable database. It does not implement tenancy or move any records.
 
@@ -142,6 +146,11 @@ Acceptance criteria and result:
 - **Decision recorded:** admins have no implicit matter access. **Pending firm confirmation:** attorneys keep firm-wide access until ethical walls exist.
 - **Decision recorded:** clients use separate `/api/portal/matters` routes and DTOs; staff routes reject clients.
 - **Risk:** grant actor ids are free text (no identity directory).
+- **Risk (updated 2026-10-13):** consultation booking race is mitigated in the application path with named locks; a schema-level slot reservation primitive is still optional future hardening.
+- **Risk (updated 2026-10-13):** consultation create has rate limiting, but CAPTCHA/bot scoring are still absent.
+- **Risk (updated 2026-10-13):** intake acceptance now binds to the intake conflict check, but party-set invalidation remains open.
+- **Risk (updated 2026-10-13):** calendar verification spoofing is blocked, but full legal deadline provenance fields are still incomplete.
+- **Risk (updated 2026-10-13):** correlation id input is now bounded/sanitized; audit writes are still non-atomic and audit table immutability is still open.
 - **Risk:** the user's running API process holds `backend/bin/Debug`; builds use `-o ./.build-out`, `-c EfDesign` (project level only), or `-c Release` (solution level).
 - **Note (R1):** the running `dotnet run` process was started before R1 and still serves the old build until restarted. After restart it builds the new tree; behavior should be identical except that `/api/weather/forecast` and `/api/weatherforecast` (template routes) no longer exist.
 - **Note (R1):** boilerplate interfaces and empty route groups are placeholders. Nothing registers or calls them; don't count them as features.
@@ -149,10 +158,10 @@ Acceptance criteria and result:
 ## Exact next action and resume instructions
 
 1. Optionally rename the folder by hand: stop project terminals and app processes, close the Cursor workspace, rename `LearnCSharpDotNet` to `MatterForge` in File Explorer, and reopen `D:\Documents\Projects\MatterForge` in Cursor. Update the paths in any prompt afterward.
-2. Review and commit the R1 working tree (SLICE_HISTORY entry `2026-10-12 - Slice R1`). F1 and M0 are already in `0fc6831`. `.gitignore` excludes `backend.UnitTests/bin/` and `obj/` as well as the integration test outputs.
+2. Review and commit the R1 + A1 + A2 working tree (SLICE_HISTORY entries `2026-10-12 - Slice R1`, `2026-10-13 - Slice A1`, and `2026-10-13 - Slice A2` once appended). F1 and M0 are already in `0fc6831`.
 3. Rotate the credentials above, then set local secrets as in [README.md](README.md#running-locally).
 4. Start T1 with the prompt in the M0 history entry. Inputs: [ADR-002](Markdown/database/ADR-002-multitenant-architecture.md), [threat model](Markdown/security/multitenant-threat-model.md), [acceptance matrix](Markdown/delivery/multitenant-acceptance-matrix.md), [plan](Markdown/delivery/multitenant-implementation-plan.md).
-5. To re-verify: start Docker, then from the repository root run `dotnet build MatterForge.sln -c Release`, `dotnet test backend.UnitTests -c Release`, `dotnet test backend.IntegrationTests -c EfDesign`, and `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1`; in `frontend/` run `npm run build` and `npm test`.
+5. To re-verify code after the next implementation slice: start Docker, then from the repository root run `dotnet build MatterForge.sln -c Release`, `dotnet test backend.UnitTests -c Release`, `dotnet test backend.IntegrationTests -c EfDesign`, and `powershell -ExecutionPolicy Bypass -File db/design/run-validation.ps1`; in `frontend/` run `npm run build` and `npm test`.
 
 ---
 

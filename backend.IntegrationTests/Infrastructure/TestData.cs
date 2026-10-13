@@ -56,6 +56,15 @@ public static class TestData
         AuthRoles.Client,
         [AuthPermissions.MattersReadOwn, AuthPermissions.DocumentsUpload, AuthPermissions.BillingReadOwn]);
 
+    public static TestActor IntakeManager() => new(
+        NewId("t-intake"),
+        AuthRoles.Attorney,
+        [
+            AuthPermissions.IntakeRead, AuthPermissions.IntakeManage,
+            AuthPermissions.ConflictsSearch, AuthPermissions.ConflictsReview,
+            AuthPermissions.ContactsRead, AuthPermissions.ContactsReadRestricted
+        ]);
+
     public static async Task<MatterRecord> CreateMatterAsync(
         MySqlApiFixture fixture,
         string responsibleAttorneyId,

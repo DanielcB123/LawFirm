@@ -1,6 +1,6 @@
 # Application architecture
 
-[Home](../README.md) · [Codebase audit](current-codebase-audit.md) · [Stack and runtime](stack-and-runtime.md) · [Solution structure](solution-structure.md) · [Tenancy ADR](../database/ADR-001-tenancy.md) · [Integrations](../integrations/README.md)
+[Home](../README.md) · [Codebase audit](current-codebase-audit.md) · [Stack and runtime](stack-and-runtime.md) · [Solution structure](solution-structure.md) · [Module sweep (2026-10-13)](module-interaction-and-vulnerability-sweep-2026-10-13.md) · [Standards comparison (2026-10-13)](architecture-standards-comparison-2026-10-13.md) · [Tenancy ADR](../database/ADR-001-tenancy.md) · [Integrations](../integrations/README.md)
 
 ## Audited starting point
 The repository was audited on 2026-10-12 ([findings](current-codebase-audit.md)). It is a .NET 8 minimal-API backend with EF Core on MySQL and a React/Vite SPA, and that stack is kept ([rationale](stack-and-runtime.md)). Feature code is already organized as modules (`backend/Features/<Module>/<Module>Endpoints.cs` implementing `IEndpointModule`), all sharing one `LawFirmDbContext`. That is a reasonable modular-monolith seed. Endpoints currently query the context directly with inline DTO projection. Keep that convention, but move authorization filtering (matter grants, audience) into shared query helpers so it cannot be forgotten per endpoint. Matter and party filtering moved into `Infrastructure/Access` in slice F1.

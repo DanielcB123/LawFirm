@@ -4,6 +4,8 @@
 
 No time estimates are promised before validating staff capacity. Phase 0 (discovery) documentation is complete as of 2026-10-12; first-firm discovery sessions are not.
 
+Architecture evidence refresh from 2026-10-13: [module interaction and vulnerability sweep](../architecture/module-interaction-and-vulnerability-sweep-2026-10-13.md), [architecture standards comparison](../architecture/architecture-standards-comparison-2026-10-13.md), and [SaaS firm onboarding runbook](../operations/saas-firm-onboarding-runbook.md). These are documentation and assessment artifacts only; they do not change runtime status.
+
 | Phase | Concrete deliverable | Gate |
 |---|---|---|
 | 0: Discover | Existing architecture audit, linked Markdown, first-firm discovery, gap map | Actual code paths/evidence; known decisions separated from assumptions |

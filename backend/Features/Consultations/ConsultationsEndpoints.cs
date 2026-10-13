@@ -1,9 +1,11 @@
 using System.Security.Claims;
+using System.Data.Common;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Audit;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Auth;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Endpoints;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Errors;
 using EnterpriseKnowledgeAssistant.Api.Infrastructure.Persistence;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseKnowledgeAssistant.Api.Features.Consultations;
@@ -28,6 +30,7 @@ public sealed class ConsultationsEndpoints : IEndpointModule
             .WithSummary("Returns currently available consultation appointment slots.");
 
         group.MapPost(string.Empty, CreateConsultation)
+            .RequireRateLimiting("PublicConsultationCreate")
             .WithSummary("Creates a public consultation request from the contact page.");
 
         group.MapGet(string.Empty, ListConsultationRequests)
@@ -110,6 +113,15 @@ public sealed class ConsultationsEndpoints : IEndpointModule
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
+        await using var lockLease = await TryAcquireSlotLockAsync(dbContext, request.PreferredAtUtc, cancellationToken);
+        if (lockLease is null)
+        {
+            return httpContext.ValidationError("Consultation request is invalid.", new Dictionary<string, string[]>
+            {
+                ["preferredAtUtc"] = ["Selected time is currently being booked. Please retry."]
+            });
+        }
+
         var validationErrors = await ValidateCreateRequestAsync(request, dbContext, cancellationToken);
         if (validationErrors.Count > 0)
         {
@@ -159,6 +171,15 @@ public sealed class ConsultationsEndpoints : IEndpointModule
                 consultation.InternalNotes,
                 consultation.CreatedAtUtc,
                 consultation.UpdatedAtUtc));
+    }
+
+    private static async Task<MySqlNamedLockLease?> TryAcquireSlotLockAsync(
+        LawFirmDbContext dbContext,
+        DateTimeOffset preferredAtUtc,
+        CancellationToken cancellationToken)
+    {
+        var lockName = $"consultation-slot:{preferredAtUtc.UtcDateTime:yyyyMMddHHmm}";
+        return await MySqlNamedLockLease.TryAcquireAsync(dbContext, lockName, waitSeconds: 5, cancellationToken);
     }
 
     private static async Task<IResult> ListConsultationRequests(
@@ -318,5 +339,88 @@ public sealed class ConsultationsEndpoints : IEndpointModule
         }
 
         return errors;
+    }
+
+    /// <summary>
+    /// Serializes bookings for the same slot across concurrent requests.
+    /// </summary>
+    private sealed class MySqlNamedLockLease : IAsyncDisposable
+    {
+        private readonly DbConnection _connection;
+        private readonly string _lockName;
+        private readonly bool _closeConnection;
+        private bool _released;
+
+        private MySqlNamedLockLease(DbConnection connection, string lockName, bool closeConnection)
+        {
+            _connection = connection;
+            _lockName = lockName;
+            _closeConnection = closeConnection;
+        }
+
+        public static async Task<MySqlNamedLockLease?> TryAcquireAsync(
+            LawFirmDbContext dbContext,
+            string lockName,
+            int waitSeconds,
+            CancellationToken cancellationToken)
+        {
+            var connection = dbContext.Database.GetDbConnection();
+            var shouldCloseConnection = false;
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await connection.OpenAsync(cancellationToken);
+                shouldCloseConnection = true;
+            }
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT GET_LOCK(@name, @timeout)";
+            AddParameter(command, "@name", lockName);
+            AddParameter(command, "@timeout", waitSeconds);
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            var acquired = Convert.ToInt32(result) == 1;
+            if (!acquired)
+            {
+                if (shouldCloseConnection && connection.State == System.Data.ConnectionState.Open)
+                {
+                    await connection.CloseAsync();
+                }
+
+                return null;
+            }
+
+            return new MySqlNamedLockLease(connection, lockName, shouldCloseConnection);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_released)
+            {
+                return;
+            }
+
+            _released = true;
+            try
+            {
+                await using var release = _connection.CreateCommand();
+                release.CommandText = "SELECT RELEASE_LOCK(@name)";
+                AddParameter(release, "@name", _lockName);
+                await release.ExecuteScalarAsync();
+            }
+            finally
+            {
+                if (_closeConnection && _connection.State == System.Data.ConnectionState.Open)
+                {
+                    await _connection.CloseAsync();
+                }
+            }
+        }
+
+        private static void AddParameter(DbCommand command, string name, object value)
+        {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value;
+            command.Parameters.Add(parameter);
+        }
     }
 }
