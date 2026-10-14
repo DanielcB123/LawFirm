@@ -23,6 +23,12 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 13 | 2026-10-14 04:18 EDT (UTC−04:00) | D-20261014-9 | Founder | Dial back hero vibrancy to a balanced midpoint |
 | 14 | 2026-10-14 04:34 EDT (UTC−04:00) | D-20261014-10 | Founder | Match About and Practice hero balance to Contact and Attorneys |
 | 15 | 2026-10-14 04:43 EDT (UTC−04:00) | D-20261014-11 | Founder | Centralize signed-in page header styling in authenticated shell CSS |
+| 16 | 2026-10-14 04:52 EDT (UTC−04:00) | D-20261014-12 | Founder | Greatly reduce Home hero left burgundy gradient weight |
+| 17 | 2026-10-14 04:55 EDT (UTC−04:00) | D-20261014-13 | Founder | Shift Home hero left accent from burgundy to blue |
+| 18 | 2026-10-14 04:58 EDT (UTC−04:00) | D-20261014-14 | Founder | Remove remaining Home hero red cast with full blue rebalance |
+| 19 | 2026-10-14 05:00 EDT (UTC−04:00) | D-20261014-15 | Founder | Force Home hero plain blue and disable image/glow for isolation test |
+| 20 | 2026-10-14 05:03 EDT (UTC−04:00) | D-20261014-16 | Founder | Restore full Home hero visuals with blue-only tint layers |
+| 21 | 2026-10-14 05:06 EDT (UTC−04:00) | D-20261014-17 | Founder | Annotate Home hero CSS controls for manual tuning |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -211,3 +217,75 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** A page that needs intentionally different heading presentation now has to opt out or override the shared selector to avoid unintentional uniformity.
 - **Not done:** No global conversion to a dedicated shared React header component in this step.
 - **Evidence:** Frontend build passed and edited-file diagnostics reported no linter errors.
+
+## D-20261014-12 — Greatly reduce Home hero left burgundy gradient weight
+
+- **When:** 2026-10-14 04:52 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Reduced the Home hero's left-side accent radial intensity from `var(--accent) 21%` to `6%` (with a slightly wider fade) to remove the heavy burgundy cast on the left side of the header.
+- **Why:** The founder requested removing or significantly reducing the burgundy gradient on the left part of the Home page header.
+- **Good, because:** The Home hero reads cleaner and less color-heavy while preserving the established header layout and typography contrast.
+- **Bad, because:** If reduced too far, the hero can lose visual depth and feel flatter relative to the rest of the page palette.
+- **Not done:** No changes to About, Practice, Contact, or Attorneys hero overlays in this decision.
+- **Evidence:** Frontend build passed and stylesheet diagnostics were clean after the gradient reduction.
+
+## D-20261014-13 — Shift Home hero left accent from burgundy to blue
+
+- **When:** 2026-10-14 04:55 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced the Home hero left radial accent hue with a muted blue (`#4b82c7` blend) instead of the prior burgundy-tinted accent.
+- **Why:** The founder changed direction and requested a blueish left-side hue on the Home header instead of burgundy.
+- **Good, because:** The Home hero now has a cooler tonal balance and avoids the warm-heavy left edge.
+- **Bad, because:** The cooler accent can diverge from warm tones used in other headers, which may need future cross-page harmonization.
+- **Not done:** No layout, typography, or non-Home hero overlays were changed in this decision.
+- **Evidence:** Frontend build passed and edited-file diagnostics reported no linter issues.
+
+## D-20261014-14 — Remove remaining Home hero red cast with full blue rebalance
+
+- **When:** 2026-10-14 04:58 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced the Home hero's remaining warm components with blue-neutral values: right-side radial accent switched to blue and base linear gradient moved from maroon/beige tinting to cool blue/light-blue tinting.
+- **Why:** The founder observed the header still looked gray/red and asked for a blue replacement rather than red.
+- **Good, because:** The Home header now consistently reflects a cool blue direction instead of mixed warm-cool tones.
+- **Bad, because:** Cooler overlays can make warm CTA accents feel more prominent and may need minor harmonization tuning later.
+- **Not done:** No changes were made to other page hero overlays in this decision.
+- **Evidence:** Frontend build passed and stylesheet diagnostics remained clean after the hue rebalance.
+
+## D-20261014-15 — Force Home hero plain blue and disable image/glow for isolation test
+
+- **When:** 2026-10-14 05:00 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Set `.home-hero` to a solid blue background (`#6f98cf`) and disabled `.home-hero__image` plus `.home-hero__glow`.
+- **Why:** The founder still observed a red-gray hue and requested a plain-blue test to verify color behavior without layered gradients or image tinting.
+- **Good, because:** This isolates hue behavior completely and confirms whether any warmth is coming from hero layers versus other page surfaces.
+- **Bad, because:** The Home hero loses depth/brand texture while this test mode is active.
+- **Not done:** No changes to non-Home hero styles or CTA component styles.
+- **Evidence:** Frontend build passed and edited-file diagnostics remained lint-clean.
+
+## D-20261014-16 — Restore full Home hero visuals with blue-only tint layers
+
+- **When:** 2026-10-14 05:03 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Re-enabled the full Home hero layer stack (background gradients, Lady Liberty image overlay, and glow) and set all tint layers to cool blue values only.
+- **Why:** The founder confirmed the plain-blue test worked and requested returning to the original beautiful hero composition while keeping blue instead of red.
+- **Good, because:** The hero regains depth and visual character without the prior red cast.
+- **Bad, because:** Multiple blue overlay layers can still need minor opacity tweaks on different displays to keep perfect text contrast.
+- **Not done:** No changes were made to non-Home hero pages in this decision.
+- **Evidence:** Frontend build passed and stylesheet diagnostics remained clean after restoration.
+
+## D-20261014-17 — Annotate Home hero CSS controls for manual tuning
+
+- **When:** 2026-10-14 05:06 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added inline comments in the Home hero stylesheet block documenting how to adjust blue intensity, gradient depth, image overlay opacity, and glow spread/strength.
+- **Why:** The founder asked for explicit guidance in-file to manually iterate on visual balance quickly.
+- **Good, because:** Designers/developers can tune values in place without re-deriving which layer controls which visual result.
+- **Bad, because:** If future refactors change layer behavior but comments are not updated, the guidance can drift from actual rendering.
+- **Not done:** No visual values were changed in this decision.
+- **Evidence:** Frontend build passed and CSS diagnostics stayed lint-clean after comment-only edits.

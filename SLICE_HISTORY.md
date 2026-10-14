@@ -1048,3 +1048,173 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** Signed-in header typography can now be tuned centrally in one CSS location and applied across workspace pages automatically.
 - **Benefit and possible future downfall:** [D-20261014-11](Markdown/planning/decision-log.md). Benefit: one-place updates for consistent workspace heading tone. Downfall: pages with intentionally unique heading treatment may need explicit opt-out classes.
 - **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Home hero left-gradient reduction
+
+- **Recorded:** 2026-10-14 04:52 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** remove or greatly reduce the burgundy-left visual weight on the Home page hero header while keeping the existing overall structure.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `.home-hero` first radial accent was reduced from `var(--accent) 21%` to `var(--accent) 6%` and expanded slightly outward (`transparent 56%`) to soften concentration.
+- Scope remained limited to Home hero background tinting.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No browser screenshot was captured in this pass; this was a targeted magnitude reduction on one existing gradient stop.
+- No backend tests were run because this slice changes frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** The Home hero now has a much softer burgundy-left influence while retaining the rest of the hero composition.
+- **Benefit and possible future downfall:** [D-20261014-12](Markdown/planning/decision-log.md). Benefit: cleaner header balance with less heavy color cast on initial page load. Downfall: reducing accent too far can make the hero feel flatter against bright backgrounds.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Home hero left accent hue shift (blue)
+
+- **Recorded:** 2026-10-14 04:55 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** replace the Home hero left-side burgundy tint with a blueish hue while keeping the same overall hero composition.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `.home-hero` left radial accent changed from `var(--accent)` mix to `#4b82c7` mix at similar subtle magnitude.
+- Scope remained limited to the Home hero left accent color.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No browser screenshot captured in this pass; this was a single-hue substitution in an existing gradient layer.
+- No backend tests were run because this slice changes frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** Home header left-side accent now reads as a subtle blue tone instead of burgundy.
+- **Benefit and possible future downfall:** [D-20261014-13](Markdown/planning/decision-log.md). Benefit: cooler accent reduces warm color dominance on first impression. Downfall: blue tint could feel less aligned with warm brand accents used elsewhere.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Home hero red-cast removal (blue rebalance)
+
+- **Recorded:** 2026-10-14 04:58 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** remove the remaining red-gray cast from the Home hero and rebalance the entire header tint to blue.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `.home-hero` left radial accent increased slightly in blue presence for clearer cool tone.
+  - `.home-hero` right radial accent switched from warm peach (`#c9907a`) to cool blue (`#7ea6d8`).
+  - `.home-hero` base linear gradient mix replaced warm maroon/beige blend with deep-blue/light-blue neutral blend.
+- Scope remained limited to Home hero background tint layers.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No browser screenshot capture in this pass; verification focused on direct CSS hue substitution and successful frontend diagnostics.
+- No backend tests were run because this slice changes frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** Home hero now reads with a blue-neutral tint stack and no intentional warm red overlay components.
+- **Benefit and possible future downfall:** [D-20261014-14](Markdown/planning/decision-log.md). Benefit: the Home header now aligns with the requested cool-toned direction. Downfall: cooler tint may require minor contrast re-checks against warm CTA button colors.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Home hero plain-blue isolation test
+
+- **Recorded:** 2026-10-14 05:00 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** set the Home hero to plain blue for direct visual testing and remove any remaining warm influence from layered overlays.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `.home-hero` background replaced with solid `#6f98cf`.
+  - `.home-hero__image` set to `display: none`.
+  - `.home-hero__glow` set to `display: none`.
+- Scope remained limited to Home hero visuals.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No browser screenshot captured in this pass; this change was an explicit flat-color test configuration.
+- No backend tests were run because this slice changes frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** Home hero is now plain blue with no image/glow overlays, allowing direct confirmation of non-red coloration.
+- **Benefit and possible future downfall:** [D-20261014-15](Markdown/planning/decision-log.md). Benefit: clean isolation test to validate hue without layered effects. Downfall: this removes the richer branded hero depth until styling is reintroduced.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Home hero restored with blue-only layered styling
+
+- **Recorded:** 2026-10-14 05:03 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** restore the full Home hero appearance (Lady Liberty image + depth layers) while keeping all tinting blue instead of red.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `.home-hero` switched from flat test blue back to layered gradients using only cool blue tones.
+  - `.home-hero__image` re-enabled with a cool blue overlay on top of the Lady Liberty image.
+  - `.home-hero__glow` re-enabled with a soft blue glow.
+- Scope remained limited to Home hero visual layers.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No screenshot captured in this pass; verification focused on deterministic CSS restoration with blue-only palette values and successful build/lint.
+- No backend tests were run because this slice changes frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** Home hero keeps the original rich composition while replacing warm red cast with cool blue treatment.
+- **Benefit and possible future downfall:** [D-20261014-16](Markdown/planning/decision-log.md). Benefit: preserves visual richness while matching the requested cool hue direction. Downfall: layered blue overlays may still need fine opacity tuning for perfect contrast on all displays.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Home hero manual-tuning comments
+
+- **Recorded:** 2026-10-14 05:06 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** add inline CSS comments to the Home hero block so manual visual tuning is faster and clearer.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - Added comments above Home hero gradient layers describing how alpha and color changes affect left tint, right tint, and base wash.
+  - Added comments in `.home-hero__image` explaining how `opacity` and overlay alpha values affect Lady Liberty image visibility and wash strength.
+  - Added comments in `.home-hero__glow` explaining how `opacity`, `blur`, color alpha, and transparent stop affect glow punch and spread.
+- Scope was documentation comments only; no value changes in this pass.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No browser visual pass was needed because this slice only added explanatory comments without CSS value changes.
+- No backend tests were run because this slice is frontend stylesheet comments only.
+
+### Outcome and next action
+
+- **Outcome:** Home hero color/opacity controls are now self-documented inline for quick manual experimentation.
+- **Benefit and possible future downfall:** [D-20261014-17](Markdown/planning/decision-log.md). Benefit: faster tuning with less trial-and-error context loss. Downfall: stale comments can mislead if styles evolve but comments are not updated.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.

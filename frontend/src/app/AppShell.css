@@ -454,23 +454,24 @@
   border: 1px solid var(--border);
   border-radius: 1.05rem;
   padding: clamp(1.35rem, 3vw, 2.6rem);
+  /* Layer 1/3 (left tint): increase alpha for more visible blue on the left; decrease to soften it. */
+  /* Layer 2/3 (right tint): controls cool highlight on the right; raise alpha for stronger contrast. */
+  /* Layer 3/3 (base wash): sets overall cool tone; first rgba deepens navy, second rgba brightens frosted blue. */
   background:
-    radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--accent) 21%, transparent), transparent 52%),
-    radial-gradient(circle at 86% 16%, color-mix(in srgb, #c9907a 18%, transparent), transparent 49%),
-    linear-gradient(
-      140deg,
-      color-mix(in srgb, var(--card-bg) 96%, #3b1722 4%),
-      color-mix(in srgb, var(--card-bg) 94%, #fff4e8 6%)
-    );
+    radial-gradient(circle at 10% 10%, rgba(225, 240, 247, 0.932), transparent 95%),
+    radial-gradient(circle at 10% 10%, rgb(255, 255, 255), transparent 95%),
+    linear-gradient(90deg, rgba(228, 230, 235, 0.856), rgb(238, 241, 247));
 }
 
 .home-hero__image {
   position: absolute;
-  inset: -4% -4% -14% -4%;
+  inset: -4% -4% -4% -4%;
   z-index: -3;
-  opacity: 0.37;
+  /* Image strength: raise opacity to show more of Lady Liberty image; lower it for flatter, more color-led look. */
+  opacity: 1;
   background-image:
-    linear-gradient(to bottom, rgba(250, 243, 232, 0.55), rgba(250, 243, 232, 0.24)),
+    /* Overlay on image: higher alpha mutes photo detail and increases icy-blue wash; lower alpha reveals more photo texture. */
+    linear-gradient(to bottom, #eef7ffc0, rgba(237, 244, 253, 0.945)),
     url("https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1800&q=80");
   background-size: cover;
   background-position: center;
@@ -483,9 +484,12 @@
   height: clamp(300px, 48vw, 580px);
   border-radius: 50%;
   pointer-events: none;
-  opacity: 0.46;
+  /* Glow visibility: increase opacity for stronger aura, decrease for a cleaner/less dramatic header. */
+  opacity: 0.34;
+  /* Glow softness: larger blur spreads glow gently; smaller blur creates a tighter, brighter hotspot. */
   filter: blur(12px);
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 46%, transparent), transparent 72%);
+  /* Glow color/intensity: adjust rgb for hue, adjust alpha for punch; transparent stop controls fade distance. */
+  background: radial-gradient(circle, rgba(238, 242, 247, 0), transparent 82%);
   z-index: -2;
 }
 
@@ -498,7 +502,7 @@
     linear-gradient(to right, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--text) 10%, transparent) 1px, transparent 1px);
   background-size: 42px 42px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 82%);
+  mask-image: linear-gradient(to bottom, rgba(239, 241, 245, 0.041), transparent 82%);
 }
 
 .home-hero__eyebrow {

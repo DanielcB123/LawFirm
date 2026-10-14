@@ -109,7 +109,7 @@ export function HomePage() {
         <div className="home-hero__grid" style={heroLayerStyle} aria-hidden="true" />
         <p className="eyebrow home-hero__eyebrow">Trusted legal counsel in Ohio</p>
         <h1>Legal strategy that moves as fast as your life.</h1>
-        <p className="lead">
+        <p className="lead text-gray-600 font-semibold">
           Brian & Sandra Law helps individuals, families, and small businesses resolve legal issues with practical
           strategy, consistent communication, and strong courtroom advocacy.
         </p>

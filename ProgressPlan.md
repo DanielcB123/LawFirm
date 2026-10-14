@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-14 04:43 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-14 05:06 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -50,6 +50,12 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | A3 | Tailwind CSS onboarding and frontend styling migration pass | **Verified within stated scope**: Tailwind/PostCSS integration, hybrid utility migration in shared layout and public pages, frontend install/build/dev verification. Existing frontend lint baseline unchanged |
 | A4 | Public hero balance calibration for About and Practice headers | **Verified within stated scope**: matched About and Practice overlay profile to the calmer Contact/Attorneys balance; frontend build and stylesheet diagnostics clean |
 | A5 | Centralized signed-in page header styling | **Verified within stated scope**: moved workspace header typography to shared authenticated-shell CSS selectors and removed one page-level override in Tasks & Calendar |
+| A6 | Home hero burgundy-left gradient reduction | **Verified within stated scope**: reduced left accent radial intensity on Home header to soften burgundy dominance while preserving existing hero layout and readability |
+| A7 | Home hero left accent shifted to blue hue | **Verified within stated scope**: replaced burgundy-toned left radial with a soft blue tint while preserving hero structure and readability |
+| A8 | Home hero full hue neutralization (red to blue) | **Verified within stated scope**: replaced remaining warm red/beige Home hero gradient components with cooler blue-toned equivalents to remove reddish cast |
+| A9 | Home hero plain-blue isolation test | **Verified within stated scope**: set Home hero to a flat blue background and disabled hero image/glow layers to remove all warm tint sources |
+| A10 | Home hero restored with blue-only layered treatment | **Verified within stated scope**: restored Lady Liberty image/glow hero composition using only cool blue overlays and gradients (no red-toned tint layers) |
+| A11 | Home hero tuning comments for manual editing | **Verified within stated scope**: added inline CSS guidance comments explaining which values control blue strength, gradient depth, image visibility, and glow intensity |
 
 ## Current step: global background image options
 
@@ -67,6 +73,12 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | Header tone tune | Rebalanced hero styling to split the difference: toned down the latest vibrancy while keeping more life than the original dull gray/white look |
 | Header parity tune | About and Practice now use the same balanced top-to-bottom neutral overlay profile as Contact/Attorneys to reduce over-emphasis |
 | Workspace header centralization | Signed-in page title and intro lead styling now lives in authenticated `.page` selectors, reducing per-page header class duplication |
+| Home aura refinement | Reduced the left-side burgundy gradient magnitude on Home hero to keep a cleaner, less color-heavy first impression |
+| Home hue shift | Converted the Home hero left accent from burgundy to a muted blue hue for a cooler, less warm visual anchor |
+| Home hue cleanup | Converted the Home hero's remaining warm secondary radial and base linear tint to cool blue neutrals to eliminate red-gray cast |
+| Home plain-blue test | Home hero now uses a solid blue background with decorative image/glow layers disabled to validate color behavior without overlays |
+| Home blue restore | Re-enabled full hero visuals (image and glow) with blue-only tint stack to keep the original beauty while avoiding red cast |
+| Home tuning assist | Added inline comments in Home hero CSS to speed manual color/opacity experimentation without hunting through layers |
 
 ## Previous step: public appointment request dialog
 
