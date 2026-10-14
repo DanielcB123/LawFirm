@@ -716,3 +716,60 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** Decision order is the timestamp index in `Markdown/planning/decision-log.md` (D-20261013-4). Database evolution and the class diagram refer to each other.
 - **Benefit and possible future downfall:** [D-20261013-4](Markdown/planning/decision-log.md). Benefit: a later decision cannot be filed above an earlier one. Downfall: editing the old `delivery/` pointers as if they were the record.
 - **Next action:** on the next schema change, append schema evolution and update the class diagram in the same session.
+
+## 2026-10-14 - Appointment request dialog layout
+
+- **Recorded:** 2026-10-14 02:35 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** restyle the public Request appointment dialog so it is wider and the request fits without scrolling the dialog on a desktop window.
+
+### Changes
+
+- `frontend/src/pages/public/ContactPage.tsx`: appointment dialog only. Contact fields are a two-by-two grid, the message is shorter, and the calendar sits beside the time list.
+- `frontend/src/app/AppShell.css`: `.modal-card--appointment` is up to 1040px wide, with a tinted header. The shared `.modal-card` width is unchanged, so the workspace calendar dialog stays narrow.
+- Below about 860px the columns stack.
+
+### Checks run (actual results)
+
+- Opened `http://127.0.0.1:5173/contact` with the API already running. On a 1440×900 viewport the dialog was 1040×554 and its scroll height matched its client height.
+- Selected Thursday, October 15, then 10:30 AM. The summary updated. Typed a name. Next month changed the calendar to November 2026.
+- At about 456px wide the form stacked, the dialog scrolled vertically, and the page did not scroll sideways.
+
+### Checks not run, and why
+
+- Did not submit a consultation request, so no new intake row was created.
+- Did not open the workspace calendar dialog in the browser. Its markup still uses `.modal-card` without the appointment class.
+
+### Outcome and next action
+
+- **Outcome:** The public appointment dialog shows the form and the schedule together on a desktop window.
+- **Benefit and possible future downfall:** [D-20261014-1](Markdown/planning/decision-log.md). Benefit: the request is visible without scrolling the dialog at 1440×900. Downfall: windows under about 860px stack and scroll again.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Appointment dialog scale and overlap guard
+
+- **Recorded:** 2026-10-14 02:59 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** keep the new appointment modal design, scale it up, and prevent overlap between the input section and the appointment-time section.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`: increased `.modal-card--appointment` max width from 1040px to 1220px and scaled up modal typography/spacing for a larger visual presentation.
+- `frontend/src/app/AppShell.css`: increased spacing and control sizes in the appointment header, form, calendar, and time chips.
+- `frontend/src/app/AppShell.css`: added a responsive guardrail so the form stacks to one column below 1200px and keeps base typography below 980px, avoiding input/picker overlap in medium-width windows.
+
+### Checks run (actual results)
+
+- Opened `http://127.0.0.1:5173/contact` with the API already running and opened Request appointment.
+- On a 1400×900 viewport, measured modal size 1220×611 with scroll gap 0 (full request visible without modal scrolling).
+- Confirmed no overlap between the basic input block and appointment-time block in the two-column layout at that viewport.
+- At smaller widths, confirmed the new single-column fallback engages and prevents horizontal collision.
+
+### Checks not run, and why
+
+- Did not submit a consultation request, so no new intake row was created.
+- Did not run backend or frontend test suites because this slice only changed CSS.
+
+### Outcome and next action
+
+- **Outcome:** The modal keeps the same structure, appears larger, and avoids overlap between core input and scheduling sections.
+- **Benefit and possible future downfall:** [D-20261014-2](Markdown/planning/decision-log.md). Benefit: larger, clearer modal without input overlap. Downfall: the larger footprint and earlier stacking reduce visible page context and side-by-side layout at medium widths.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.

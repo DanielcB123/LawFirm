@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-13 23:15 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-14 02:59 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -49,9 +49,22 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | A2 | Vulnerability hardening for consultation booking, public abuse controls, intake conflict binding, calendar verification spoofing, and correlation-id sanitation | **Verified within stated scope**: solution build and integration tests (48/48). No multitenancy, no billing/trust, and no audit-atomicity redesign in this slice |
 | A3 | Tailwind CSS onboarding and frontend styling migration pass | **Verified within stated scope**: Tailwind/PostCSS integration, hybrid utility migration in shared layout and public pages, frontend install/build/dev verification. Existing frontend lint baseline unchanged |
 
-## Current step: full signed-in sidebar
+## Current step: public appointment request dialog
 
-**Status: Verified within stated scope.** Not committed. The signed-in menu now includes every Clio sidebar destination plus Intake, Consultations, and Conflicts. Pages that already have records show those records. Billing, accounts, and integrations do not invent balances, invoices, or connected services.
+**Status: Verified within stated scope.** Not committed. The public Contact page “Request appointment” dialog keeps the same layout but scales up in size, and it now switches to a stacked layout sooner to prevent overlap between the input block and the appointment picker.
+
+| Criterion | Result |
+|---|---|
+| Width and scale | Appointment card is up to 1220px, and card typography scales to 1.08x on larger screens |
+| Scroll | On a 1400×900 viewport the dialog measured 1220×611 with scroll gap 0 (full request visible without modal scroll) |
+| Interaction | Opened the modal and verified the scaled layout while keeping the same controls and flow |
+| Overlap guard | Below 1200px the form stacks to one column to avoid overlap between the contact inputs and the “Available appointment time” block |
+| Narrow window | Below 980px, modal typography returns to base size and still avoids horizontal overflow |
+| Unchanged | Workspace calendar create/edit dialog still uses `.modal-card` without the appointment modifier |
+
+## Previous step: full signed-in sidebar
+
+**Status: Verified within stated scope.** Committed in `0ff69b3`. The signed-in menu now includes every Clio sidebar destination plus Intake, Consultations, and Conflicts. Pages that already have records show those records. Billing, accounts, and integrations do not invent balances, invoices, or connected services.
 
 | Criterion | Result |
 |---|---|

@@ -12,6 +12,8 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 2 | 2026-10-13 22:55 EDT (UTC−04:00) | D-20261013-2 | Founder | Full Clio-shaped sidebar, empty money pages stay empty |
 | 3 | 2026-10-13 23:05 EDT (UTC−04:00) | D-20261013-3 | Founder | Start this decision log |
 | 4 | 2026-10-13 23:15 EDT (UTC−04:00) | D-20261013-4 | Founder | Put planning and database history in two folders |
+| 5 | 2026-10-14 02:35 EDT (UTC−04:00) | D-20261014-1 | Founder | Widen the public appointment request dialog |
+| 6 | 2026-10-14 02:59 EDT (UTC−04:00) | D-20261014-2 | Founder | Scale up the appointment dialog and prevent overlap |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -68,3 +70,27 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Pointers at the old paths can be edited as if they were still the record. The record is this file. A second database folder was not created; adding one later would split the schema history from `Markdown/database/`.
 - **Not done:** Domain documents were not moved. Older slice entries were not rewritten. No new SQL migration.
 - **Evidence:** Documentation only. Link targets checked by path while writing.
+
+## D-20261014-1 — Widen the public appointment request dialog
+
+- **When:** 2026-10-14 02:35 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** The Contact page “Request appointment” dialog uses its own wider card. Contact fields and the message sit on the left. The month calendar and time choices sit beside them. The shared calendar-task dialog stays on the narrower card.
+- **Why:** The founder said the request dialog was tall and narrow, so the whole request was not visible without scrolling the dialog.
+- **Good, because:** On a 1440×900 viewport the card was 1040px wide and 554px tall, with no internal scroll. Choosing a date, choosing 10:30 AM, typing a name, and moving to the next month all still worked.
+- **Bad, because:** A window narrower than about 860px stacks the columns again, and that stacked dialog still scrolls. The wider card also covers more of the contact page behind it.
+- **Not done:** No change to how slots are stored or how a request is submitted. The workspace calendar dialog was not restyled.
+- **Evidence:** Browser session on `http://127.0.0.1:5173/contact` against the already running API. Slice history entry `2026-10-14 - Appointment request dialog layout`.
+
+## D-20261014-2 — Scale up the appointment dialog and prevent overlap
+
+- **When:** 2026-10-14 02:59 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Keep the current appointment dialog design, increase its overall visual scale, and add responsive guardrails so the “Available appointment time” section does not overlap the basic contact inputs.
+- **Why:** The founder asked to preserve the current restyle but make it larger overall and remove overlap seen between the appointment picker area and the input area.
+- **Good, because:** The card now scales up to 1220px with larger type and controls. On a 1400×900 viewport, the card measured 1220×611 with no internal scroll and no input-vs-picker overlap.
+- **Bad, because:** The wider/larger card covers more of the page behind the modal, and the one-column switch now happens earlier (under 1200px), so medium windows lose the side-by-side layout.
+- **Not done:** No API or submission behavior changed. No workspace modal styles changed.
+- **Evidence:** Browser session on `http://127.0.0.1:5173/contact` against the already running API. Slice history entry `2026-10-14 - Appointment dialog scale and overlap guard`.

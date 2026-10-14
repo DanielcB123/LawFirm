@@ -227,7 +227,7 @@ export function ContactPage() {
         </p>
         <button
           type="button"
-          className="hero-button hero-button--primary pt-4"
+          className="hero-button hero-button--primary mt-4"
           onClick={() => {
             setVisibleMonthStart(startOfMonth(new Date()));
             setIsModalOpen(true);
@@ -291,61 +291,108 @@ export function ContactPage() {
       {isModalOpen && (
         <div className="modal-backdrop" role="presentation" onClick={() => setIsModalOpen(false)}>
           <section
-            className="modal-card border border-[var(--border)] shadow-2xl"
+            className="modal-card modal-card--appointment border border-[var(--border)] shadow-2xl"
             ref={modalCardRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="consultation-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="consultation-modal-title">Schedule consultation</h2>
-            <p className="muted">Choose from currently available appointment times.</p>
+            <header className="appointment-modal__header">
+              <div>
+                <p className="eyebrow">Request appointment</p>
+                <h2 id="consultation-modal-title">Schedule consultation</h2>
+                <p className="muted">Tell us how to reach you, then pick an open time.</p>
+              </div>
+              <button type="button" className="appointment-modal__close" onClick={() => setIsModalOpen(false)} aria-label="Close">
+                ×
+              </button>
+            </header>
 
-            <form className="workspace-form" onSubmit={submitConsultation}>
-              <label htmlFor="consultation-full-name">Full name</label>
-              <input
-                id="consultation-full-name"
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                required
-              />
+            <form className="appointment-modal__form" onSubmit={submitConsultation}>
+              <div className="appointment-modal__details">
+                <div className="appointment-modal__fields">
+                  <label htmlFor="consultation-full-name">
+                    Full name
+                    <input
+                      id="consultation-full-name"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+                      value={fullName}
+                      onChange={(event) => setFullName(event.target.value)}
+                      required
+                    />
+                  </label>
 
-              <label htmlFor="consultation-email">Email</label>
-              <input
-                id="consultation-email"
-                type="email"
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
+                  <label htmlFor="consultation-email">
+                    Email
+                    <input
+                      id="consultation-email"
+                      type="email"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      required
+                    />
+                  </label>
 
-              <label htmlFor="consultation-phone">Phone</label>
-              <input
-                id="consultation-phone"
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder="Optional"
-              />
+                  <label htmlFor="consultation-phone">
+                    Phone
+                    <input
+                      id="consultation-phone"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      placeholder="Optional"
+                    />
+                  </label>
 
-              <label htmlFor="consultation-practice-area">Practice area</label>
-              <select
-                id="consultation-practice-area"
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
-                value={practiceArea}
-                onChange={(event) => setPracticeArea(event.target.value)}
-              >
-                {practiceAreas.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                  <label htmlFor="consultation-practice-area">
+                    Practice area
+                    <select
+                      id="consultation-practice-area"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+                      value={practiceArea}
+                      onChange={(event) => setPracticeArea(event.target.value)}
+                    >
+                      {practiceAreas.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-              <fieldset className="consultation-picker" disabled={isLoadingSlots && slots.length === 0}>
+                  <label htmlFor="consultation-message" className="appointment-modal__message">
+                    Message
+                    <textarea
+                      id="consultation-message"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      rows={2}
+                      placeholder="Share context that will help us prepare."
+                    />
+                  </label>
+                </div>
+
+                {submitError && <p className="error-text rounded-md border border-[#8b2337]/30 bg-[#8b2337]/10 px-3 py-2">{submitError}</p>}
+                <div className="modal-actions">
+                  <button type="button" className="mini-action" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-[var(--border)] bg-[var(--accent)] px-3 py-2 font-semibold text-[#fffaf2] disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isSubmitting || isLoadingSlots || calendarDays.length === 0 || !activeSelectedSlot}
+                  >
+                    {isSubmitting ? "Sending..." : "Send request"}
+                  </button>
+                </div>
+              </div>
+
+              <fieldset className="consultation-picker appointment-modal__schedule" disabled={isLoadingSlots && slots.length === 0}>
                 <legend>Available appointment time</legend>
+                <div className="appointment-modal__schedule-body">
                 {!isLoadingSlots && calendarDays.length === 0 && <p className="muted">No open slots right now.</p>}
                 {calendarDays.length > 0 && (
                   <>
@@ -456,30 +503,8 @@ export function ContactPage() {
                     </p>
                   </>
                 )}
+                </div>
               </fieldset>
-              <label htmlFor="consultation-message">Message</label>
-              <textarea
-                id="consultation-message"
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                rows={4}
-                placeholder="Share context that will help us prepare for your consultation."
-              />
-
-              {submitError && <p className="error-text rounded-md border border-[#8b2337]/30 bg-[#8b2337]/10 px-3 py-2">{submitError}</p>}
-              <div className="modal-actions">
-                <button type="button" className="mini-action" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg border border-[var(--border)] bg-[var(--soft-bg)] px-3 py-2 font-semibold text-[var(--text-h)] disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isSubmitting || isLoadingSlots || calendarDays.length === 0 || !activeSelectedSlot}
-                >
-                  {isSubmitting ? "Sending..." : "Send request"}
-                </button>
-              </div>
             </form>
           </section>
         </div>
