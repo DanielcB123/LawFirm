@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-14 02:59 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-14 04:34 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -48,19 +48,27 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | A1 | Repository-wide module communication sweep, vulnerability mapping, architecture-standards comparison, and SaaS firm onboarding runbook docs | **Verified within stated scope**: static source and docs inspection, architecture comparison artifacts, onboarding runbook authored. No runtime behavior or schema change; no builds/tests re-run in this docs-only slice |
 | A2 | Vulnerability hardening for consultation booking, public abuse controls, intake conflict binding, calendar verification spoofing, and correlation-id sanitation | **Verified within stated scope**: solution build and integration tests (48/48). No multitenancy, no billing/trust, and no audit-atomicity redesign in this slice |
 | A3 | Tailwind CSS onboarding and frontend styling migration pass | **Verified within stated scope**: Tailwind/PostCSS integration, hybrid utility migration in shared layout and public pages, frontend install/build/dev verification. Existing frontend lint baseline unchanged |
+| A4 | Public hero balance calibration for About and Practice headers | **Verified within stated scope**: matched About and Practice overlay profile to the calmer Contact/Attorneys balance; frontend build and stylesheet diagnostics clean |
 
-## Current step: public appointment request dialog
+## Current step: global background image options
 
-**Status: Verified within stated scope.** Not committed. The public Contact page “Request appointment” dialog keeps the same layout but scales up in size, and it now switches to a stacked layout sooner to prevent overlap between the input block and the appointment picker.
+**Status: Verified within stated scope.** Not committed. The app background is currently pinned to City Skyline at Night, and the background selector UI is commented out temporarily for visual feedback review.
 
 | Criterion | Result |
 |---|---|
-| Width and scale | Appointment card is up to 1220px, and card typography scales to 1.08x on larger screens |
-| Scroll | On a 1400×900 viewport the dialog measured 1220×611 with scroll gap 0 (full request visible without modal scroll) |
-| Interaction | Opened the modal and verified the scaled layout while keeping the same controls and flow |
-| Overlap guard | Below 1200px the form stacks to one column to avoid overlap between the contact inputs and the “Available appointment time” block |
-| Narrow window | Below 980px, modal typography returns to base size and still avoids horizontal overflow |
-| Unchanged | Workspace calendar create/edit dialog still uses `.modal-card` without the appointment modifier |
+| Options | 23 choices remain in code for later review, but selection is temporarily locked |
+| Scope | Background applies globally through `body` styling, so it appears on public and workspace pages |
+| Control | Background picker UI is commented out in `AppShell` for now |
+| Persistence | Local storage key `matterforge.app.background-theme` is set to `city-skyline-night` by the pinned theme effect |
+| Verification | Confirmed no background picker is rendered and confirmed the Skyline image URL is active in `--app-shell-background-image` |
+| Rendering fix | Moved background drawing to `.app-shell::before` with a lighter overlay so option changes are visibly distinct across the full app |
+| Usability | Scrollable picker styles remain in place for when the selector is re-enabled |
+| Header tone tune | Rebalanced hero styling to split the difference: toned down the latest vibrancy while keeping more life than the original dull gray/white look |
+| Header parity tune | About and Practice now use the same balanced top-to-bottom neutral overlay profile as Contact/Attorneys to reduce over-emphasis |
+
+## Previous step: public appointment request dialog
+
+**Status: Verified within stated scope.** Not committed. The public Contact page “Request appointment” dialog keeps the same layout but scales up in size, and it now switches to a stacked layout sooner to prevent overlap between the input block and the appointment picker.
 
 ## Previous step: full signed-in sidebar
 

@@ -14,6 +14,14 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 4 | 2026-10-13 23:15 EDT (UTC−04:00) | D-20261013-4 | Founder | Put planning and database history in two folders |
 | 5 | 2026-10-14 02:35 EDT (UTC−04:00) | D-20261014-1 | Founder | Widen the public appointment request dialog |
 | 6 | 2026-10-14 02:59 EDT (UTC−04:00) | D-20261014-2 | Founder | Scale up the appointment dialog and prevent overlap |
+| 7 | 2026-10-14 03:25 EDT (UTC−04:00) | D-20261014-3 | Founder | Add switchable global background images |
+| 8 | 2026-10-14 03:51 EDT (UTC−04:00) | D-20261014-4 | Founder | Render app backgrounds on a dedicated shell layer |
+| 9 | 2026-10-14 03:58 EDT (UTC−04:00) | D-20261014-5 | Founder | Expand background catalog with many style choices |
+| 10 | 2026-10-14 04:06 EDT (UTC−04:00) | D-20261014-6 | Founder | Temporarily pin Skyline and hide picker UI |
+| 11 | 2026-10-14 04:10 EDT (UTC−04:00) | D-20261014-7 | Founder | Warm only About and Practice hero overlays |
+| 12 | 2026-10-14 04:16 EDT (UTC−04:00) | D-20261014-8 | Founder | Increase hero vibrancy for About, Practice, and Home |
+| 13 | 2026-10-14 04:18 EDT (UTC−04:00) | D-20261014-9 | Founder | Dial back hero vibrancy to a balanced midpoint |
+| 14 | 2026-10-14 04:34 EDT (UTC−04:00) | D-20261014-10 | Founder | Match About and Practice hero balance to Contact and Attorneys |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -94,3 +102,99 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** The wider/larger card covers more of the page behind the modal, and the one-column switch now happens earlier (under 1200px), so medium windows lose the side-by-side layout.
 - **Not done:** No API or submission behavior changed. No workspace modal styles changed.
 - **Evidence:** Browser session on `http://127.0.0.1:5173/contact` against the already running API. Slice history entry `2026-10-14 - Appointment dialog scale and overlap guard`.
+
+## D-20261014-3 — Add switchable global background images
+
+- **When:** 2026-10-14 03:25 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added a global background picker with multiple law-themed image options and persistence. The selected image applies to the entire app via shared body background styling.
+- **Why:** The founder liked the home hero background image style and asked for similar imagery across all pages, with the ability to switch between options.
+- **Good, because:** The same visual style now carries across pages, and users can switch backgrounds without code changes. Selection persists while navigating.
+- **Bad, because:** Remote background images can fail to load or shift appearance if the source changes. A busy image can also reduce contrast if overlay tuning is not maintained.
+- **Not done:** No admin settings page for theme management. No offline/local image fallback.
+- **Evidence:** Browser session on `http://127.0.0.1:5173/` and `/contact`; background picker options were clickable and `localStorage` key `matterforge.app.background-theme` updated to the selected theme.
+
+## D-20261014-4 — Render app backgrounds on a dedicated shell layer
+
+- **When:** 2026-10-14 03:51 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Keep the background option picker, but render the selected background on `.app-shell::before` with a lighter overlay instead of composing a heavy overlay directly in the root CSS variable.
+- **Why:** The founder reported that selecting options appeared to do nothing. The selection state was updating, but the previous overlay opacity made image differences hard to see.
+- **Good, because:** Background changes are now visibly distinct while still preserving readability. The selected background applies across Home and Contact with the same persisted theme id.
+- **Bad, because:** A lighter overlay can reduce text contrast if future card or section backgrounds become more transparent.
+- **Not done:** No automatic contrast analyzer and no per-theme overlay tuning controls.
+- **Evidence:** Browser session on `http://127.0.0.1:5173/` and `/contact`; `localStorage` and CSS variable updates matched selected options, and visual changes were confirmed in screenshots.
+
+## D-20261014-5 — Expand background catalog with many style choices
+
+- **When:** 2026-10-14 03:58 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Expanded the Background picker from a small set to a broad catalog of 23 options, including corporate office interiors, downtown city imagery, legal motifs, and art-forward options. Added panel scrolling so the larger catalog remains usable.
+- **Why:** The founder requested many more options to find a perfect style fit, specifically asking for corporate office, downtown, law-focused, and law/art-beauty crossover backgrounds.
+- **Good, because:** The visual direction is now tunable without code edits, with enough variety for different moods while keeping the same app structure.
+- **Bad, because:** More remote images increase chance of inconsistent availability or visual quality drift if external hosts change assets.
+- **Not done:** No curation workflow or per-firm profile defaults yet.
+- **Evidence:** Browser session on `http://127.0.0.1:5173/`; 23 options were present and the options panel confirmed scrollable (`scrollHeight` greater than `clientHeight`).
+
+## D-20261014-6 — Temporarily pin Skyline and hide picker UI
+
+- **When:** 2026-10-14 04:06 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Background is pinned to City Skyline at Night for all pages. The background picker dropdown UI is commented out, while the full catalog stays in code for later feedback sessions.
+- **Why:** The founder selected City Skyline at Night as the preferred look and asked to pause user switching while collecting stakeholder feedback.
+- **Good, because:** Visual direction stays consistent during review, and the selector can be restored quickly without rebuilding the catalog.
+- **Bad, because:** Live comparison by end users is paused until the picker is re-enabled.
+- **Not done:** No role-based control or settings-page toggle for showing/hiding the picker.
+- **Evidence:** Browser session on `http://127.0.0.1:5173/`; no picker button rendered, and `--app-shell-background-image` matched the skyline URL.
+
+## D-20261014-7 — Warm only About and Practice hero overlays
+
+- **When:** 2026-10-14 04:10 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Updated only `marketing-hero--about` and `marketing-hero--practice` overlay gradients to reduce dull gray/white wash and add warmer accent tone.
+- **Why:** The founder said those two headers looked too gray and white and felt visually dull.
+- **Good, because:** About and Practice heroes now keep readability while showing more warmth and depth, without changing hero styles on other pages.
+- **Bad, because:** Warmer overlays can require future contrast checks if base imagery changes.
+- **Not done:** Attorneys and Contact hero overlays were intentionally unchanged.
+- **Evidence:** CSS computed backgrounds for `.marketing-hero--about` and `.marketing-hero--practice` in browser reflect the new radial + warm linear gradients.
+
+## D-20261014-8 — Increase hero vibrancy for About, Practice, and Home
+
+- **When:** 2026-10-14 04:16 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Applied a stronger color pass to About and Practice hero overlays and increased Home hero aura intensity (stronger accent gradients, brighter image presence, and richer glow).
+- **Why:** The founder said Practice was still too dull and asked for the same improvement on About plus a more vibrant aura on Home.
+- **Good, because:** The hero areas now present more visual life and color energy while preserving text readability and page-level scope.
+- **Bad, because:** More intense overlays and glow can become visually heavy if future content blocks become more transparent.
+- **Not done:** No hero style changes were made to Attorneys or Contact.
+- **Evidence:** Frontend build passed; computed styles in browser show updated gradient stacks on `marketing-hero--about`, `marketing-hero--practice`, and `home-hero`.
+
+## D-20261014-9 — Dial back hero vibrancy to a balanced midpoint
+
+- **When:** 2026-10-14 04:18 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Reduced the intensity from the prior vibrant pass on Home, About, and Practice hero treatments, keeping a middle ground between dull and overly vivid.
+- **Why:** The founder said the latest pass was too vibrant and asked to split the difference.
+- **Good, because:** The three hero sections keep more life than the original gray tone while avoiding visual overpowering.
+- **Bad, because:** Fine-tuning hero mood now depends on small opacity/gradient increments, which can require repeated visual reviews.
+- **Not done:** No changes to other page hero variants (Attorneys, Contact, Not Found).
+- **Evidence:** Frontend build passed; CSS values for `home-hero`, `home-hero__image`, `home-hero__glow`, `marketing-hero--about`, and `marketing-hero--practice` were reduced from the previous pass.
+
+## D-20261014-10 — Match About and Practice hero balance to Contact and Attorneys
+
+- **When:** 2026-10-14 04:34 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced the About and Practice hero overlay stacks with the same neutral top-to-bottom overlay profile used by Contact and Attorneys, removing the extra radial accent layers that made those two pages stand out too strongly.
+- **Why:** The founder compared screenshot pairs and asked for the same balanced level of vibrancy/neutrality from Contact and Attorneys to be applied to Practice Areas and About.
+- **Good, because:** Hero tone now feels consistent across marketing pages, and the two previously standout headers no longer overpower surrounding content.
+- **Bad, because:** Matching overlays across pages can reduce unique page mood cues that were previously created through warmer page-specific accents.
+- **Not done:** No changes were made to Home, Contact, Attorneys, or Not Found hero styling in this decision.
+- **Evidence:** Frontend build passed and stylesheet diagnostics were clean after the CSS normalization.

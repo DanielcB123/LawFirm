@@ -773,3 +773,247 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** The modal keeps the same structure, appears larger, and avoids overlap between core input and scheduling sections.
 - **Benefit and possible future downfall:** [D-20261014-2](Markdown/planning/decision-log.md). Benefit: larger, clearer modal without input overlap. Downfall: the larger footprint and earlier stacking reduce visible page context and side-by-side layout at medium widths.
 - **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Global background image switcher
+
+- **Recorded:** 2026-10-14 03:25 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** allow law-themed background images across the whole app and provide an in-app way to switch among them.
+
+### Changes
+
+- Added `frontend/src/app/backgroundThemes.ts` with four switchable background choices.
+- Updated `frontend/src/app/AppShell.tsx` to:
+  - load/save the selected background in `localStorage` (`matterforge.app.background-theme`),
+  - set the global CSS background variable on startup and when changed,
+  - render a fixed Background picker with clickable options.
+- Updated `frontend/src/app/AppShell.css` with background picker styles.
+- Updated `frontend/src/index.css` so `body` uses the selected global background image variable with fixed/cover positioning.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- Browser check on `http://127.0.0.1:5173/`:
+  - opened the Background picker and verified four options appeared,
+  - selected “Law Library,”
+  - confirmed `localStorage` key `matterforge.app.background-theme` changed to `law-books`.
+- Navigated to `http://127.0.0.1:5173/contact` and confirmed the selected background remained active.
+
+### Checks not run, and why
+
+- Did not verify in authenticated workspace routes because this was validated on shared shell behavior and public route navigation.
+- No backend tests were run because the slice only changed frontend UI and styling.
+
+### Outcome and next action
+
+- **Outcome:** The app now supports switchable, persistent full-page background imagery.
+- **Benefit and possible future downfall:** [D-20261014-3](Markdown/planning/decision-log.md). Benefit: easy visual variety across all pages. Downfall: external image dependencies and potential readability drift if overlays are not tuned.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Background visibility fix for global theme switcher
+
+- **Recorded:** 2026-10-14 03:51 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** investigate why background selection looked inactive and make the chosen background visibly apply across the entire app.
+
+### Changes
+
+- `frontend/src/app/AppShell.tsx`: changed the CSS variable assignment to store only the selected image URL.
+- `frontend/src/app/AppShell.css`: added a dedicated app-wide render layer using `.app-shell::before` that combines:
+  - a lighter readability overlay, and
+  - the selected background image variable.
+- `frontend/src/index.css`: removed body-level image painting so background rendering is owned by the shared app shell layer.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- Browser deep check on `http://127.0.0.1:5173/`:
+  - opened Background picker and selected “Courthouse Columns,”
+  - confirmed `localStorage` changed to `columns`,
+  - confirmed `--app-shell-background-image` and `.app-shell::before` computed styles matched the selected image.
+- Navigated to `http://127.0.0.1:5173/contact` and confirmed the same selected background stayed active there.
+
+### Checks not run, and why
+
+- Did not run backend tests because this slice changed frontend rendering only.
+- Did not test all authenticated routes individually; this fix applies at shared shell scope.
+
+### Outcome and next action
+
+- **Outcome:** Background selections now visibly change the full app background across pages instead of appearing unchanged.
+- **Benefit and possible future downfall:** [D-20261014-4](Markdown/planning/decision-log.md). Benefit: clearer, visible theme switching with persistence. Downfall: lighter overlays can require future contrast tuning.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Background catalog expansion
+
+- **Recorded:** 2026-10-14 03:58 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** expand the background selector with many choices across corporate office, downtown, legal, and artistic legal-adjacent aesthetics.
+
+### Changes
+
+- `frontend/src/app/backgroundThemes.ts`: expanded from 4 to 23 selectable backgrounds.
+- `frontend/src/app/AppShell.css`: made the Background options panel scrollable (`max-height` + `overflow-y`) so the larger list is usable on smaller screens.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- Browser check on `http://127.0.0.1:5173/`:
+  - opened Background picker and confirmed all options render,
+  - measured 23 `.background-picker__option` entries,
+  - verified panel scroll behavior (`scrollHeight` 1463 vs `clientHeight` 436).
+
+### Checks not run, and why
+
+- Did not validate every new external image URL manually; this slice focused on option availability and selector behavior.
+- No backend tests were run because the slice is frontend-only.
+
+### Outcome and next action
+
+- **Outcome:** The app now offers a broad background catalog with many styles and a usable scrolling picker.
+- **Benefit and possible future downfall:** [D-20261014-5](Markdown/planning/decision-log.md). Benefit: much richer visual choice without code edits. Downfall: larger reliance on external image hosts.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Skyline pinned, picker hidden
+
+- **Recorded:** 2026-10-14 04:06 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** keep City Skyline at Night as the app-wide background and temporarily hide the dropdown background selector.
+
+### Changes
+
+- `frontend/src/app/AppShell.tsx`:
+  - pinned active background to `city-skyline-night`,
+  - commented out the Background picker section in JSX (kept in file for quick restore).
+- Left the background catalog and picker CSS in place so it can be re-enabled without rebuilding options.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- Browser check on `http://127.0.0.1:5173/`:
+  - confirmed no `.background-picker` element rendered,
+  - confirmed `localStorage` key `matterforge.app.background-theme` equals `city-skyline-night`,
+  - confirmed `--app-shell-background-image` is set to the skyline image URL.
+
+### Checks not run, and why
+
+- Did not test each workspace route individually because the background is applied at app shell scope.
+- No backend tests were run because this slice is frontend-only.
+
+### Outcome and next action
+
+- **Outcome:** City Skyline at Night is now the fixed global background and the dropdown is hidden.
+- **Benefit and possible future downfall:** [D-20261014-6](Markdown/planning/decision-log.md). Benefit: consistent visual baseline for feedback sessions. Downfall: users cannot compare alternatives live until the picker returns.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - About and Practice hero color warming
+
+- **Recorded:** 2026-10-14 04:10 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** make only the About and Practice Areas hero headers less gray/white and less dull.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `marketing-hero--about`: replaced flatter pale overlay with warmer layered gradients (accent radial + warm linear).
+  - `marketing-hero--practice`: same treatment with a distinct warm tint, limited to that page class.
+- No other hero variants (`attorneys`, `contact`, `not-found`) were changed.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- Browser computed-style checks confirmed both selectors now use the updated warmer gradient stacks.
+- Practice Areas page visual check confirms the header now appears warmer and less washed out.
+
+### Checks not run, and why
+
+- About page screenshot output in this browser session did not render page body correctly despite DOM content being present; used computed-style verification for that hero in this pass.
+- No backend tests were run because this slice is frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** About and Practice Areas headers now have richer, warmer tone while preserving page-specific scope.
+- **Benefit and possible future downfall:** [D-20261014-7](Markdown/planning/decision-log.md). Benefit: less dull hero appearance on the two requested pages only. Downfall: future image swaps may require minor contrast retuning.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Hero vibrancy pass two
+
+- **Recorded:** 2026-10-14 04:16 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** further reduce dull gray tone in Practice and About hero headers and add a more vibrant aura on Home hero.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - strengthened warm overlays for `marketing-hero--about` and `marketing-hero--practice`,
+  - increased Home hero aura via richer accent gradients, higher image presence, and stronger glow treatment.
+- Scope remained limited to Home, About, and Practice hero styling.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- Browser computed-style checks confirmed updated gradient stacks for:
+  - `.home-hero`
+  - `.marketing-hero--about`
+  - `.marketing-hero--practice`
+
+### Checks not run, and why
+
+- Browser screenshot output in this session intermittently produced blank viewport captures despite populated DOM snapshots; verification relied on computed styles and successful build.
+- No backend tests were run because this slice is frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** The targeted headers now have a stronger, more vibrant look with less gray wash.
+- **Benefit and possible future downfall:** [D-20261014-8](Markdown/planning/decision-log.md). Benefit: more visual life on requested headers. Downfall: stronger overlays may need future tuning for contrast balance.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Hero vibrancy midpoint rebalance
+
+- **Recorded:** 2026-10-14 04:18 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** tone down the most recent hero vibrancy pass and settle on a balanced midpoint for Home, About, and Practice.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - reduced Home hero aura intensity (`.home-hero`, `.home-hero__image`, `.home-hero__glow`),
+  - reduced overlay strength for About and Practice hero classes (`.marketing-hero--about`, `.marketing-hero--practice`).
+- Kept scope limited to those three page hero treatments.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/` succeeded.
+- `ReadLints` reported no linter errors in `frontend/src/app/AppShell.css`.
+
+### Checks not run, and why
+
+- No browser visual capture in this step due intermittent screenshot rendering issues in this session; this pass used controlled value reduction from the prior state.
+- No backend tests were run because this slice is frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** Hero styling is less intense than the prior pass while retaining richer tone than the earlier dull state.
+- **Benefit and possible future downfall:** [D-20261014-9](Markdown/planning/decision-log.md). Benefit: visual balance between flat and over-vibrant. Downfall: subjective tuning may prompt additional iterations.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - About and Practice hero balance parity
+
+- **Recorded:** 2026-10-14 04:34 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** align the visual balance of the `Practice Areas` and `About` hero headers with the calmer target shown on `Contact` and `Attorneys` (not too vibrant, not too gray).
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - `marketing-hero--about`: removed accent radial overlays and switched to a neutral two-stop top-to-bottom overlay matching the Contact/Attorneys balance profile.
+  - `marketing-hero--practice`: same adjustment to remove standout warmth and match the same balanced overlay profile.
+- Scope was intentionally limited to those two page hero variants.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on `frontend/src/app/AppShell.css`: no linter errors.
+
+### Checks not run, and why
+
+- No browser screenshot capture in this pass; the change was a direct normalization to the already approved Contact/Attorneys overlay profile.
+- No backend tests were run because this slice is frontend CSS only.
+
+### Outcome and next action
+
+- **Outcome:** About and Practice hero headers now share the same calm contrast balance as Contact and Attorneys, reducing visual over-emphasis while keeping readability.
+- **Benefit and possible future downfall:** [D-20261014-10](Markdown/planning/decision-log.md). Benefit: consistent hero tone across marketing pages. Downfall: strict visual parity can reduce per-page mood differentiation.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.

@@ -1,11 +1,103 @@
 .app-shell {
   @apply flex min-h-[100svh] flex-col;
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(250, 243, 232, 0.58), rgba(250, 243, 232, 0.72)),
+    var(--app-shell-background-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.app-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .app-shell--authenticated {
   @apply grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.background-picker {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+}
+
+.background-picker__toggle {
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-bg) 86%, var(--soft-bg) 14%);
+  color: var(--text-h);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(54, 23, 34, 0.14);
+}
+
+.background-picker__panel {
+  width: min(290px, calc(100vw - 2rem));
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--card-bg) 94%, var(--soft-bg) 6%);
+  box-shadow: 0 14px 34px rgba(54, 23, 34, 0.2);
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.background-picker__option {
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--card-bg);
+  color: var(--text-h);
+  font: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.35rem;
+  cursor: pointer;
+}
+
+.background-picker__option--active {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.background-picker__swatch {
+  display: block;
+  width: 68px;
+  height: 42px;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background-size: cover;
+  background-position: center;
 }
 
 .site-header {
@@ -348,12 +440,12 @@
   border-radius: 1.05rem;
   padding: clamp(1.35rem, 3vw, 2.6rem);
   background:
-    radial-gradient(circle at 15% 8%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 48%),
-    radial-gradient(circle at 80% 15%, color-mix(in srgb, #c9907a 10%, transparent), transparent 46%),
+    radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--accent) 21%, transparent), transparent 52%),
+    radial-gradient(circle at 86% 16%, color-mix(in srgb, #c9907a 18%, transparent), transparent 49%),
     linear-gradient(
       140deg,
-      color-mix(in srgb, var(--card-bg) 98%, #3b1722 2%),
-      color-mix(in srgb, var(--card-bg) 98%, #fff4e8 2%)
+      color-mix(in srgb, var(--card-bg) 96%, #3b1722 4%),
+      color-mix(in srgb, var(--card-bg) 94%, #fff4e8 6%)
     );
 }
 
@@ -361,9 +453,9 @@
   position: absolute;
   inset: -4% -4% -14% -4%;
   z-index: -3;
-  opacity: 0.3;
+  opacity: 0.37;
   background-image:
-    linear-gradient(to bottom, rgba(250, 243, 232, 0.62), rgba(250, 243, 232, 0.3)),
+    linear-gradient(to bottom, rgba(250, 243, 232, 0.55), rgba(250, 243, 232, 0.24)),
     url("https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1800&q=80");
   background-size: cover;
   background-position: center;
@@ -376,9 +468,9 @@
   height: clamp(300px, 48vw, 580px);
   border-radius: 50%;
   pointer-events: none;
-  opacity: 0.38;
-  filter: blur(10px);
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 38%, transparent), transparent 72%);
+  opacity: 0.46;
+  filter: blur(12px);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 46%, transparent), transparent 72%);
   z-index: -2;
 }
 
@@ -771,7 +863,7 @@
 
 .marketing-hero--practice {
   background:
-    linear-gradient(to bottom, rgba(250, 243, 232, 0.87), rgba(250, 243, 232, 0.74)),
+    linear-gradient(to bottom, rgba(250, 243, 232, 0.86), rgba(250, 243, 232, 0.72)),
     url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1800&q=80")
       center/cover;
   color: var(--text-h);
