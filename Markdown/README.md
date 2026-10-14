@@ -28,7 +28,11 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Architecture | [Module interaction and vulnerability sweep (2026-10-13)](architecture/module-interaction-and-vulnerability-sweep-2026-10-13.md) | Evidence-based communication map and risk findings |
 | Architecture | [Architecture standards comparison (2026-10-13)](architecture/architecture-standards-comparison-2026-10-13.md) | Neutral standards check: meets, partial, and missing |
 | Architecture | [Solution and folder structure](architecture/solution-structure.md) | Backend and frontend layout, research behind it, how to add a module |
+| Planning | [Planning](planning/README.md) | Timestamped decisions, who decided, and open questions |
+| Planning | [Decision log](planning/decision-log.md) | Oldest-first choices with benefit and future downfall |
 | Database | [Database overview](database/README.md) | Vocabulary and storage responsibilities |
+| Database | [Schema evolution](database/schema-evolution.md) | Ordered MySQL migrations, DBMS, and what is design-only SQL |
+| Database | [UML class diagrams](database/uml-class-diagrams.md) | Classes to tables, attributes to columns, associations to foreign keys |
 | Database | [Tenancy research](database/tenancy-research.md) | Primary-source analysis and tradeoffs |
 | Database | [ADR-001 tenant isolation](database/ADR-001-tenancy.md) | Proposed decision and conditions |
 | Database | [ADR-002 multi-firm architecture](database/ADR-002-multitenant-architecture.md) | Options, capacity scenarios, refined decision, reconsideration triggers |
@@ -61,7 +65,7 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Delivery | [Roadmap and acceptance](delivery/roadmap-and-acceptance.md) | Safe implementation order and first slice |
 | Delivery | [Multi-firm implementation plan](delivery/multitenant-implementation-plan.md) | Dependency-ordered steps T0–T12 and blocking decisions |
 | Delivery | [Multi-firm acceptance matrix](delivery/multitenant-acceptance-matrix.md) | Acceptance-test ids, status, evidence |
-| Delivery | [Open decisions](delivery/open-decisions.md) | Known facts versus unresolved choices |
+| Delivery | [Open decisions](planning/open-decisions.md) | Known facts versus unresolved choices. The `delivery/` copy is a pointer |
 | Research | [Source register](research/sources.md) | References, dates, limitations |
 | Cursor | [Copyable Cursor prompt](archive/original-prompt/CURSOR_PROMPT.md) | Original prompt and blueprint zip (archived, read-only) |
 

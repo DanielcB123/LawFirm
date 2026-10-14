@@ -2,7 +2,7 @@
 
 [Home](../README.md) · [Database](README.md) · [Ledger](../billing/payments-and-ledger.md)
 
-This is a logical model, not runnable migrations. Cursor must translate it into the audited engine and ORM and document actual columns, indexes, deletes, and constraints.
+This is a logical model, not runnable migrations. The applied class-to-table map is [uml-class-diagrams.md](uml-class-diagrams.md). Ordered migrations are [schema-evolution.md](schema-evolution.md). Cursor must translate a proposed entity into the audited engine and ORM and document actual columns, indexes, deletes, and constraints.
 
 ## Control plane
 Tenant(id, name, status, region, placement_id); TenantDomain(host, tenant_id, verified_at); Identity(id, authentication_subject); Membership(identity_id, tenant_id, status, role_reference); Subscription(tenant_id, plan, provider_customer_ref, status); DatabasePlacement(id, engine, endpoint_reference, secret_reference, schema_version); ProvisioningJob(tenant_id, operation_key, state).

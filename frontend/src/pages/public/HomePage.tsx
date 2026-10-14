@@ -102,8 +102,8 @@ export function HomePage() {
     : { transform: `translate3d(0, ${scrollY * 0.03}px, 0)` };
 
   return (
-    <section className="page home-page">
-      <section className="home-hero" aria-label="Intro" data-reveal="zoom">
+    <section className="page home-page mx-auto w-full max-w-[1120px]">
+      <section className="home-hero rounded-2xl border border-[var(--border)]" aria-label="Intro" data-reveal="zoom">
         <div className="home-hero__image" style={heroImageStyle} aria-hidden="true" />
         <div className="home-hero__glow" style={glowLayerStyle} aria-hidden="true" />
         <div className="home-hero__grid" style={heroLayerStyle} aria-hidden="true" />
@@ -123,7 +123,7 @@ export function HomePage() {
         </div>
         <div className="home-hero__stats" aria-label="Firm highlights">
           {quickStats.map((stat) => (
-            <article key={stat.label} className="home-stat card">
+            <article key={stat.label} className="home-stat card shadow-sm">
               <p className="home-stat__label">{stat.label}</p>
               <p className="home-stat__value">{stat.value}</p>
             </article>
@@ -132,7 +132,7 @@ export function HomePage() {
       </section>
 
       <section className="content-grid home-panels" aria-label="Why clients choose us and consultation details" data-reveal="left">
-        <article className="card home-panel home-panel--lift" data-reveal>
+        <article className="card home-panel home-panel--lift shadow-sm transition-shadow hover:shadow-md" data-reveal>
           <h2>Why clients choose us</h2>
           <ul>
             {valueProps.map((item) => (
@@ -140,7 +140,7 @@ export function HomePage() {
             ))}
           </ul>
         </article>
-        <article className="card home-panel home-panel--lift" data-reveal="right">
+        <article className="card home-panel home-panel--lift shadow-sm transition-shadow hover:shadow-md" data-reveal="right">
           <h2>Consultation hours</h2>
           <p>Monday-Friday: 8:30 AM-6:00 PM</p>
           <p>Saturday: By appointment</p>
@@ -150,7 +150,7 @@ export function HomePage() {
 
       <section className="home-practice-grid" aria-label="Practice area highlights" data-reveal>
         {practiceAreaHighlights.map((item) => (
-          <article key={item.title} className="card home-practice-card home-panel--lift" data-reveal="zoom">
+          <article key={item.title} className="card home-practice-card home-panel--lift shadow-sm transition-shadow hover:shadow-md" data-reveal="zoom">
             <p className="home-practice-card__tag">Practice area</p>
             <h3>{item.title}</h3>
             <p>{item.body}</p>
@@ -165,7 +165,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="home-partners card" aria-label="Partner profiles" data-reveal="zoom">
+      <section className="home-partners card shadow-sm" aria-label="Partner profiles" data-reveal="zoom">
         <p className="home-partners__kicker">Partner spotlight</p>
         <h2>Meet the attorneys behind every strategy.</h2>
         <div className="home-partners__grid">
@@ -183,7 +183,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="home-process card" aria-label="Client process" data-reveal>
+      <section className="home-process card shadow-sm" aria-label="Client process" data-reveal>
         <p className="home-process__kicker">What to expect</p>
         <h2>A simple process designed to reduce uncertainty.</h2>
         <ol className="home-process__list">
@@ -195,18 +195,18 @@ export function HomePage() {
 
       <section className="content-grid home-testimonials" aria-label="Client testimonials" data-reveal="left">
         {testimonials.map((item) => (
-          <article key={item.quote} className="card home-testimonial home-panel--lift" data-reveal="right">
+          <article key={item.quote} className="card home-testimonial home-panel--lift shadow-sm transition-shadow hover:shadow-md" data-reveal="right">
             <p className="home-testimonial__quote">"{item.quote}"</p>
             <p className="home-testimonial__source">{item.source}</p>
           </article>
         ))}
       </section>
 
-      <article className="card home-panel home-panel--health" data-reveal>
+      <article className="card home-panel home-panel--health shadow-sm" data-reveal>
         <HealthStatusCard />
       </article>
 
-      <section className="card home-final-cta" aria-label="Contact call to action" data-reveal="zoom">
+      <section className="card home-final-cta shadow-sm" aria-label="Contact call to action" data-reveal="zoom">
         <p className="home-final-cta__kicker">Ready to move forward?</p>
         <h2>Bring your questions. We will bring a plan.</h2>
         <p>

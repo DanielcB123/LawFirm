@@ -18,6 +18,7 @@ The repository is a working ASP.NET Core + React + MySQL application with consis
 | Auth | Local JWT bearer (HS256), permission claims, policy handler | Microsoft.AspNetCore.Authentication.JwtBearer 8.0.11 | Keep the policy model; replace token issuance with persistent identity + managed IdP/MFA, as `backend/AUTHORIZATION_STRATEGY.md` already proposes |
 | API docs | Swashbuckle (Development only) | 6.8.1 | Yes |
 | Frontend | React + TypeScript SPA, react-router-dom | React 19.2, router 6.30, TS ~6.0 | Yes |
+| Styling | Tailwind CSS 3 + existing custom CSS | `tailwindcss` 3.4, PostCSS 8, Autoprefixer 10 | Yes; adopted in a hybrid mode to avoid visual regressions while incrementally replacing bespoke CSS |
 | Build tooling | Vite, ESLint flat config | Vite 8.2, ESLint 10 | Yes; fix failing lint before adding CI gates |
 | Dev integration | Vite proxy `/api` → `http://localhost:5073`; optional `VITE_API_BASE_URL` prefix (`frontend/src/config/env.ts`, empty by default) | `frontend/vite.config.ts` | Yes for dev; production hosting undefined |
 

@@ -1,6 +1,6 @@
 # Naming and rename record
 
-[Home](../README.md) · [Vision and scope](vision-and-scope.md) · [First firm](first-firm.md) · [Open decisions](../delivery/open-decisions.md)
+[Home](../README.md) · [Vision and scope](vision-and-scope.md) · [First firm](first-firm.md) · [Open decisions](../planning/open-decisions.md)
 
 ## Status (2026-10-12): two separate facts
 

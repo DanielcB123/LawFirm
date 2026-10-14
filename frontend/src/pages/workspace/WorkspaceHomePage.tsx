@@ -163,6 +163,9 @@ export function WorkspaceHomePage() {
         canReadMatters
           ? { label: "Open matters workspace", path: "/workspace/matters", helper: "Drill into tasks, docs, and timeline." }
           : null,
+        permissionSet.has("contacts.read")
+          ? { label: "Open contacts", path: "/workspace/contacts", helper: "Find people and organizations the firm works with." }
+          : null,
         permissionSet.has("conflicts.search")
           ? { label: "Run conflict check", path: "/workspace/conflicts", helper: "Validate potential adverse parties." }
           : null,

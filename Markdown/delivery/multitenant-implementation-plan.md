@@ -21,7 +21,7 @@
 | T12 | First-firm onboarding (copy, baseline, map, validate, rehearse) | T1–T7, T11; firm agreement | Reconciliation report; sign-off |
 
 ## Unresolved decisions that block specific steps
-These are tracked in [open decisions](open-decisions.md).
+These are tracked in [open decisions](../planning/open-decisions.md).
 - **Hosting provider:** its `max_connections`, backup and point-in-time restore granularity, TLS, and whether `log_bin_trust_function_creators` can be set. Blocks T11 and sizing; it also affects T3's trigger approach.
 - **Identity provider and MFA.** Blocks the production form of T2.
 - **Object storage, KMS, and malware scanning.** Blocks T8.

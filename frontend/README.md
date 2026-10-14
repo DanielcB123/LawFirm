@@ -1,6 +1,6 @@
 # MatterForge frontend
 
-React 19 + TypeScript + Vite 8 single-page app: the public firm website and the staff workspace. Folder layout and conventions: [solution structure](../Markdown/architecture/solution-structure.md#frontend-frontendsrc).
+React 19 + TypeScript + Vite 8 single-page app: the public firm website and the staff workspace. Tailwind CSS 3 is enabled through PostCSS for utility-first styling (alongside existing feature CSS). Folder layout and conventions: [solution structure](../Markdown/architecture/solution-structure.md#frontend-frontendsrc).
 
 ## Commands
 

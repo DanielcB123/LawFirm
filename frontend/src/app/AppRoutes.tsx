@@ -7,9 +7,18 @@ import { AttorneysPage } from "../pages/public/AttorneysPage";
 import { ContactPage } from "../pages/public/ContactPage";
 import { HomePage } from "../pages/public/HomePage";
 import { PracticeAreasPage } from "../pages/public/PracticeAreasPage";
+import { AccountsPage } from "../pages/workspace/AccountsPage";
+import { ActivitiesPage } from "../pages/workspace/ActivitiesPage";
+import { BillingPage } from "../pages/workspace/BillingPage";
+import { CommunicationsPage } from "../pages/workspace/CommunicationsPage";
 import { ConflictChecksPage } from "../pages/workspace/ConflictChecksPage";
+import { DocumentsPage } from "../pages/workspace/DocumentsPage";
 import { IntakeBoardPage } from "../pages/workspace/IntakeBoardPage";
 import { IntakeDetailPage } from "../pages/workspace/IntakeDetailPage";
+import { IntegrationsPage } from "../pages/workspace/IntegrationsPage";
+import { ReportsPage } from "../pages/workspace/ReportsPage";
+import { ResourceCentrePage } from "../pages/workspace/ResourceCentrePage";
+import { SettingsPage } from "../pages/workspace/SettingsPage";
 import { MattersPage } from "../pages/workspace/MattersPage";
 import { MatterWorkspacePage } from "../pages/workspace/MatterWorkspacePage";
 import {
@@ -18,7 +27,7 @@ import {
   MatterTasksTab,
   MatterTimelineTab,
 } from "../pages/workspace/MatterWorkspaceTabs";
-import { PartiesPage } from "../pages/workspace/PartiesPage";
+import { ContactsPage } from "../pages/workspace/ContactsPage";
 import { TasksCalendarPage } from "../pages/workspace/TasksCalendarPage";
 import { WorkspaceConsultationsPage } from "../pages/workspace/WorkspaceConsultationsPage";
 import { WorkspaceHomePage } from "../pages/workspace/WorkspaceHomePage";
@@ -37,7 +46,17 @@ export function AppRoutes() {
       <Route path="/workspace/login" element={<WorkspaceLoginPage />} />
       <Route path="/workspace" element={<RequireAuth />}>
         <Route index element={<WorkspaceHomePage />} />
-        <Route path="parties" element={<PartiesPage />} />
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="activities" element={<ActivitiesPage />} />
+        <Route path="billing" element={<BillingPage />} />
+        <Route path="accounts" element={<AccountsPage />} />
+        <Route path="documents" element={<DocumentsPage />} />
+        <Route path="communications" element={<CommunicationsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="integrations" element={<IntegrationsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="resource-centre" element={<ResourceCentrePage />} />
+        <Route path="parties" element={<Navigate to="/workspace/contacts" replace />} />
         <Route path="conflicts" element={<ConflictChecksPage />} />
         <Route path="calendar" element={<TasksCalendarPage />} />
         <Route path="consultations" element={<WorkspaceConsultationsPage />} />

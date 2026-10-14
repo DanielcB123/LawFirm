@@ -5,10 +5,10 @@ import { ApiClientError } from "../../lib/apiClient";
 import { createParty, searchParties } from "../../features/parties";
 import type { Party } from "../../features/parties";
 
-export function PartiesPage() {
+export function ContactsPage() {
   const { token } = useAuth();
   const [query, setQuery] = useState("");
-  const [parties, setParties] = useState<Party[]>([]);
+  const [contacts, setContacts] = useState<Party[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,9 +30,9 @@ export function PartiesPage() {
 
       try {
         const result = await searchParties(token, query);
-        setParties(result);
+        setContacts(result);
       } catch (err) {
-        const message = err instanceof ApiClientError ? err.message : "Failed to load parties.";
+        const message = err instanceof ApiClientError ? err.message : "Failed to load contacts.";
         setError(message);
       } finally {
         setIsLoading(false);
@@ -42,7 +42,7 @@ export function PartiesPage() {
     void load();
   }, [query, token]);
 
-  async function onCreateParty(event: FormEvent<HTMLFormElement>) {
+  async function onCreateContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token) {
       return;
@@ -60,13 +60,13 @@ export function PartiesPage() {
         isRestricted,
       });
 
-      setParties((existing) => [created, ...existing]);
+      setContacts((existing) => [created, ...existing]);
       setDisplayName("");
       setPrimaryEmail("");
       setPrimaryPhone("");
       setIsRestricted(false);
     } catch (err) {
-      const message = err instanceof ApiClientError ? err.message : "Failed to create party.";
+      const message = err instanceof ApiClientError ? err.message : "Failed to add contact.";
       setError(message);
     } finally {
       setIsSaving(false);
@@ -75,14 +75,16 @@ export function PartiesPage() {
 
   return (
     <section className="page">
-      <h1>Contacts & Organizations</h1>
-      <p className="lead">Create and search party records used for conflict checks and relationship graphs.</p>
+      <h1>Contacts</h1>
+      <p className="lead">
+        People and organizations the firm works with, including clients, opposing parties, and related companies.
+      </p>
 
       <section className="content-grid">
         <article className="card">
-          <h2>Create party</h2>
-          <form className="workspace-form" onSubmit={onCreateParty}>
-            <label htmlFor="displayName">Display name</label>
+          <h2>Add contact</h2>
+          <form className="workspace-form" onSubmit={onCreateContact}>
+            <label htmlFor="displayName">Name</label>
             <input
               id="displayName"
               value={displayName}
@@ -90,7 +92,7 @@ export function PartiesPage() {
               required
             />
 
-            <label htmlFor="partyType">Party type</label>
+            <label htmlFor="partyType">Type</label>
             <select
               id="partyType"
               value={partyType}
@@ -100,7 +102,7 @@ export function PartiesPage() {
               <option value="Organization">Organization</option>
             </select>
 
-            <label htmlFor="primaryEmail">Primary email</label>
+            <label htmlFor="primaryEmail">Email</label>
             <input
               id="primaryEmail"
               type="email"
@@ -108,7 +110,7 @@ export function PartiesPage() {
               onChange={(event) => setPrimaryEmail(event.target.value)}
             />
 
-            <label htmlFor="primaryPhone">Primary phone</label>
+            <label htmlFor="primaryPhone">Phone</label>
             <input
               id="primaryPhone"
               value={primaryPhone}
@@ -125,30 +127,41 @@ export function PartiesPage() {
             </label>
 
             <button type="submit" disabled={isSaving}>
-              {isSaving ? "Saving..." : "Create party"}
+              {isSaving ? "Saving..." : "Add contact"}
             </button>
           </form>
         </article>
 
         <article className="card">
-          <h2>Search</h2>
-          <label htmlFor="search">Name, email, or alias</label>
-          <input id="search" value={query} onChange={(event) => setQuery(event.target.value)} />
-          {isLoading && <p>Loading parties...</p>}
+          <h2>Directory</h2>
+          <div className="workspace-form">
+            <label htmlFor="search">Search by name, email, or alias</label>
+            <input id="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+          </div>
+          {isLoading && <p>Loading contacts...</p>}
           {error && <p className="error-text">{error}</p>}
 
-          {!isLoading && parties.length === 0 && <p>No parties found.</p>}
+          {!isLoading && contacts.length === 0 && <p>No contacts found.</p>}
+          {!isLoading && contacts.length > 0 && (
+            <p className="muted">
+              {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
+            </p>
+          )}
 
           <ul className="list-reset">
-            {parties.map((party) => (
-              <li key={party.id} className="party-row">
-                <p>
-                  <strong>{party.displayName}</strong> ({party.partyType})
-                  {party.isRestricted && " · Restricted"}
+            {contacts.map((contact) => (
+              <li key={contact.id} className="contact-row">
+                <div className="contact-row__main">
+                  <strong>{contact.displayName}</strong>
+                  <span className="contact-row__type">{contact.partyType === "Person" ? "Person" : "Organization"}</span>
+                  {contact.isRestricted && <span className="contact-row__badge">Restricted</span>}
+                </div>
+                <p className="muted">
+                  {contact.primaryEmail ?? "No email"} · {contact.primaryPhone ?? "No phone"}
                 </p>
-                {party.aliases.length > 0 && (
+                {contact.aliases.length > 0 && (
                   <p className="muted">
-                    Aliases: {party.aliases.map((alias) => `${alias.alias} (${alias.aliasType})`).join(", ")}
+                    Also known as {contact.aliases.map((alias) => alias.alias).join(", ")}
                   </p>
                 )}
               </li>

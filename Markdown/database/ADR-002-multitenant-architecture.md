@@ -4,7 +4,7 @@
 
 **Status:** Proposed, 2026-10-12. It refines [ADR-001](ADR-001-tenancy.md) and keeps ADR-001's decision: a database per law firm. It replaces ADR-001's "Connections and cost" section and adds placement cells, connection budgets, and the privileged trigger step. ADR-001 is not edited except for a pointer to this ADR. **Implementation status: design only.** Nothing here is implemented in application code. The SQL was executed only against a disposable MySQL 8.0.36 container with synthetic data ([validation log](../../db/design/validation/mysql-8.0.36-validation.log)).
 
-**Decision owners:** the product founder and the technical owner. Hosting-dependent parts wait on a provider choice (see [open decisions](../delivery/open-decisions.md)).
+**Decision owners:** the product founder and the technical owner. Hosting-dependent parts wait on a provider choice (see [open decisions](../planning/open-decisions.md)).
 
 ## Vocabulary on MySQL
 - **Schema and database are synonyms.** `CREATE SCHEMA` is `CREATE DATABASE` [S19]. "Schema per firm" and "database per firm" are the same option, so this ADR says *database per firm*.

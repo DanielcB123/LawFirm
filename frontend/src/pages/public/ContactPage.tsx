@@ -218,8 +218,8 @@ export function ContactPage() {
   }
 
   return (
-    <section className="page marketing-page">
-      <section className="marketing-hero marketing-hero--contact" data-reveal="zoom">
+    <section className="page marketing-page mx-auto w-full max-w-[1120px]">
+      <section className="marketing-hero marketing-hero--contact rounded-2xl border border-[var(--border)]" data-reveal="zoom">
         <p className="eyebrow">Contact us</p>
         <h1>Tell us what is happening. We will help you plan the next move.</h1>
         <p className="lead">
@@ -227,7 +227,7 @@ export function ContactPage() {
         </p>
         <button
           type="button"
-          className="hero-button hero-button--primary"
+          className="hero-button hero-button--primary pt-4"
           onClick={() => {
             setVisibleMonthStart(startOfMonth(new Date()));
             setIsModalOpen(true);
@@ -238,17 +238,17 @@ export function ContactPage() {
       </section>
 
       <section className="content-grid marketing-grid" data-reveal="left">
-        <article className="card marketing-card marketing-card--lift" data-reveal="left">
+        <article className="card marketing-card marketing-card--lift shadow-sm transition-shadow hover:shadow-md" data-reveal="left">
           <h2>Office</h2>
           <p>123 Justice Avenue, Suite 400</p>
           <p>Columbus, OH 43215</p>
         </article>
-        <article className="card marketing-card marketing-card--lift" data-reveal>
+        <article className="card marketing-card marketing-card--lift shadow-sm transition-shadow hover:shadow-md" data-reveal>
           <h2>Phone & Email</h2>
           <p>(614) 555-0134</p>
           <p>intake@parkerreedlaw.com</p>
         </article>
-        <article className="card marketing-card marketing-card--lift" data-reveal="right">
+        <article className="card marketing-card marketing-card--lift shadow-sm transition-shadow hover:shadow-md" data-reveal="right">
           <h2>Hours</h2>
           <p>Monday-Friday: 8:30 AM-6:00 PM</p>
           <p>Saturday: By appointment</p>
@@ -256,7 +256,7 @@ export function ContactPage() {
         </article>
       </section>
 
-      <section className="marketing-highlight marketing-highlight--contact" data-reveal>
+      <section className="marketing-highlight marketing-highlight--contact rounded-xl border border-[var(--border)]" data-reveal>
         <h2>What to include when you reach out</h2>
         <ul>
           <li>A short summary of the legal issue.</li>
@@ -266,7 +266,7 @@ export function ContactPage() {
       </section>
 
       <section className="content-grid marketing-grid" data-reveal="zoom">
-        <article className="card marketing-card" data-reveal="left">
+        <article className="card marketing-card shadow-sm" data-reveal="left">
           <h2>Intake checklist</h2>
           <ul>
             {intakeChecklist.map((item) => (
@@ -274,7 +274,7 @@ export function ContactPage() {
             ))}
           </ul>
         </article>
-        <article className="card marketing-card" data-reveal="right">
+        <article className="card marketing-card shadow-sm" data-reveal="right">
           <h2>Consultation FAQs</h2>
           {consultationFaq.map((item) => (
             <p key={item.question}>
@@ -285,13 +285,13 @@ export function ContactPage() {
           ))}
         </article>
       </section>
-      {submitSuccess && <p className="card success-text">{submitSuccess}</p>}
-      {submitError && !isModalOpen && <p className="error-text">{submitError}</p>}
+      {submitSuccess && <p className="card success-text rounded-xl">{submitSuccess}</p>}
+      {submitError && !isModalOpen && <p className="error-text rounded-md border border-[#8b2337]/30 bg-[#8b2337]/10 px-3 py-2">{submitError}</p>}
 
       {isModalOpen && (
         <div className="modal-backdrop" role="presentation" onClick={() => setIsModalOpen(false)}>
           <section
-            className="modal-card"
+            className="modal-card border border-[var(--border)] shadow-2xl"
             ref={modalCardRef}
             role="dialog"
             aria-modal="true"
@@ -305,6 +305,7 @@ export function ContactPage() {
               <label htmlFor="consultation-full-name">Full name</label>
               <input
                 id="consultation-full-name"
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
                 required
@@ -314,6 +315,7 @@ export function ContactPage() {
               <input
                 id="consultation-email"
                 type="email"
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
@@ -322,6 +324,7 @@ export function ContactPage() {
               <label htmlFor="consultation-phone">Phone</label>
               <input
                 id="consultation-phone"
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 placeholder="Optional"
@@ -330,6 +333,7 @@ export function ContactPage() {
               <label htmlFor="consultation-practice-area">Practice area</label>
               <select
                 id="consultation-practice-area"
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
                 value={practiceArea}
                 onChange={(event) => setPracticeArea(event.target.value)}
               >
@@ -456,19 +460,21 @@ export function ContactPage() {
               <label htmlFor="consultation-message">Message</label>
               <textarea
                 id="consultation-message"
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 rows={4}
                 placeholder="Share context that will help us prepare for your consultation."
               />
 
-              {submitError && <p className="error-text">{submitError}</p>}
+              {submitError && <p className="error-text rounded-md border border-[#8b2337]/30 bg-[#8b2337]/10 px-3 py-2">{submitError}</p>}
               <div className="modal-actions">
                 <button type="button" className="mini-action" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  className="rounded-lg border border-[var(--border)] bg-[var(--soft-bg)] px-3 py-2 font-semibold text-[var(--text-h)] disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isSubmitting || isLoadingSlots || calendarDays.length === 0 || !activeSelectedSlot}
                 >
                   {isSubmitting ? "Sending..." : "Send request"}

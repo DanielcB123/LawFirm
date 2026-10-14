@@ -1,6 +1,6 @@
 # Maldanado and Benitez Law — first real tenant
 
-[Home](../README.md) · [Open decisions](../delivery/open-decisions.md)
+[Home](../README.md) · [Open decisions](../planning/open-decisions.md)
 
 This firm is the founding real customer identified by the founder, not a fictional seed-data example. Confirm its exact name, jurisdiction, legal entity, contacts, authorized decision makers, practice mix, and any investor relationship directly with the firm. Real tenant configuration does not authorize importing real client files into development.
 

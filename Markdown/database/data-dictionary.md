@@ -1,6 +1,8 @@
 # Logical model and data dictionary (multi-firm design)
 
-[Home](../README.md) · [Database](README.md) · [ADR-002](ADR-002-multitenant-architecture.md) · [Logical model (original)](data-model.md) · [Query and index spec](query-and-index-spec.md) · [SQL artifacts](../../db/design/README.md)
+[Home](../README.md) · [Database](README.md) · [UML class diagrams](uml-class-diagrams.md) · [Schema evolution](schema-evolution.md) · [ADR-002](ADR-002-multitenant-architecture.md) · [Logical model (original)](data-model.md) · [Query and index spec](query-and-index-spec.md) · [SQL artifacts](../../db/design/README.md)
+
+The ERDs on this page are the designed model. The class-to-table map of the database the application actually uses is [uml-class-diagrams.md](uml-class-diagrams.md). Ordered migrations are [schema-evolution.md](schema-evolution.md).
 
 **Status:** design. The authoritative column-level definitions are the reviewable DDL files in [`db/design/`](../../db/design/README.md). This page explains ownership, decisions, sensitivity, retention, and growth. Only the 18 tables marked **existing** are implemented, through the EF migrations `Baseline` and `MatterAccessGrants`. Everything else is designed but not implemented.
 

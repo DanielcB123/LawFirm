@@ -1,6 +1,6 @@
 # Delivery sequence and acceptance
 
-[Home](../README.md) · [Gap map](implementation-gap-map.md) · [Open decisions](open-decisions.md) · [Multi-firm plan](multitenant-implementation-plan.md) · [Cursor prompt](../archive/original-prompt/CURSOR_PROMPT.md)
+[Home](../README.md) · [Gap map](implementation-gap-map.md) · [Open decisions](../planning/open-decisions.md) · [Multi-firm plan](multitenant-implementation-plan.md) · [Cursor prompt](../archive/original-prompt/CURSOR_PROMPT.md)
 
 No time estimates are promised before validating staff capacity. Phase 0 (discovery) documentation is complete as of 2026-10-12; first-firm discovery sessions are not.
 

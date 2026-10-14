@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-13 15:45 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-13 23:15 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -34,7 +34,7 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | EF Core migrations, refusal to touch legacy/unmigrated databases | Present | **Verified within stated scope** on throwaway databases | Legacy baseline runbook not executed on a real database |
 | Demo sign-in gated to Development opt-in; no tracked secrets in current files | Present | Login 503 when disabled is tested; Development opt-in path not exercised | Historical secrets remain in Git history; rotation not done |
 | Parties, conflicts, intake, matters workspace, calendar, consultations, public site | Present (earlier slices) | Build only, plus the authorization tests above | See parity matrix below |
-| Billing, trust, payments, documents binary pipeline, MFA, multitenancy | Absent | — | See [gap map](Markdown/delivery/implementation-gap-map.md) |
+| Billing, trust, payments, documents binary pipeline, MFA, multitenancy | Absent | — | Workspace screens exist for Billing, Accounts, Documents, Communications, Reports, Integrations, and Settings. They do not implement these capabilities. [Decision log](Markdown/planning/decision-log.md) D-20261013-2 |
 
 ## Completed work
 
@@ -47,25 +47,46 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | M0 | MatterForge working-name branding plus multi-firm architecture: ADR-002, data dictionary, query and index spec, threat model, runbooks, acceptance matrix, implementation plan, `db/design` SQL and validation (committed `0fc6831`) | **Verified within stated scope**: design SQL applied and checked on disposable MySQL 8.0.36 with synthetic data (log in `db/design/validation/`); docs link-checked. No application multi-firm code; nothing deployed; no existing database touched |
 | A1 | Repository-wide module communication sweep, vulnerability mapping, architecture-standards comparison, and SaaS firm onboarding runbook docs | **Verified within stated scope**: static source and docs inspection, architecture comparison artifacts, onboarding runbook authored. No runtime behavior or schema change; no builds/tests re-run in this docs-only slice |
 | A2 | Vulnerability hardening for consultation booking, public abuse controls, intake conflict binding, calendar verification spoofing, and correlation-id sanitation | **Verified within stated scope**: solution build and integration tests (48/48). No multitenancy, no billing/trust, and no audit-atomicity redesign in this slice |
+| A3 | Tailwind CSS onboarding and frontend styling migration pass | **Verified within stated scope**: Tailwind/PostCSS integration, hybrid utility migration in shared layout and public pages, frontend install/build/dev verification. Existing frontend lint baseline unchanged |
 
-## Current step: A2 vulnerability hardening implementation
+## Current step: full signed-in sidebar
 
-**Status: Verified within stated scope.** Not committed (working tree on top of `0fc6831` plus R1/A1 uncommitted work). Scope: backend implementation hardening and integration tests for the highest-priority vulnerabilities documented in A1.
+**Status: Verified within stated scope.** Not committed. The signed-in menu now includes every Clio sidebar destination plus Intake, Consultations, and Conflicts. Pages that already have records show those records. Billing, accounts, and integrations do not invent balances, invoices, or connected services.
 
 | Criterion | Result |
 |---|---|
-| Consultation double-booking race | Implemented per-slot MySQL named lock around conflict check + insert in `Features/Consultations/ConsultationsEndpoints.cs`; parallel booking test added and passing |
-| Public abuse controls | Added fixed-window rate limiting policy for anonymous consultation POST route in `Program.cs` and applied it on the endpoint |
-| Intake conflict-binding | Acceptance now requires intake `ConflictCheckId` and rejects approved decisions from other checks |
-| Calendar verifier spoofing | Verification identity/timestamp now server-controlled and verification intent allowed only for attorney/admin requests |
-| Correlation id hardening | Added sanitization and bounded correlation-id generation for untrusted request headers |
-| Test evidence | New integration tests in `backend.IntegrationTests/VulnerabilityHardeningTests.cs`; suite now 48/48 passing |
+| Menu | Dashboard, Calendar, Tasks, Matters, Contacts, Activities, Billing, Accounts, Documents, Communications, Reports, Integrations, Settings, then Practice: Intake, Consultations, Conflicts. Resource centre sits above the signed-in person |
+| Activities | Two matter timeline rows, including the draft complaint filing |
+| Documents | Damage-Photo-Set.zip and Retainer-Agreement-Signed.pdf, each linked to the matter |
+| Communications | Two consultation messages, Taylor Bennett and Morgan Hale |
+| Reports | Open tasks 0, active matters 1, intake 2, contacts 2. The active-matters card opened Matters |
+| Billing, accounts, integrations | Pages open and state that no invoices, balances, or connections exist |
+| Settings | Shows Avery Attorney, email, role, and permissions |
+| Resource centre | Topic list. Documents topic opened the documents page |
+| Look-back | Why, who, and timestamp order are in [decision log](Markdown/planning/decision-log.md). Applied tables and foreign keys are in [schema evolution](Markdown/database/schema-evolution.md) and the [UML class diagrams](Markdown/database/uml-class-diagrams.md) |
 
-## Previous step: A1 architecture evidence refresh and SaaS onboarding runbook
+## Previous step: signed-in navigation and Contacts directory
+
+**Status: Verified within stated scope.** Not committed. Parties was renamed to Contacts and the directory shows people and organizations.
+
+## Previous step: A3 Tailwind CSS onboarding and frontend migration pass
+
+**Status: Verified within stated scope.** Not committed (working tree on top of `0fc6831` plus prior uncommitted work). Scope: install Tailwind CSS into the Vite frontend pipeline, migrate shared layout primitives to Tailwind utilities (`@apply` and inline utility classes), and harden public page styling migration on Home and Contact without visual regressions.
+
+| Criterion | Result |
+|---|---|
+| Tailwind install | Added `tailwindcss`, `postcss`, `autoprefixer` and created `frontend/tailwind.config.js` + `frontend/postcss.config.js` |
+| Tailwind activation | Added Tailwind directives in `frontend/src/index.css` (`@tailwind base/components/utilities`) |
+| Styling migration sweep | Converted shared layout/form/modal/grid primitives in `frontend/src/app/AppShell.css` to Tailwind-backed `@apply` utilities while preserving custom theme variables |
+| Component migration | Added utility-class usage in `SiteNav`, `SiteFooter`, `HomePage`, and `ContactPage` while keeping existing semantic classes for complex visuals |
+| Verification | `npm install` succeeded, `npm run build` succeeded, `npm run dev` started (Vite on port 5174 because 5173 was occupied). Frontend lint remains baseline failures (7 errors, 3 warnings) |
+| Public nav toggle | Desktop Menu button was visible because Tailwind `inline-flex` overrode `.site-menu-toggle { display: none }`. Utility classes removed from that button. Checked on the running dev server: at 1400px the toggle is `display: none` and the links are `display: flex`; at a narrow viewport the toggle is shown and the links are `display: none` |
+
+## Previous step: A2 vulnerability hardening implementation
+
+## Earlier step: A1 architecture evidence refresh and SaaS onboarding runbook
 
 ## Earlier step: R1 solution structure, boilerplate, and documentation folder cleanup
-
-## Earlier step: M0 multi-firm architecture (design) and working-name branding
 
 **Status: Verified within stated scope.** Committed in `0fc6831`. The scope is architecture documentation, reviewable SQL, and validation on a disposable database. It does not implement tenancy or move any records.
 
@@ -131,7 +152,7 @@ Acceptance criteria and result:
 | Order | Work | Depends on | Status |
 |---|---|---|---|
 | 1 | Review and commit the R1 working tree; rotate the credentials listed below | — | Planned (owner action) |
-| 2 | Decide multitenant database architecture and controls | F1 | **Design done (M0)**; owner review of ADR-002 and of the [open decisions](Markdown/delivery/open-decisions.md) pending |
+| 2 | Decide multitenant database architecture and controls | F1 | **Design done (M0)**; owner review of ADR-002 and of the [open decisions](Markdown/planning/open-decisions.md) pending |
 | 2a | T1: minimal control plane, trusted firm resolution, per-firm DbContext routing, two synthetic firm databases, cross-firm tests ([plan](Markdown/delivery/multitenant-implementation-plan.md)) | Commit (1) | Planned |
 | 3 | F2 remainder: same-transaction, append-only audit (G16) | Migrations (done) | Planned |
 | 4 | F3: lint fixes + CI running `dotnet build MatterForge.sln`, both test projects, frontend build, lint, and `npm test` (G08). Decide TanStack Query there (it removes the `set-state-in-effect` pattern). Upgrade `react-router-dom` for the audit advisories | Tests (done) | Planned |
@@ -151,6 +172,8 @@ Acceptance criteria and result:
 - **Risk (updated 2026-10-13):** intake acceptance now binds to the intake conflict check, but party-set invalidation remains open.
 - **Risk (updated 2026-10-13):** calendar verification spoofing is blocked, but full legal deadline provenance fields are still incomplete.
 - **Risk (updated 2026-10-13):** correlation id input is now bounded/sanitized; audit writes are still non-atomic and audit table immutability is still open.
+- **Frontend migration risk (A3):** styling is now hybrid (Tailwind plus legacy custom CSS). This is intentional for phased migration, but increases short-term style-surface complexity until deeper consolidation.
+- **Frontend dependency risk (A3):** `npm install` reports 11 vulnerabilities (4 moderate, 7 high) in npm audit output; not remediated in this slice.
 - **Risk:** the user's running API process holds `backend/bin/Debug`; builds use `-o ./.build-out`, `-c EfDesign` (project level only), or `-c Release` (solution level).
 - **Note (R1):** the running `dotnet run` process was started before R1 and still serves the old build until restarted. After restart it builds the new tree; behavior should be identical except that `/api/weather/forecast` and `/api/weatherforecast` (template routes) no longer exist.
 - **Note (R1):** boilerplate interfaces and empty route groups are placeholders. Nothing registers or calls them; don't count them as features.
@@ -265,7 +288,7 @@ These score nothing toward parity. They fix where future code goes ([solution st
   - `frontend/src/pages/workspace/WorkspaceHomePage.tsx`
   - `frontend/src/pages/workspace/WorkspaceWorklistsPage.tsx`
   - `frontend/src/pages/workspace/TasksCalendarPage.tsx`
-  - `frontend/src/pages/workspace/PartiesPage.tsx`
+  - `frontend/src/pages/workspace/ContactsPage.tsx`
   - `frontend/src/pages/workspace/ConflictChecksPage.tsx`
   - `frontend/src/pages/workspace/IntakeBoardPage.tsx`
   - `frontend/src/pages/workspace/IntakeDetailPage.tsx`
@@ -273,6 +296,15 @@ These score nothing toward parity. They fix where future code goes ([solution st
   - `frontend/src/pages/workspace/MatterWorkspacePage.tsx`
   - `frontend/src/pages/workspace/MatterWorkspaceTabs.tsx`
   - `frontend/src/pages/workspace/WorkspaceConsultationsPage.tsx`
+  - `frontend/src/pages/workspace/ActivitiesPage.tsx`
+  - `frontend/src/pages/workspace/DocumentsPage.tsx`
+  - `frontend/src/pages/workspace/CommunicationsPage.tsx`
+  - `frontend/src/pages/workspace/ReportsPage.tsx`
+  - `frontend/src/pages/workspace/BillingPage.tsx` (screen only; no invoices)
+  - `frontend/src/pages/workspace/AccountsPage.tsx` (screen only; no ledger)
+  - `frontend/src/pages/workspace/IntegrationsPage.tsx` (none connected)
+  - `frontend/src/pages/workspace/SettingsPage.tsx` (current session only)
+  - `frontend/src/pages/workspace/ResourceCentrePage.tsx`
 
 ---
 
@@ -366,7 +398,7 @@ These score nothing toward parity. They fix where future code goes ([solution st
 - Party creation/search/aliases/relationships:
   - `backend/Features/Parties/PartiesEndpoints.cs`
 - UI create/search:
-  - `frontend/src/pages/workspace/PartiesPage.tsx`
+  - `frontend/src/pages/workspace/ContactsPage.tsx`
 
 ### Missing for parity
 

@@ -1,6 +1,6 @@
 # Slice History
 
-A **slice** is one bounded implementation step: a small piece of work carried end to end (schema, API, UI where relevant, tests, documentation) that leaves the application runnable. Entries are append-only. Each heading's date and slice name is its stable ID. Later outcomes are added as new entries; earlier failures are not rewritten. Commit references appear only when a commit exists. Current state lives in [ProgressPlan.md](ProgressPlan.md).
+A **slice** is one bounded implementation step: a small piece of work carried end to end (schema, API, UI where relevant, tests, documentation) that leaves the application runnable. Entries are append-only. Each heading's date and slice name is its stable ID. Later outcomes are added as new entries; earlier failures are not rewritten. Commit references appear only when a commit exists. Current state lives in [ProgressPlan.md](ProgressPlan.md). Why a choice was made, what it helps, and how it could fail later live in [Markdown/planning/decision-log.md](Markdown/planning/decision-log.md). Entries before 2026-10-13 22:40 EDT were not rewritten into that shape.
 
 ## 2026-10-04 - Slice S1 + S2 foundation
 
@@ -526,3 +526,193 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** Verified within stated scope. High-priority vulnerabilities are reduced with runtime controls and integration evidence. Not production ready and not "100% secure."
 - **Residuals still open:** audit atomicity/immutability (G16), CAPTCHA/bot controls for public intake (G22), deeper party-set conflict-binding semantics (G23), and full legal deadline provenance model (G30).
 - **Next action:** implement F2 remainder for same-transaction append-only audit (G16), then F3 lint+CI, then T1 multi-firm routing.
+
+## 2026-10-13 - Slice A3 Tailwind CSS onboarding and frontend migration pass
+
+- **Recorded:** 2026-10-13 18:20 EDT (UTC−04:00). **Not committed** (working tree on top of `0fc6831` and prior uncommitted slices).
+- **Objective and scope:** integrate Tailwind CSS into the React/Vite frontend, perform a broad styling sweep for where utility-first classes should be used first, migrate shared and high-traffic public page styling, then verify with a fresh frontend install and dev-server run. Out of scope: resolving pre-existing lint debt and rewriting all feature/page styles in one slice.
+
+### Changes
+
+- Frontend dependency and build integration:
+  - `frontend/package.json`: added `tailwindcss`, `postcss`, and `autoprefixer` (dev dependencies).
+  - `frontend/postcss.config.js` (new): Tailwind + Autoprefixer plugin chain.
+  - `frontend/tailwind.config.js` (new): content scanning for `index.html` and `src/**/*.{ts,tsx}`.
+  - `frontend/src/index.css`: added Tailwind directives (`@tailwind base`, `@tailwind components`, `@tailwind utilities`).
+  - `frontend/package-lock.json`: refreshed by install.
+- Styling migration sweep (hybrid approach):
+  - `frontend/src/app/AppShell.css`: migrated high-reuse structural primitives to Tailwind-backed `@apply` patterns (shell/layout/grid/card/form/modal/dashboard/list utility groups), while preserving custom variables and visual gradients.
+  - `frontend/src/components/layout/SiteNav.tsx`: added utility classes for key layout/interaction wrappers while preserving existing class contracts.
+  - `frontend/src/components/layout/SiteFooter.tsx`: added utility classes for spacing/container treatment.
+  - `frontend/src/pages/public/HomePage.tsx`: added utility classes to container and card/lift patterns for immediate Tailwind usage.
+  - `frontend/src/pages/public/ContactPage.tsx`: utility-class migration for key page containers, cards, modal, and form controls.
+- Documentation sync:
+  - `frontend/README.md`: now states Tailwind CSS is enabled via PostCSS in hybrid mode.
+  - `Markdown/architecture/stack-and-runtime.md`: added Styling row documenting Tailwind + existing CSS hybrid strategy.
+  - `ProgressPlan.md`: updated with this A3 status and verification notes.
+
+### Checks run (actual results)
+
+- `npm install` in `frontend/`: success (dependencies installed and lockfile updated).
+- `npm run dev` in `frontend/`: Vite started successfully; port `5173` was occupied so Vite served on `http://localhost:5174/`.
+- `npm run build` in `frontend/`: success (`tsc -b` + Vite production build).
+- `npm run lint` in `frontend/`: fails with the existing baseline (7 errors, 3 warnings) in workspace pages and `AuthContext`; no new lint categories introduced by A3.
+
+### Checks not run, and why
+
+- Frontend Vitest (`npm test`): unchanged API/logic pathways in this slice; scope focused on styling/build integration.
+- Backend build/tests: frontend-only slice.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope. Tailwind is now fully wired into the frontend toolchain and actively used in shared/public UI without breaking the existing custom visual system.
+- **Known residuals:** style system is intentionally hybrid until deeper migration; frontend lint debt remains as previously documented; npm audit reports vulnerabilities not addressed in this slice.
+- **Next action:** continue phased migration of workspace pages/components to Tailwind utilities and component abstractions, then tackle F3 lint and CI gating.
+
+## 2026-10-13 - Public nav Menu button hidden on desktop
+
+- **Recorded:** 2026-10-13 22:20 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** explain and fix the public header "Menu" button staying visible beside the desktop links on `/practice-areas`.
+
+### Cause
+
+- `.site-menu-toggle` in `frontend/src/app/AppShell.css` is `display: none` until `@media (max-width: 860px)`, where it becomes `inline-flex` and `.site-nav` becomes `display: none`.
+- The Tailwind pass added `inline-flex` on that button in `SiteNav.tsx`. `frontend/src/main.tsx` imports `AppShell` (and therefore `AppShell.css`) before `index.css`, so the built stylesheet emits `.inline-flex { display: inline-flex }` after `.site-menu-toggle { display: none }`. Same specificity, later rule wins, so the toggle stayed visible at desktop widths while the link row stayed visible too.
+
+### Changes
+
+- `frontend/src/components/layout/SiteNav.tsx`: removed `inline-flex items-center justify-center` from the public menu toggle. Mobile show/hide stays in `AppShell.css`.
+
+### Checks run (actual results)
+
+- Chrome on the already running Vite server at `http://localhost:5173/practice-areas`: at 1400px, `.site-menu-toggle` computed `display: none` and `.site-nav` computed `display: flex`. At a narrow viewport (reported `innerWidth` 465), the toggle computed `display: flex` and `.site-nav` computed `display: none`.
+- Cursor browser could not open the page (`ERR_CONNECTION_REFUSED`); the check above used local Chrome against `[::1]:5173`.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope for the public header toggle only. Not committed.
+- **Next action:** unchanged from A3: continue the Tailwind migration, then F3 lint and CI gating.
+
+## 2026-10-13 - Signed-in sidebar and Contacts directory
+
+- **Recorded:** 2026-10-13 22:40 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** rename the signed-in Parties item to Contacts and show the firm's people and organizations there. Take the Clio sidebar's order and footer as a guide for modules that already exist. Out of scope: new billing, accounts, documents, communications, reports, integrations, or settings screens.
+
+### Changes
+
+- `frontend/src/components/layout/SiteNav.tsx`: signed-in order is Dashboard, Calendar, Tasks, Matters, Contacts, Intake, Consultations, Conflicts. Footer shows the signed-in name and role, sign out, and collapse.
+- `frontend/src/pages/workspace/ContactsPage.tsx`: contact directory with name, person or organization, email, phone, and aliases. Search and add contact stay on the existing parties API.
+- `frontend/src/app/AppRoutes.tsx`: `/workspace/contacts` is the page. `/workspace/parties` redirects there.
+- `frontend/src/pages/workspace/PartiesPage.tsx`: removed.
+- `frontend/src/pages/workspace/WorkspaceHomePage.tsx`: dashboard quick action opens Contacts.
+- `frontend/src/app/AppShell.css`: contact rows and sidebar identity styles.
+
+### Checks run (actual results)
+
+- Browser, signed in as Avery Attorney on `http://localhost:5173`:
+  - Sidebar showed the new order, Avery Attorney at the bottom, and collapse/expand.
+  - Contacts listed Alicia Warren and Northgate Builders LLC with email and phone.
+  - Search for "Northgate" returned that one organization.
+  - `/workspace/parties` redirected to `/workspace/contacts`.
+  - Tasks opened the worklists page.
+  - After sign-out, the public menu was Home, About, Practice Areas, Attorneys, Contact, and Sign in.
+- Editor diagnostics on the edited frontend files: no lints reported.
+
+### Checks not run, and why
+
+- Frontend production build and Vitest: UI-only change, exercised in the running dev server.
+- Backend build and tests: no API or schema change.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope in the browser against the running API and seeded contacts.
+- **Benefit and possible future downfall:** [decision log D-20261013-1](Markdown/planning/decision-log.md). Benefit: staff open Contacts and see email and phone. Downfall: the screen says Contact while the stored record stays a Party, so a later change could create a second contacts store.
+- **Next action:** keep later sidebar items off the nav until those modules exist. Continue F3 lint and CI, or the next product slice the owner chooses.
+
+## 2026-10-13 - Full signed-in sidebar
+
+- **Recorded:** 2026-10-13 22:55 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** add every Clio sidebar destination, plus Intake, Consultations, and Conflicts, and give each destination a page. Show stored records where they exist. Do not invent invoices, trust balances, or connected integrations.
+
+### Changes
+
+- `frontend/src/components/layout/SiteNav.tsx`: menu order matches Clio, with a Practice group for Intake, Consultations, and Conflicts. Resource centre is in the footer. The menu scrolls when it is taller than the screen.
+- New pages: Activities, Billing, Accounts, Documents, Communications, Reports, Integrations, Settings, Resource centre.
+- Activities, Documents, Communications, and Reports read the existing matter, consultation, intake, calendar, and contact APIs.
+- Billing, Accounts, and Integrations state that those records are not stored.
+
+### Checks run (actual results)
+
+- Browser, signed in as Avery Attorney on `http://localhost:5173`:
+  - All menu items and Resource centre were present.
+  - Activities listed the filing and client-call timeline rows.
+  - Documents listed Damage-Photo-Set.zip and Retainer-Agreement-Signed.pdf.
+  - Communications listed Taylor Bennett and Morgan Hale.
+  - Reports showed open tasks 0, active matters 1, intake 2, contacts 2. The active-matters card opened Matters.
+  - Billing, Accounts, and Integrations opened with empty, non-financial states.
+  - Settings showed Avery Attorney and the attorney permissions.
+  - Resource centre Documents topic opened the documents page.
+
+### Checks not run, and why
+
+- Frontend production build and Vitest: UI-only change, exercised in the running dev server.
+- Backend build and tests: no API or schema change.
+
+### Outcome and next action
+
+- **Outcome:** Verified within stated scope in the browser. Billing, trust, and integrations are navigation destinations only; they do not record money or connect outside services.
+- **Benefit and possible future downfall:** [decision log D-20261013-2](Markdown/planning/decision-log.md). Benefit: activities, documents, communications, and reports show stored records, and the money pages do not print a fake balance. Downfall: those empty pages can later be mistaken for a ledger, a file download, or a connected integration.
+- **Next action:** build the billing and trust ledgers before those pages can show real accounts or invoices.
+
+## 2026-10-13 - Decision log for why, benefit, and future downfall
+
+- **Recorded:** 2026-10-13 23:05 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** give the sidebar work a look-back record. No application code in this entry.
+
+### Changes
+
+- `Markdown/delivery/decision-log.md` (new): D-20261013-1 Contacts rename, D-20261013-2 full sidebar, D-20261013-3 starting this log.
+- `AGENTS.md`: later sessions append the decision log as well as the slice history.
+- `Markdown/README.md`, `ProgressPlan.md`, and this file now point at the decision log.
+- `Markdown/delivery/implementation-gap-map.md`: G32, G41, G42, G50, and G52 note that the new screens do not implement those gaps.
+- `ProgressPlan.md` frontend module list includes the new workspace pages and marks the empty ones as screens only.
+
+### Checks run (actual results)
+
+- Documentation edit only. Links use paths that exist: `Markdown/delivery/decision-log.md` from the repo root, and `decision-log.md` from the gap map in the same folder.
+
+### Checks not run, and why
+
+- No build, test, or browser check. Application code was not changed in this entry.
+
+### Outcome and next action
+
+- **Outcome:** The sidebar decisions now record why, the observed benefit, and the future downfall. Older slice entries were not rewritten.
+- **Next action:** append the decision log on the next code change. Build billing and trust before those pages show accounts or invoices.
+
+## 2026-10-13 - Planning folder and database class diagram
+
+- **Recorded:** 2026-10-13 23:15 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** put timestamped decisions in one planning folder and put the database history next to a UML class diagram. No application code.
+
+### Changes
+
+- `Markdown/planning/README.md`, `decision-log.md`, and `open-decisions.md`. The log index is oldest-first by full timestamp, with who decided. Method follows MADR (date, decision-makers, good and bad consequences) and stays one file so order stays visible.
+- `Markdown/delivery/decision-log.md` and `open-decisions.md` are pointers only.
+- `Markdown/database/schema-evolution.md`: MySQL 8.0.36, EF migrations in UTC order from the migration ids (`Baseline` at 2026-10-12 05:07:14 UTC, `MatterAccessGrants` at 05:07:41 UTC), and columns that are not foreign keys.
+- `Markdown/database/uml-class-diagrams.md`: class to table, attribute to column, association to foreign key, for the applied schema. The data-dictionary ERD stays the designed model.
+- Links updated from the README, AGENTS.md, ProgressPlan, this file, the gap map, and the documents that pointed at the old open-decision path.
+
+### Checks run (actual results)
+
+- Documentation only. Class and foreign-key names were taken from `LawFirmDbContext` and the entity files. `ConflictCheck` has no `Status` column; the diagram uses `Query`. `MatterAccessGrant` uses `ActorId`.
+
+### Checks not run, and why
+
+- No build or browser check. The schema was not migrated.
+
+### Outcome and next action
+
+- **Outcome:** Decision order is the timestamp index in `Markdown/planning/decision-log.md` (D-20261013-4). Database evolution and the class diagram refer to each other.
+- **Benefit and possible future downfall:** [D-20261013-4](Markdown/planning/decision-log.md). Benefit: a later decision cannot be filed above an earlier one. Downfall: editing the old `delivery/` pointers as if they were the record.
+- **Next action:** on the next schema change, append schema evolution and update the class diagram in the same session.

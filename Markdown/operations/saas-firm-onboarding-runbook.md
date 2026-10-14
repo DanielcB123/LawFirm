@@ -1,6 +1,6 @@
 # SaaS firm onboarding runbook
 
-[Home](../README.md) · [Operations](reliability-and-recovery.md) · [Fleet provisioning](fleet-provisioning-and-migration-runbook.md) · [Provisioning baseline](../database/provisioning-and-migrations.md) · [Open decisions](../delivery/open-decisions.md)
+[Home](../README.md) · [Operations](reliability-and-recovery.md) · [Fleet provisioning](fleet-provisioning-and-migration-runbook.md) · [Provisioning baseline](../database/provisioning-and-migrations.md) · [Open decisions](../planning/open-decisions.md)
 
 ## Why this exists
 This runbook is for onboarding a **new law firm tenant** to the SaaS platform (not a new legal client record inside an existing firm). It defines the minimum repeatable process, hard-stop gates, and evidence package required before a firm can go live.

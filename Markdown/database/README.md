@@ -1,6 +1,8 @@
 # Database architecture
 
-[Home](../README.md) · [Research](tenancy-research.md) · [ADR-001](ADR-001-tenancy.md) · [ADR-002](ADR-002-multitenant-architecture.md) · [Data model](data-model.md) · [Data dictionary](data-dictionary.md) · [Query and index spec](query-and-index-spec.md) · [Design SQL](../../db/design/README.md) · [Provisioning](provisioning-and-migrations.md)
+[Home](../README.md) · [Schema evolution](schema-evolution.md) · [UML class diagrams](uml-class-diagrams.md) · [Research](tenancy-research.md) · [ADR-001](ADR-001-tenancy.md) · [ADR-002](ADR-002-multitenant-architecture.md) · [Data model](data-model.md) · [Data dictionary](data-dictionary.md) · [Query and index spec](query-and-index-spec.md) · [Design SQL](../../db/design/README.md) · [Provisioning](provisioning-and-migrations.md)
+
+The applied database, in order, is [schema evolution](schema-evolution.md). Classes, columns, and foreign keys for that database are the [UML class diagrams](uml-class-diagrams.md). The ERD in the data dictionary is the designed multi-firm model and includes tables the application has not created.
 
 > **2026-10-12:** the multi-firm database design is in [ADR-002](ADR-002-multitenant-architecture.md), the [data dictionary](data-dictionary.md), and reviewable SQL validated on disposable MySQL 8.0.36 ([db/design](../../db/design/README.md)). It is design only; the application schema is unchanged.
 

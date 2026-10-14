@@ -128,7 +128,7 @@ src/
     billing              draft types only (Not implemented; gap G50)
   pages/
     public/              marketing site and contact
-    workspace/           staff workspace
+    workspace/           staff workspace (Clio-shaped nav; decision log D-20261013-2)
     NotFoundPage.tsx
   types/money.ts         shared Money type (decimal string + currency)
   data/                  static marketing content
