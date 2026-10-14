@@ -1,6 +1,6 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-14 04:34 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-14 04:43 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
 
@@ -49,6 +49,7 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | A2 | Vulnerability hardening for consultation booking, public abuse controls, intake conflict binding, calendar verification spoofing, and correlation-id sanitation | **Verified within stated scope**: solution build and integration tests (48/48). No multitenancy, no billing/trust, and no audit-atomicity redesign in this slice |
 | A3 | Tailwind CSS onboarding and frontend styling migration pass | **Verified within stated scope**: Tailwind/PostCSS integration, hybrid utility migration in shared layout and public pages, frontend install/build/dev verification. Existing frontend lint baseline unchanged |
 | A4 | Public hero balance calibration for About and Practice headers | **Verified within stated scope**: matched About and Practice overlay profile to the calmer Contact/Attorneys balance; frontend build and stylesheet diagnostics clean |
+| A5 | Centralized signed-in page header styling | **Verified within stated scope**: moved workspace header typography to shared authenticated-shell CSS selectors and removed one page-level override in Tasks & Calendar |
 
 ## Current step: global background image options
 
@@ -65,6 +66,7 @@ One application that replaces a firm's separate website, intake/CRM, and practic
 | Usability | Scrollable picker styles remain in place for when the selector is re-enabled |
 | Header tone tune | Rebalanced hero styling to split the difference: toned down the latest vibrancy while keeping more life than the original dull gray/white look |
 | Header parity tune | About and Practice now use the same balanced top-to-bottom neutral overlay profile as Contact/Attorneys to reduce over-emphasis |
+| Workspace header centralization | Signed-in page title and intro lead styling now lives in authenticated `.page` selectors, reducing per-page header class duplication |
 
 ## Previous step: public appointment request dialog
 

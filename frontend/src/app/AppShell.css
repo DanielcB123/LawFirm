@@ -419,6 +419,13 @@
   line-height: 1.2;
 }
 
+.app-shell--authenticated .page > h1 {
+  font-size: clamp(2rem, 3.3vw, 2.8rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: color-mix(in srgb, var(--text-h) 92%, #2f1a20 8%);
+}
+
 .page h2 {
   margin: 0 0 0.65rem;
   font-size: clamp(1.15rem, 2vw, 1.4rem);
@@ -426,6 +433,14 @@
 
 .lead {
   max-width: 70ch;
+}
+
+.app-shell--authenticated .page > h1 + .lead {
+  max-width: 84ch;
+  font-size: clamp(1.02rem, 1.35vw, 1.18rem);
+  font-weight: 600;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--text-p) 82%, #2f1a20 18%);
 }
 
 .home-page {

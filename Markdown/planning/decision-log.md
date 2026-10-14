@@ -22,6 +22,7 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 12 | 2026-10-14 04:16 EDT (UTC−04:00) | D-20261014-8 | Founder | Increase hero vibrancy for About, Practice, and Home |
 | 13 | 2026-10-14 04:18 EDT (UTC−04:00) | D-20261014-9 | Founder | Dial back hero vibrancy to a balanced midpoint |
 | 14 | 2026-10-14 04:34 EDT (UTC−04:00) | D-20261014-10 | Founder | Match About and Practice hero balance to Contact and Attorneys |
+| 15 | 2026-10-14 04:43 EDT (UTC−04:00) | D-20261014-11 | Founder | Centralize signed-in page header styling in authenticated shell CSS |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -198,3 +199,15 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Matching overlays across pages can reduce unique page mood cues that were previously created through warmer page-specific accents.
 - **Not done:** No changes were made to Home, Contact, Attorneys, or Not Found hero styling in this decision.
 - **Evidence:** Frontend build passed and stylesheet diagnostics were clean after the CSS normalization.
+
+## D-20261014-11 — Centralize signed-in page header styling in authenticated shell CSS
+
+- **When:** 2026-10-14 04:43 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added centralized workspace header selectors in `AppShell.css` under `.app-shell--authenticated` for page `<h1>` and the immediately following `.lead`, and removed one page-level utility override (`TasksCalendarPage`) so it inherits the shared rule.
+- **Why:** The founder asked for a way to apply signed-in header styling across all authorized pages without repeating utility-class edits page by page.
+- **Good, because:** Header tone/scale updates for signed-in pages now happen in one place and flow to workspace pages that follow the standard `.page` structure.
+- **Bad, because:** A page that needs intentionally different heading presentation now has to opt out or override the shared selector to avoid unintentional uniformity.
+- **Not done:** No global conversion to a dedicated shared React header component in this step.
+- **Evidence:** Frontend build passed and edited-file diagnostics reported no linter errors.

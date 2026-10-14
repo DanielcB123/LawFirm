@@ -1017,3 +1017,34 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** About and Practice hero headers now share the same calm contrast balance as Contact and Attorneys, reducing visual over-emphasis while keeping readability.
 - **Benefit and possible future downfall:** [D-20261014-10](Markdown/planning/decision-log.md). Benefit: consistent hero tone across marketing pages. Downfall: strict visual parity can reduce per-page mood differentiation.
 - **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-14 - Centralized signed-in page header styling
+
+- **Recorded:** 2026-10-14 04:43 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** centralize the signed-in workspace page header styling so title/intro updates can be made in one place instead of per-page utility class edits.
+
+### Changes
+
+- `frontend/src/app/AppShell.css`:
+  - Added authenticated-shell scoped selectors for workspace page headers:
+    - `.app-shell--authenticated .page > h1`
+    - `.app-shell--authenticated .page > h1 + .lead`
+  - These selectors now control signed-in page title weight/size/color and intro lead width/type scale.
+- `frontend/src/pages/workspace/TasksCalendarPage.tsx`:
+  - Removed page-specific utility overrides from the title and intro paragraph so the page uses centralized workspace header styling.
+
+### Checks run (actual results)
+
+- `npm run build` in `frontend/`: success.
+- `ReadLints` on edited files: no linter errors.
+
+### Checks not run, and why
+
+- No browser click-through of every workspace page in this step; selectors were scoped to existing `.page` structure under the authenticated shell and validated by successful build and diagnostics.
+- No backend tests were run because this slice changes frontend styling only.
+
+### Outcome and next action
+
+- **Outcome:** Signed-in header typography can now be tuned centrally in one CSS location and applied across workspace pages automatically.
+- **Benefit and possible future downfall:** [D-20261014-11](Markdown/planning/decision-log.md). Benefit: one-place updates for consistent workspace heading tone. Downfall: pages with intentionally unique heading treatment may need explicit opt-out classes.
+- **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
