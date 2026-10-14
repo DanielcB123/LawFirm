@@ -1269,8 +1269,8 @@
 }
 
 .modal-card--appointment {
-  width: min(1220px, calc(100vw - 2rem));
-  font-size: 1.08rem;
+  width: min(1420px, calc(100vw - 2rem));
+  font-size: 1.4rem;
   padding: 0;
   overflow: auto;
 }
@@ -1354,7 +1354,7 @@
 
 .appointment-modal__schedule legend {
   margin-bottom: 0.5rem;
-  font-size: 1.12rem;
+  font-size: 1.6rem; 
 }
 
 .appointment-modal__schedule-body {
@@ -1397,7 +1397,7 @@
   margin-top: 0.2rem;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1500px) {
   .appointment-modal__form {
     grid-template-columns: 1fr;
   }

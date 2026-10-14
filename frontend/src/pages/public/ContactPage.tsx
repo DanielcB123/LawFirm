@@ -301,8 +301,8 @@ export function ContactPage() {
             <header className="appointment-modal__header">
               <div>
                 <p className="eyebrow">Request appointment</p>
-                <h2 id="consultation-modal-title">Schedule consultation</h2>
-                <p className="muted">Tell us how to reach you, then pick an open time.</p>
+                <h2 id="consultation-modal-title" className="text-2xl font-semibold">Schedule consultation</h2>
+                <p className="muted text-sm text-gray-900">Tell us how to reach you, then pick an open time.</p>
               </div>
               <button type="button" className="appointment-modal__close" onClick={() => setIsModalOpen(false)} aria-label="Close">
                 ×
@@ -430,7 +430,7 @@ export function ContactPage() {
                           →
                         </button>
                       </div>
-                      <p className="consultation-picker__hint">
+                      <p className="consultation-picker__hint text-sm text-gray-900">
                         Choose a date first. Dates with no open times are shown as unavailable.
                       </p>
                       <div className="consultation-picker__weekdays" aria-hidden="true">
