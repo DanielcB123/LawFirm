@@ -29,6 +29,7 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 19 | 2026-10-14 05:00 EDT (UTC−04:00) | D-20261014-15 | Founder | Force Home hero plain blue and disable image/glow for isolation test |
 | 20 | 2026-10-14 05:03 EDT (UTC−04:00) | D-20261014-16 | Founder | Restore full Home hero visuals with blue-only tint layers |
 | 21 | 2026-10-14 05:06 EDT (UTC−04:00) | D-20261014-17 | Founder | Annotate Home hero CSS controls for manual tuning |
+| 22 | 2026-10-16 23:59 EDT (UTC−04:00) | D-20261016-1 | Founder | Start a dedicated `docs/migration` workspace and branch for Laravel/Vue/Docker migration |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -289,3 +290,66 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** If future refactors change layer behavior but comments are not updated, the guidance can drift from actual rendering.
 - **Not done:** No visual values were changed in this decision.
 - **Evidence:** Frontend build passed and CSS diagnostics stayed lint-clean after comment-only edits.
+
+## D-20261016-1 — Start dedicated migration docs workspace and branch
+
+- **When:** 2026-10-16 23:59 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Begin Laravel/Vue/Docker migration with:
+  - isolated branch `migration/laravel-vue-docker-phase1`,
+  - persistent migration documentation folder `docs/migration/`,
+  - baseline command evidence recorded before application rewrite.
+- **Why:** The migration scope is broad and high-risk. Work needs explicit audit coverage, reproducible checkpoints, and clear separation from current `main` behavior while parity is established.
+- **Good, because:** Baseline outcomes, open blockers, and Docker/port constraints are now tracked in one place and can be resumed across sessions without restarting discovery.
+- **Bad, because:** Documentation overhead is front-loaded and slows immediate feature rewriting; stale tracking is possible if updates are skipped.
+- **Not done:** Full file-by-file deep review and visual screenshot baseline are still in progress and marked as pending in `docs/migration/`.
+- **Evidence:** Added migration documents and updated handoff artifacts in the same session; baseline command outputs captured in `docs/migration/PROGRESS.md`.
+
+## D-20261017-1 — Use Sanctum token auth for initial Laravel migration slice
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** Lead migration engineer.
+- **Status:** accepted.
+- **What:** Implement initial authenticated API vertical slice with Laravel Sanctum (`/api/auth/login`, `/api/identity/me`) and protect `/api/contacts` behind `auth:sanctum`.
+- **Why:** The migration needed an end-to-end secured workflow early (not just anonymous health/data endpoints) to validate Docker runtime, DB access, and auth middleware behavior with realistic API usage.
+- **Good, because:** Authenticated and unauthorized API paths are now explicitly exercised and verified in the new stack while retaining required MySQL Docker networking (`127.0.0.1:3307:3306`, app internal `mysql:3306`).
+- **Bad, because:** This is not legacy-permission parity yet; role/permission claims and policy-level behavior from the .NET app are still pending and could diverge if not addressed next.
+- **Not done:** No tenant isolation model or role/permission policy mapping has been implemented in Laravel yet.
+- **Evidence:** `docs/migration/PROGRESS.md` command log showing 401 unauthorized, successful login/token issuance, successful identity read, and authenticated contact create/list.
+
+## D-20261017-2 — Enforce permission middleware on migrated contacts/intake routes
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** Lead migration engineer.
+- **Status:** accepted.
+- **What:** Added explicit permission middleware checks (`permission:*`) and applied them to migrated contacts/intake routes, with seeded users representing authorized and read-only roles.
+- **Why:** Authentication-only guards were insufficient for parity direction; migrated workflows needed behavior-level authorization and test coverage for `401` and `403` paths.
+- **Good, because:** Route behavior now distinguishes unauthenticated (`401`) from authenticated-but-forbidden (`403`) access and has automated tests (`IntakeApiTest`) plus runtime verification.
+- **Bad, because:** Current permission source is user JSON fields and does not yet mirror full legacy policy composition or matter-scoped access rules.
+- **Not done:** No complete role-policy catalog migration yet; no matter-level policy enforcement in Laravel for other modules.
+- **Evidence:** `docs/migration/PROGRESS.md` and `laravel-backend/tests/Feature/IntakeApiTest.php`.
+
+## D-20261017-3 — Hard-remove legacy .NET/React runtime paths
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** User instruction.
+- **Status:** accepted.
+- **What:** Removed legacy runtime paths (`backend` contents, `frontend`, old .NET test projects, `db/design`, and root .NET solution/manifests) to keep Laravel/Vue/Docker as the only active runtime stack.
+- **Why:** User explicitly requested immediate cleanup of no-longer-needed code/folders after upgrade.
+- **Good, because:** Lowers maintenance overhead and ambiguity by removing obsolete runtime implementations from day-to-day working tree.
+- **Bad, because:** Eliminates in-branch side-by-side reference implementation and increases reliance on git history/previous branches for forensic comparisons.
+- **Not done:** Empty top-level `backend/` directory could not be removed in automation due external process lock; directory contents are already deleted.
+- **Evidence:** `git status` deletion set and runtime verification in `docs/migration/PROGRESS.md`.
+
+## D-20261017-4 — Prioritize visual parity shell for migrated Vue frontend
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replace the temporary plain-styled Vue migration page with a branded layout and CSS system modeled on prior React-era design language (hero treatment, warm palette, card styling, and typography), while preserving existing Laravel auth/contacts/intake behavior.
+- **Why:** The founder flagged the current migrated frontend presentation as unacceptable versus pre-migration quality and requested restoration of the previous look-and-feel direction.
+- **Good, because:** Demonstrations now communicate migration progress without a major perceived UX regression, improving usability and stakeholder confidence during transition.
+- **Bad, because:** Styling parity at the shell level can mask remaining route/component parity gaps and may require additional refactors when full multi-page Vue architecture is introduced.
+- **Not done:** Full page-by-page parity (public marketing routes and workspace route ecosystem) is still pending.
+- **Evidence:** `docker compose exec -T frontend npm run build` passed; lint diagnostics clean for `vue-frontend/src/App.vue` and `vue-frontend/src/style.css`; runtime checks confirmed backend health on `http://localhost:8080/up`.

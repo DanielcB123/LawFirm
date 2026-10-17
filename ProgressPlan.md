@@ -1,8 +1,24 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-14 05:06 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-16 23:59 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Laravel + Vue + Docker migration baseline and audit kickoff
+
+**Status: In progress.** Not committed. A dedicated branch `migration/laravel-vue-docker-phase1` now contains the migration planning workspace in `docs/migration/`.
+
+| Criterion | Result |
+|---|---|
+| Repository baseline checks | `dotnet build MatterForge.sln -c Release` passed; `dotnet test backend.UnitTests -c Release` 10 passed; `dotnet test backend.IntegrationTests -c EfDesign` 48 passed; `frontend` build and tests passed; frontend lint remains preexisting baseline failure (7 errors, 3 warnings) |
+| Runtime check | `dotnet run` in `backend/` failed at startup because MySQL host was unreachable |
+| Docker availability | Docker Engine and `docker compose` are installed and responding |
+| Port checks | Host ports 5073, 5173, and 3307 were free when checked |
+| XAMPP/host services | `xampp-control`, `httpd`, and `mysqld` processes were present; MySQL listener observed on host port 3306; no listener on 3307 at check time |
+| Existing Docker config | No `docker-compose*.yml` or `Dockerfile*` currently exists in the repository |
+| Migration documentation | Added `docs/migration/README.md`, `INVENTORY.md`, `CURRENT_ARCHITECTURE.md`, `FEATURE_PARITY.md`, `TARGET_ARCHITECTURE.md`, `DATA_MIGRATION.md`, `SECURITY_REVIEW.md`, `UI_PARITY.md`, `PLAN.md`, `PROGRESS.md` |
+
+Next action: continue full file-by-file audit coverage in `docs/migration/INVENTORY.md`, complete workflow traces and visual baseline, then begin Docker-first Laravel/Vue vertical-slice implementation while preserving legacy behavior for comparison.
 
 ## Mission and first firm
 
@@ -909,3 +925,72 @@ This file should stay truthful enough that a new developer can understand:
 - where we are,
 - what is missing,
 - and what to build next to replace Clio-class subscriptions with this app.
+
+---
+
+## 2026-10-17 migration checkpoint (continuation)
+
+- Continued audit coverage through backend contracts/infrastructure auth and error handling, frontend feature modules, and backend integration/unit test files; updated `docs/migration/INVENTORY.md`.
+- Legacy workspace visual capture remains blocked by reproducible backend startup failure: MySQL authentication error for `lawfirm_app` before API serve.
+- Docker-first Laravel/Vue stack is live with required DB networking:
+  - MySQL publish: `127.0.0.1:3307:3306`
+  - App-to-DB: `DB_HOST=mysql`, `DB_PORT=3306`
+- Stabilized runtime config by introducing tracked `laravel-backend/.env.docker` and copying it to runtime `.env` at backend start.
+- Added auth vertical slice:
+  - Sanctum installed and migrated.
+  - `POST /api/auth/login` and `GET /api/identity/me` implemented.
+  - contacts endpoints protected by `auth:sanctum`.
+  - unauthenticated contacts now return JSON 401 (fixed previous guest redirect route failure).
+  - Vue migration app updated with sign-in flow and bearer-token calls.
+- Verified commands and outcomes are logged in `docs/migration/PROGRESS.md`.
+
+## 2026-10-17 migration checkpoint (intake + authz continuation)
+
+- Closed the major remaining frontend page audit gap by reviewing the rest of `frontend/src/pages/**` and recording coverage in `docs/migration/INVENTORY.md`.
+- Implemented next Docker-first migrated workflow slice:
+  - Laravel intake list/create endpoints (`/api/intake`) and backing `intake_records` table/model.
+  - Vue migration app intake create/list UI wired to authenticated API calls.
+- Added behavior-level authorization mapping in migration stack:
+  - `permission:*` middleware alias and `RequirePermission` middleware.
+  - Route guards for contacts (`contacts.read` / `contacts.manage`) and intake (`intake.read` / `intake.manage`).
+  - Auth payload now exposes `role` and `permissions`.
+- Added and passed unauthorized/forbidden-path verification:
+  - Laravel feature tests in `laravel-backend/tests/Feature/IntakeApiTest.php`.
+  - runtime checks confirm `401` for unauthenticated intake and `403` for user lacking `intake.manage`.
+
+## 2026-10-17 migration checkpoint (legacy runtime decommission)
+
+- Per direct user instruction, removed legacy runtime code and old test/runtime-design directories that are no longer part of the Laravel/Vue/Docker stack.
+- Removed paths:
+  - `frontend/` (React app),
+  - `backend.IntegrationTests/`,
+  - `backend.UnitTests/`,
+  - `db/design/`,
+  - `MatterForge.sln`,
+  - `global.json`,
+  - `Directory.Packages.props`,
+  - all files previously inside `backend/`.
+- Remaining caveat:
+  - empty top-level `backend/` directory still exists due an external file lock; contents are already removed.
+- Post-removal verification:
+  - Docker compose stack remains healthy.
+  - Laravel tests pass.
+  - Vue build passes in container runtime.
+
+## 2026-10-17 migration checkpoint (frontend visual parity reset + local bootstrap fix)
+
+- Resolved local Laravel bootstrap blocker seen during `php artisan key:generate`:
+  - root cause: missing local `laravel-backend/vendor` packages (Sanctum class load failure during Artisan boot),
+  - action: ran `composer install` in `laravel-backend`, then reran key generation successfully.
+- Confirmed Docker runtime behavior and host/container port mapping:
+  - backend serves on host `http://localhost:8080` (container `8000`),
+  - frontend serves on host `http://localhost:5174` (container `5173`),
+  - direct host `http://localhost:8000` is expected to refuse connection.
+- Delivered first-pass visual parity restoration for migrated Vue UI:
+  - replaced the temporary plain utilitarian styling in `vue-frontend/src/App.vue` with a structured branded layout (header, hero, cards, forms, footer),
+  - rebuilt `vue-frontend/src/style.css` using prior React-era design language (warm palette, hero treatment, card styling, typography, interactions) while keeping existing Laravel workflow functionality.
+- Validation:
+  - `docker compose ps` -> backend/mysql healthy; frontend running,
+  - `curl.exe -i http://localhost:8080/up` -> HTTP 200,
+  - `docker compose exec -T frontend npm run build` -> success,
+  - edited-file lint diagnostics -> no errors.
