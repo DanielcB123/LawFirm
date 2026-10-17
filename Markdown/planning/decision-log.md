@@ -29,6 +29,10 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 19 | 2026-10-14 05:00 EDT (UTC−04:00) | D-20261014-15 | Founder | Force Home hero plain blue and disable image/glow for isolation test |
 | 20 | 2026-10-14 05:03 EDT (UTC−04:00) | D-20261014-16 | Founder | Restore full Home hero visuals with blue-only tint layers |
 | 21 | 2026-10-14 05:06 EDT (UTC−04:00) | D-20261014-17 | Founder | Annotate Home hero CSS controls for manual tuning |
+| 22 | 2026-10-16 23:59 EDT (UTC−04:00) | D-20261016-1 | Founder | Start a dedicated `docs/migration` workspace and branch for Laravel/Vue/Docker migration |
+| 23 | 2026-10-17 15:34 EDT (UTC−04:00) | D-20261017-5 | Founder | Restore Vue shell styling from pre-migration React snapshot and repair malformed compose line |
+| 24 | 2026-10-17 15:56 EDT (UTC−04:00) | D-20261017-6 | Founder | Normalize compose command YAML to reduce false duplicate-key diagnostics |
+| 25 | 2026-10-17 16:00 EDT (UTC−04:00) | D-20261017-7 | Founder | Use inline command arrays and explicit volume maps in compose to clear duplicate-key lint |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -289,3 +293,102 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** If future refactors change layer behavior but comments are not updated, the guidance can drift from actual rendering.
 - **Not done:** No visual values were changed in this decision.
 - **Evidence:** Frontend build passed and CSS diagnostics stayed lint-clean after comment-only edits.
+
+## D-20261016-1 — Start dedicated migration docs workspace and branch
+
+- **When:** 2026-10-16 23:59 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Begin Laravel/Vue/Docker migration with:
+  - isolated branch `migration/laravel-vue-docker-phase1`,
+  - persistent migration documentation folder `docs/migration/`,
+  - baseline command evidence recorded before application rewrite.
+- **Why:** The migration scope is broad and high-risk. Work needs explicit audit coverage, reproducible checkpoints, and clear separation from current `main` behavior while parity is established.
+- **Good, because:** Baseline outcomes, open blockers, and Docker/port constraints are now tracked in one place and can be resumed across sessions without restarting discovery.
+- **Bad, because:** Documentation overhead is front-loaded and slows immediate feature rewriting; stale tracking is possible if updates are skipped.
+- **Not done:** Full file-by-file deep review and visual screenshot baseline are still in progress and marked as pending in `docs/migration/`.
+- **Evidence:** Added migration documents and updated handoff artifacts in the same session; baseline command outputs captured in `docs/migration/PROGRESS.md`.
+
+## D-20261017-1 — Use Sanctum token auth for initial Laravel migration slice
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** Lead migration engineer.
+- **Status:** accepted.
+- **What:** Implement initial authenticated API vertical slice with Laravel Sanctum (`/api/auth/login`, `/api/identity/me`) and protect `/api/contacts` behind `auth:sanctum`.
+- **Why:** The migration needed an end-to-end secured workflow early (not just anonymous health/data endpoints) to validate Docker runtime, DB access, and auth middleware behavior with realistic API usage.
+- **Good, because:** Authenticated and unauthorized API paths are now explicitly exercised and verified in the new stack while retaining required MySQL Docker networking (`127.0.0.1:3307:3306`, app internal `mysql:3306`).
+- **Bad, because:** This is not legacy-permission parity yet; role/permission claims and policy-level behavior from the .NET app are still pending and could diverge if not addressed next.
+- **Not done:** No tenant isolation model or role/permission policy mapping has been implemented in Laravel yet.
+- **Evidence:** `docs/migration/PROGRESS.md` command log showing 401 unauthorized, successful login/token issuance, successful identity read, and authenticated contact create/list.
+
+## D-20261017-2 — Enforce permission middleware on migrated contacts/intake routes
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** Lead migration engineer.
+- **Status:** accepted.
+- **What:** Added explicit permission middleware checks (`permission:*`) and applied them to migrated contacts/intake routes, with seeded users representing authorized and read-only roles.
+- **Why:** Authentication-only guards were insufficient for parity direction; migrated workflows needed behavior-level authorization and test coverage for `401` and `403` paths.
+- **Good, because:** Route behavior now distinguishes unauthenticated (`401`) from authenticated-but-forbidden (`403`) access and has automated tests (`IntakeApiTest`) plus runtime verification.
+- **Bad, because:** Current permission source is user JSON fields and does not yet mirror full legacy policy composition or matter-scoped access rules.
+- **Not done:** No complete role-policy catalog migration yet; no matter-level policy enforcement in Laravel for other modules.
+- **Evidence:** `docs/migration/PROGRESS.md` and `laravel-backend/tests/Feature/IntakeApiTest.php`.
+
+## D-20261017-3 — Hard-remove legacy .NET/React runtime paths
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** User instruction.
+- **Status:** accepted.
+- **What:** Removed legacy runtime paths (`backend` contents, `frontend`, old .NET test projects, `db/design`, and root .NET solution/manifests) to keep Laravel/Vue/Docker as the only active runtime stack.
+- **Why:** User explicitly requested immediate cleanup of no-longer-needed code/folders after upgrade.
+- **Good, because:** Lowers maintenance overhead and ambiguity by removing obsolete runtime implementations from day-to-day working tree.
+- **Bad, because:** Eliminates in-branch side-by-side reference implementation and increases reliance on git history/previous branches for forensic comparisons.
+- **Not done:** Empty top-level `backend/` directory could not be removed in automation due external process lock; directory contents are already deleted.
+- **Evidence:** `git status` deletion set and runtime verification in `docs/migration/PROGRESS.md`.
+
+## D-20261017-4 — Prioritize visual parity shell for migrated Vue frontend
+
+- **When:** 2026-10-17 EDT. Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replace the temporary plain-styled Vue migration page with a branded layout and CSS system modeled on prior React-era design language (hero treatment, warm palette, card styling, and typography), while preserving existing Laravel auth/contacts/intake behavior.
+- **Why:** The founder flagged the current migrated frontend presentation as unacceptable versus pre-migration quality and requested restoration of the previous look-and-feel direction.
+- **Good, because:** Demonstrations now communicate migration progress without a major perceived UX regression, improving usability and stakeholder confidence during transition.
+- **Bad, because:** Styling parity at the shell level can mask remaining route/component parity gaps and may require additional refactors when full multi-page Vue architecture is introduced.
+- **Not done:** Full page-by-page parity (public marketing routes and workspace route ecosystem) is still pending.
+- **Evidence:** `docker compose exec -T frontend npm run build` passed; lint diagnostics clean for `vue-frontend/src/App.vue` and `vue-frontend/src/style.css`; runtime checks confirmed backend health on `http://localhost:8080/up`.
+
+## D-20261017-5 — Restore Vue shell styling from pre-migration snapshot and repair compose corruption
+
+- **When:** 2026-10-17 15:34 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Ported the Vue migration UI toward the pre-migration React visual shell by reworking `vue-frontend/src/App.vue` and `vue-frontend/src/style.css` using commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293` as design reference, and recreated `docker-compose.yml` to remove a malformed accidental `frontend` `working_dir` line.
+- **Why:** The founder reported the current migrated frontend quality as unacceptable compared with the pre-migration UI and requested immediate visual restoration while keeping Laravel/Vue/Docker runtime direction.
+- **Good, because:** Demo and stakeholder-facing UI now better matches known product quality without interrupting existing migrated workflows (auth/contacts/intake).
+- **Bad, because:** Visual shell parity can create false confidence if route-level parity and deeper interaction parity are not completed next; manual CSS carry-over can also diverge from future design-token centralization unless consolidated.
+- **Not done:** Full multi-route Vue parity (`about`, `practice`, `attorneys`, `contact`, and signed-in route architecture) remains pending.
+- **Evidence:** `npm run build` in `vue-frontend` passed; `docker compose config` passed with clean `frontend` service configuration.
+
+## D-20261017-6 — Normalize compose command YAML to reduce false duplicate-key diagnostics
+
+- **When:** 2026-10-17 15:56 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Rewrote `docker-compose.yml` command declarations into explicit YAML list form (`command: [sh, -lc, ...]` equivalent multi-line list style) for both backend and frontend services.
+- **Why:** The editor kept reporting `DUPLICATE_KEY` around `frontend.working_dir` even though `docker compose config` successfully parsed the file; list-form commands reduce folded-scalar ambiguity in YAML language tooling.
+- **Good, because:** Compose intent is clearer and less sensitive to parser edge-cases when editing long shell chains.
+- **Bad, because:** IDE diagnostics can still remain stale after file corrections, which can mislead future edits unless runtime validation (`docker compose config`) is used as confirmation.
+- **Not done:** No service runtime behavior change and no additional stack startup checks beyond compose model validation in this decision.
+- **Evidence:** `docker compose -f docker-compose.yml config` succeeded after normalization while Cursor diagnostics still showed false-positive duplicate-key warnings.
+
+## D-20261017-7 — Use inline command arrays and explicit volume maps in compose to clear duplicate-key lint
+
+- **When:** 2026-10-17 16:00 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced multi-line list command declarations with inline command arrays for `backend` and `frontend` services, and declared top-level volumes as explicit empty maps (`{}`).
+- **Why:** The frontend block continued showing duplicate-key YAML diagnostics around `working_dir`/`command`; a tighter, unambiguous structure was needed to satisfy both Compose and editor parsing.
+- **Good, because:** The same file now validates in `docker compose config` and in editor diagnostics without YAML errors.
+- **Bad, because:** Long shell commands inside inline arrays are less human-readable and can become unwieldy as bootstrap logic grows.
+- **Not done:** No behavioral/runtime change testing beyond compose model rendering and lint diagnostics.
+- **Evidence:** `docker compose -f docker-compose.yml config` succeeded and Cursor `ReadLints` returned no errors for `docker-compose.yml`.

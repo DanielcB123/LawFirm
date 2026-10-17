@@ -1218,3 +1218,348 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** Home hero color/opacity controls are now self-documented inline for quick manual experimentation.
 - **Benefit and possible future downfall:** [D-20261014-17](Markdown/planning/decision-log.md). Benefit: faster tuning with less trial-and-error context loss. Downfall: stale comments can mislead if styles evolve but comments are not updated.
 - **Next action:** billing and trust ledgers before those pages show real accounts or invoices.
+
+## 2026-10-16 - Laravel/Vue/Docker migration baseline and documentation workspace
+
+- **Recorded:** 2026-10-16 23:59 EDT (UTC−04:00). **Not committed.**
+- **Objective and scope:** start migration safely from the repository root by establishing a reproducible baseline, checking Docker and port constraints (including host port 3307), capturing preexisting test/build outcomes, and creating persistent migration documentation in `docs/migration/` before any mass rewrite.
+
+### Changes
+
+- Created isolated branch: `migration/laravel-vue-docker-phase1`.
+- Added migration documentation workspace:
+  - `docs/migration/README.md`
+  - `docs/migration/INVENTORY.md`
+  - `docs/migration/CURRENT_ARCHITECTURE.md`
+  - `docs/migration/FEATURE_PARITY.md`
+  - `docs/migration/TARGET_ARCHITECTURE.md`
+  - `docs/migration/DATA_MIGRATION.md`
+  - `docs/migration/SECURITY_REVIEW.md`
+  - `docs/migration/UI_PARITY.md`
+  - `docs/migration/PLAN.md`
+  - `docs/migration/PROGRESS.md`
+- Updated `ProgressPlan.md` with the migration kickoff checkpoint and command evidence.
+- Continued deep-audit pass by reading and tracing endpoint-level behavior in:
+  - `backend/Features/Auth/AuthEndpoints.cs`
+  - `backend/Features/Parties/PartiesEndpoints.cs`
+  - `backend/Features/Conflicts/ConflictEndpoints.cs`
+  - `backend/Features/Intake/IntakeEndpoints.cs`
+  - `backend/Features/Matters/MattersEndpoints.cs`
+  - `backend/Features/Matters/MatterAccessGrantEndpoints.cs`
+  - `backend/Features/Calendar/CalendarEndpoints.cs`
+  - `backend/Features/Consultations/ConsultationsEndpoints.cs`
+  - `backend/Features/ClientPortal/ClientPortalEndpoints.cs`
+  and reflected those findings in `docs/migration/INVENTORY.md` and `docs/migration/FEATURE_PARITY.md`.
+
+### Checks run (actual results)
+
+- Repository boundaries and git state:
+  - `git rev-parse --show-toplevel` -> `D:/Documents/Projects/LearnCSharpDotNet`
+  - `git status --short --branch` (before changes) -> `main...origin/main` with clean tree
+  - `git branch --all --verbose --no-abbrev`, `git remote -v` -> single remote `origin`, single tracked branch `main`
+- Baseline builds/tests:
+  - `dotnet build MatterForge.sln -c Release` -> success, 0 warnings, 0 errors
+  - `dotnet test backend.UnitTests -c Release` -> 10 passed, 0 failed
+  - `dotnet test backend.IntegrationTests -c EfDesign` -> 48 passed, 0 failed
+  - `npm run build` in `frontend/` -> success
+  - `npm test` in `frontend/` -> 4 passed
+  - `npm run lint` in `frontend/` -> fails with 7 errors and 3 warnings (preexisting baseline)
+- Runtime startup check:
+  - `dotnet run` in `backend/` -> failed at startup with MySQL connection error ("Unable to connect to any of the specified MySQL hosts.")
+- Docker and port checks:
+  - `docker version` -> client/server available (Docker Desktop)
+  - `docker compose version` -> available
+  - host listener check on `3307` -> no listener
+  - host listener check on `5073`, `5173`, `3307` -> free at check time
+  - process check found `xampp-control`, `httpd`, `mysqld`; MySQL listener observed on host `3306` (`mysqld`), not `3307`
+
+### Checks not run, and why
+
+- No Laravel or Vue migration implementation started yet; this slice is baseline/audit/documentation only.
+- Full file-by-file deep review is not complete yet; `docs/migration/INVENTORY.md` explicitly marks reviewed vs pending coverage.
+- Visual screenshot baseline capture is not complete yet; `docs/migration/UI_PARITY.md` marks this as pending.
+
+### Outcome and next action
+
+- **Outcome:** Safe baseline established with explicit pre-migration command evidence, Docker/port status, and migration documentation scaffolding.
+- **Next action:** continue Phase 2 deep audit to full file-level coverage and workflow tracing, then implement Docker-first Laravel/Vue vertical slice with MySQL mapped as `127.0.0.1:3307:3306` and no XAMPP dependency.
+
+## 2026-10-17 - Continue audit coverage and add authenticated Laravel vertical slice
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** continue full file-level audit coverage, verify/fix Dockerized Laravel DB runtime correctness, and add an authenticated vertical slice (login + identity + protected contacts) with checks after each step.
+
+### Changes
+
+- Expanded migration audit coverage and documented reviewed files in `docs/migration/INVENTORY.md`:
+  - backend contracts + auth/access/error infrastructure abstractions,
+  - frontend feature API/type modules,
+  - backend integration test suite + unit tests.
+- Updated migration tracker docs:
+  - `docs/migration/FEATURE_PARITY.md`
+  - `docs/migration/UI_PARITY.md`
+  - `docs/migration/PROGRESS.md`
+- Fixed Laravel runtime DB source drift:
+  - added tracked `laravel-backend/.env.docker`,
+  - updated `docker-compose.yml` backend to use `.env.docker` and copy it to runtime `.env` on startup.
+- Added auth vertical slice in new Laravel backend:
+  - installed `laravel/sanctum`,
+  - added `app/Http/Controllers/Api/AuthController.php`,
+  - added routes `POST /api/auth/login` and `GET /api/identity/me`,
+  - protected contacts routes with `auth:sanctum`,
+  - updated `app/Models/User.php` with `HasApiTokens`,
+  - updated `database/seeders/DatabaseSeeder.php` with deterministic demo user,
+  - updated `bootstrap/app.php` to return API-safe unauthenticated responses.
+- Updated Vue migration app sign-in flow in `vue-frontend/src/App.vue` to use bearer token for protected contacts routes.
+
+### Checks run (actual results)
+
+- Docker/runtime checks:
+  - `docker compose up -d --build backend mysql frontend` -> success
+  - `docker compose ps` -> backend healthy, mysql healthy, frontend running
+  - `docker compose exec -T mysql mysql -umatterforge -pmatterforge -D matterforge -e "SHOW TABLES;"` -> expected tables present
+  - `curl.exe -i http://127.0.0.1:8080/api/health` -> 200 with `"database":"up"`
+- Auth and contacts API checks:
+  - unauthenticated `GET /api/contacts` initially returned 500 (`Route [login] not defined`) -> fixed by middleware guest-redirect override.
+  - recheck unauthenticated `GET /api/contacts` -> `401` JSON (`Unauthenticated.`)
+  - `POST /api/auth/login` -> success (token issued for seeded demo user)
+  - `GET /api/identity/me` with bearer token -> success
+  - authenticated `POST /api/contacts` + `GET /api/contacts` -> success and persisted rows returned.
+- Legacy baseline recheck:
+  - `dotnet run --urls http://127.0.0.1:5073` in `backend/` -> fails before serve with MySQL auth error (`Access denied for user 'lawfirm_app'... using password: NO`).
+
+### Checks not run, and why
+
+- Full legacy workspace visual baseline capture is still blocked by the legacy backend DB credential failure.
+- No new legacy .NET tests were rerun in this slice because changes were additive to new Laravel/Vue/Docker migration directories and docs.
+
+### Outcome and next action
+
+- **Outcome:** Docker-first Laravel/Vue stack now has a working authenticated API slice on the required MySQL topology (`127.0.0.1:3307:3306` host mapping; app uses `mysql:3306`), and audit coverage has been expanded materially.
+- **Benefit and possible future downfall:** [D-20261017-1](Markdown/planning/decision-log.md). Benefit: early auth + protected route enforcement validates critical API security wiring before broader workflow migration. Downfall: Sanctum token model currently lacks legacy role/permission parity and could drift if not aligned soon.
+- **Next action:** close remaining file-by-file inventory gaps, then implement the next migrated workflow (intake path) with equivalent validation and unauthorized-path tests.
+
+## 2026-10-17 - Close page audit gap and deliver intake + permission slice
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** finish the largest remaining audit gap (`frontend/src/pages/**`), implement intake list/create in Laravel + Vue, and add role/permission route enforcement with explicit unauthorized-path checks.
+
+### Changes
+
+- Inventory/audit:
+  - reviewed remaining public/workspace frontend pages and updated `docs/migration/INVENTORY.md`.
+  - updated migration status docs: `docs/migration/FEATURE_PARITY.md`, `docs/migration/TARGET_ARCHITECTURE.md`, `docs/migration/PROGRESS.md`.
+- Laravel authorization and intake implementation:
+  - added `app/Http/Middleware/RequirePermission.php`.
+  - registered middleware alias in `bootstrap/app.php`.
+  - extended `users` schema with `role` and `permissions` (`2026_10_17_010001_add_role_and_permissions_to_users_table.php`).
+  - added intake schema/model/controller:
+    - `database/migrations/2026_10_17_010101_create_intake_records_table.php`
+    - `app/Models/IntakeRecord.php`
+    - `app/Http/Controllers/Api/IntakeController.php`
+  - guarded routes in `routes/api.php`:
+    - contacts require `contacts.read` / `contacts.manage`
+    - intake requires `intake.read` / `intake.manage`.
+  - updated auth output and seed data:
+    - `app/Http/Controllers/Api/AuthController.php` now returns `role` and `permissions`.
+    - `database/seeders/DatabaseSeeder.php` now seeds attorney + read-only users for authorization-path checks.
+    - `database/factories/UserFactory.php` updated with default role/permissions fields.
+- Vue migration slice:
+  - updated `vue-frontend/src/App.vue` with intake list/create UI and permission-aware behavior.
+
+### Checks run (actual results)
+
+- `docker compose exec -T backend php artisan migrate --force` -> success (new users/intake migrations applied).
+- `docker compose exec -T backend php artisan db:seed --force` -> success.
+- `docker compose exec -T backend php artisan test` -> success (includes `Tests\\Feature\\IntakeApiTest`, all pass).
+- Runtime API checks:
+  - unauthenticated `GET /api/intake` -> `401`.
+  - attorney login -> success, can create/list intake.
+  - read-only login -> `403` on intake create.
+- Frontend verification:
+  - `docker compose exec -T frontend npm run build` -> success.
+  - host-side `npm run build` in `vue-frontend` -> fails due missing local `vue-tsc` binary; containerized build remains the validated path.
+
+### Checks not run, and why
+
+- Legacy backend visual workspace capture remains blocked by prior MySQL credential startup failure in the .NET app.
+
+### Outcome and next action
+
+- **Outcome:** intake list/create and route-level permission enforcement are now working in the new Dockerized Laravel/Vue stack with validated unauthorized and forbidden paths.
+- **Benefit and possible future downfall:** [D-20261017-2](Markdown/planning/decision-log.md). Benefit: authorization behavior is now explicit and test-backed for migrated workflows. Downfall: permission data currently lives in a simple user JSON field and still needs full legacy policy parity/matter-scope modeling.
+- **Next action:** continue inventory normalization for remaining first-party root docs/SQL, then implement intake detail/stage transitions with permission checks and parity tests.
+
+## 2026-10-17 - User-directed hard decommission of legacy runtime code
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** remove legacy runtime code/folders after migration upgrade, retaining Laravel/Vue/Docker stack only.
+
+### Changes
+
+- Deleted legacy code and runtime-design paths:
+  - `frontend/` (legacy React app),
+  - `backend.IntegrationTests/`,
+  - `backend.UnitTests/`,
+  - `db/design/`,
+  - `MatterForge.sln`,
+  - `global.json`,
+  - `Directory.Packages.props`,
+  - all files under `backend/` (legacy ASP.NET backend implementation).
+- Kept migration stack (`laravel-backend/`, `vue-frontend/`, `docker-compose.yml`, `docker/`, `docs/migration/`) intact.
+
+### Checks run (actual results)
+
+- `docker compose config` -> success.
+- `docker compose ps` -> backend/mysql/frontend running and healthy.
+- `docker compose exec -T backend php artisan test` -> pass (6 tests).
+- `docker compose exec -T frontend npm run build` -> success.
+- Path existence checks confirm deleted paths are gone, except one caveat below.
+
+### Checks not run, and why
+
+- No legacy .NET/React tests were rerun because those runtimes were intentionally removed in this slice.
+
+### Outcome and next action
+
+- **Outcome:** repository runtime is now Laravel/Vue/Docker-first with legacy runtime code removed.
+- **Caveat:** empty top-level `backend/` directory remains due external process lock; contents are fully removed.
+- **Benefit and possible future downfall:** [D-20261017-3](Markdown/planning/decision-log.md). Benefit: reduces split-brain maintenance by removing old runtime code from active repository state. Downfall: historical executable parity reference is reduced in-place, increasing dependence on git history/branches for rollback context.
+- **Next action:** remove locked empty `backend/` directory when the external lock is released, then normalize remaining docs that still reference deleted .NET/React paths.
+
+## 2026-10-17 - Recover frontend brand styling in Vue migration UI
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** fix local Laravel bootstrap failure (`SanctumServiceProvider` class missing) and restore the migrated Vue frontend to match prior React-era visual style direction instead of the temporary utilitarian prototype look.
+
+### Changes
+
+- Bootstrap/runtime unblock:
+  - verified `laravel-backend/vendor` was missing locally, causing Artisan boot failure when resolving Sanctum provider.
+  - ran `composer install` in `laravel-backend`, then reran `php artisan key:generate` successfully.
+- Vue visual parity refresh:
+  - rewrote `vue-frontend/src/App.vue` from inline-styled utility markup into a branded layout shell:
+    - sticky top header,
+    - hero section with action buttons and stats cards,
+    - two-column card grid for sign-in, API status, contacts, and intake workflows,
+    - styled footer matching prior product direction.
+  - replaced `vue-frontend/src/style.css` with a warm palette and component styling derived from prior React-era UI language (hero layering, card treatments, typography, spacing, button states, mobile collapse behavior).
+  - preserved existing Laravel workflow behavior (auth, contacts CRUD, intake create/list and permission-dependent visibility) while changing presentation.
+
+### Checks run (actual results)
+
+- `composer install` in `laravel-backend` -> success; Sanctum package installed and package discovery completed.
+- `php artisan key:generate` in `laravel-backend` -> success.
+- `docker compose ps` -> backend/mysql healthy; frontend running.
+- `curl.exe -i http://localhost:8080/up` -> HTTP 200.
+- `docker compose exec -T frontend npm run build` -> success.
+- Cursor lint diagnostics for edited files (`App.vue`, `style.css`) -> no errors.
+
+### Checks not run, and why
+
+- No backend feature test rerun in this slice because behavior-level API logic was not changed; work targeted dependency/bootstrap and frontend presentation.
+
+### Outcome and next action
+
+- **Outcome:** migration UI now renders with branded structure and styling closer to the previous React experience, and local Laravel CLI bootstrap/key generation is restored.
+- **Benefit and possible future downfall:** [D-20261017-4](Markdown/planning/decision-log.md). Benefit: improves stakeholder confidence and usability by reducing visible design regression during migration demos. Downfall: this is still a single-page Vue shell, not full route-for-route public/workspace parity yet.
+- **Next action:** continue extracting page-level parity (home/about/practice/attorneys/contact and workspace route structure) into dedicated Vue routes/components while preserving the validated Laravel API contracts.
+
+## 2026-10-17 - Restore pre-migration visual shell parity in Vue and repair compose file
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** align the migrated Vue frontend with the pre-migration React styling baseline from commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293`, while keeping current Laravel auth/contacts/intake behavior and fixing Docker Compose corruption that could break consistent local frontend runtime.
+
+### Changes
+
+- Legacy reference extraction from commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293`:
+  - `frontend/src/app/AppShell.css`
+  - `frontend/src/pages/public/HomePage.tsx`
+  - `frontend/src/components/layout/SiteNav.tsx`
+  - `frontend/src/components/layout/SiteFooter.tsx`
+- Vue UI parity pass:
+  - rewrote `vue-frontend/src/App.vue` to mirror prior public-shell composition:
+    - branded top navigation
+    - hero with layered image/glow/grid and stat cards
+    - value proposition and consultation-hours cards
+    - practice-area highlight cards
+    - partner spotlight cards with attorney imagery
+    - process and testimonial sections
+    - migration workflow panel for sign-in/API/contacts/intake below the public shell
+  - replaced `vue-frontend/src/style.css` with React-era design language tokens and component treatments (palette, spacing, typography, card states, button states, hero overlays, responsive behavior).
+  - updated `vue-frontend/index.html` title to `Brian & Sandra Law`.
+- Docker configuration repair:
+  - removed and recreated `docker-compose.yml` to eliminate a malformed accidental `working_dir` line in `frontend` service and restore valid compose structure.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `docker compose config` at repository root -> success; generated compose output shows valid `frontend` `working_dir: /workspace` and all services/networks/volumes resolved.
+
+### Checks not run, and why
+
+- No backend tests rerun because this slice changed frontend presentation and compose file structure only; API behavior was not modified.
+
+### Outcome and next action
+
+- **Outcome:** migrated Vue UI now follows the previous React-era aesthetic much more closely and Docker Compose file corruption is removed.
+- **Benefit and possible future downfall:** [D-20261017-5](Markdown/planning/decision-log.md). Benefit: preserves design continuity during platform migration while keeping functional Laravel workflows available. Downfall: single-page shell parity can hide remaining route-level and behavior-level parity gaps if not followed by component/route extraction.
+- **Next action:** split this restored shell into dedicated Vue routes/components to complete page-level parity (`home`, `about`, `practice`, `attorneys`, `contact`) and keep validating against Laravel endpoint behavior.
+
+## 2026-10-17 - Compose YAML diagnostic stabilization for frontend service
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** explain and mitigate persistent editor YAML diagnostics (`DUPLICATE_KEY`/`MULTILINE_IMPLICIT_KEY`) reported around `frontend.working_dir` in `docker-compose.yml` despite a compose-valid configuration.
+
+### Changes
+
+- Verified `docker-compose.yml` character content around `services.frontend` contains normal spaces and no hidden/tab characters.
+- Normalized `frontend.command` from folded scalar form to explicit list form:
+  - `sh`
+  - `-lc`
+  - `npm install && npm run dev -- --host 0.0.0.0 --port 5173`
+- Kept backend command in explicit list form for consistency and parser resilience.
+
+### Checks run (actual results)
+
+- `docker compose -f docker-compose.yml config` -> success; full compose model renders correctly with `frontend.working_dir: /workspace`.
+- Cursor diagnostics (`ReadLints`) -> still reports `DUPLICATE_KEY` on `frontend` keys, indicating likely stale/false-positive editor YAML parsing rather than runtime compose invalidity.
+
+### Checks not run, and why
+
+- Did not run full container startup cycle in this slice because the change only re-expressed command YAML structure; runtime validation via compose model expansion was sufficient for scope.
+
+### Outcome and next action
+
+- **Outcome:** compose file remains runtime-valid and command blocks are now written in a linter-friendlier explicit structure.
+- **Benefit and possible future downfall:** [D-20261017-6](Markdown/planning/decision-log.md). Benefit: clearer YAML structure and lower risk of scalar-parsing ambiguity in future edits. Downfall: IDE diagnostics can still show stale false positives until YAML language server cache is refreshed.
+- **Next action:** if editor squiggles persist, reload the Cursor window / YAML language service and continue using `docker compose config` as the source of truth for compose validity.
+
+## 2026-10-17 - Resolve duplicate-key lint false positive in compose frontend block
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** eliminate YAML parser ambiguity that surfaced as `DUPLICATE_KEY` on `frontend.working_dir`/`frontend.command` in `docker-compose.yml`.
+
+### Changes
+
+- Rewrote `backend.command` and `frontend.command` to inline YAML sequence form:
+  - `command: ["sh", "-lc", "..."]`
+- Normalized top-level volume declarations to explicit maps:
+  - `mysql_data: {}`
+  - `laravel_vendor: {}`
+  - `vue_node_modules: {}`
+
+### Checks run (actual results)
+
+- `docker compose -f docker-compose.yml config` -> success.
+- Cursor diagnostics (`ReadLints`) for `docker-compose.yml` -> no errors.
+
+### Checks not run, and why
+
+- No container restart/load test in this slice because command semantics were preserved and compose model expansion plus lint pass were sufficient for syntax-scope validation.
+
+### Outcome and next action
+
+- **Outcome:** duplicate-key lint error is resolved and `docker-compose.yml` parses cleanly in both Docker Compose and editor diagnostics.
+- **Benefit and possible future downfall:** [D-20261017-7](Markdown/planning/decision-log.md). Benefit: stable YAML parsing and fewer editor false alarms during compose edits. Downfall: inline command arrays are denser and can be less readable for very long shell chains.
+- **Next action:** keep this command style for compose edits unless commands become long enough to warrant external script files.

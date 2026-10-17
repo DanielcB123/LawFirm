@@ -1,0 +1,63 @@
+services:
+  backend:
+    build:
+      context: ./laravel-backend
+      dockerfile: ../docker/laravel/Dockerfile
+    container_name: matterforge-laravel-backend
+    working_dir: /var/www/html
+    env_file:
+      - ./laravel-backend/.env.docker
+    command: ["sh", "-lc", "cp .env.docker .env && composer install --no-interaction && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"]
+    volumes:
+      - ./laravel-backend:/var/www/html
+      - laravel_vendor:/var/www/html/vendor
+    ports:
+      - "8080:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit((bool) @file_get_contents('http://127.0.0.1:8000/up') ? 0 : 1);\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  frontend:
+    image: node:22-alpine
+    container_name: matterforge-vue-frontend
+    working_dir: /workspace
+    command: ["sh", "-lc", "npm install && npm run dev -- --host 0.0.0.0 --port 5173"]
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+    volumes:
+      - ./vue-frontend:/workspace
+      - vue_node_modules:/workspace/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0.36
+    container_name: matterforge-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: matterforge
+      MYSQL_USER: matterforge
+      MYSQL_PASSWORD: matterforge
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  mysql_data: {}
+  laravel_vendor: {}
+  vue_node_modules: {}
