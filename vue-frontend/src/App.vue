@@ -61,6 +61,70 @@ const quickStats = [
   { label: 'Consultations', value: 'Same-week availability' },
 ]
 
+const valueProps = [
+  'Responsive communication and transparent billing.',
+  'Focused experience in high-stakes civil matters.',
+  'Personalized strategy tailored to your goals.',
+]
+
+const practiceAreaHighlights = [
+  {
+    title: 'Business & Contract Disputes',
+    body: 'Strategic negotiation and litigation support to protect your company, partnerships, and future growth.',
+  },
+  {
+    title: 'Risk & Compliance Advisory',
+    body: 'Proactive legal guidance to reduce exposure, improve policy discipline, and prevent costly disputes.',
+  },
+  {
+    title: 'Civil Litigation',
+    body: 'End-to-end courtroom representation from early case strategy through trial and post-judgment enforcement.',
+  },
+  {
+    title: 'Estate & Legacy Planning',
+    body: 'Wills, trusts, and planning frameworks that bring clarity and confidence to major life transitions.',
+  },
+]
+
+const partnerProfiles = [
+  {
+    name: 'Sandra Whitmore',
+    role: 'Managing Partner - Litigation',
+    shortBio:
+      'Sandra leads high-stakes litigation strategy with a direct, human approach that keeps clients informed and in control.',
+    image:
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80',
+  },
+  {
+    name: 'Brian Whitmore',
+    role: 'Founding Partner - Counsel',
+    shortBio:
+      'Brian focuses on early risk analysis, decisive legal positioning, and practical solutions that hold up in court.',
+    image:
+      'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=1000&q=80',
+  },
+]
+
+const processSteps = [
+  'Initial consultation to understand your goals, timeline, and constraints.',
+  'Case roadmap with clear options, likely outcomes, and next actions.',
+  'Execution phase with active communication and transparent milestones.',
+  'Resolution and long-term planning to protect what comes next.',
+]
+
+const testimonials = [
+  {
+    quote:
+      'They gave us a strategy we could actually follow. Every next step was clear, and we always knew where we stood.',
+    source: 'Client - Small business owner',
+  },
+  {
+    quote:
+      'Professional, responsive, and honest about options. The process felt manageable because their team stayed ahead of every detail.',
+    source: 'Client - Civil litigation matter',
+  },
+]
+
 function hasPermission(permission: string): boolean {
   return !!actor.value?.permissions?.includes(permission)
 }
@@ -287,11 +351,18 @@ async function signIn() {
   <div class="site-header">
     <div class="site-header__inner">
       <p class="site-brand">Brian & Sandra Law</p>
-      <p class="site-header__meta">MatterForge migration workspace</p>
+      <nav class="site-nav" aria-label="Primary">
+        <a class="site-nav__link site-nav__link--active" href="/">Home</a>
+        <a class="site-nav__link" href="#about">About</a>
+        <a class="site-nav__link" href="#practice">Practice Areas</a>
+        <a class="site-nav__link" href="#attorneys">Attorneys</a>
+        <a class="site-nav__link" href="#contact">Contact</a>
+        <a class="site-nav__link" href="#workspace-tools">Sign in</a>
+      </nav>
     </div>
   </div>
 
-  <main class="page home-page">
+  <main class="page home-page app-content">
     <section class="home-hero">
       <div class="home-hero__image" aria-hidden="true"></div>
       <div class="home-hero__glow" aria-hidden="true"></div>
@@ -299,16 +370,12 @@ async function signIn() {
       <p class="eyebrow home-hero__eyebrow">Trusted legal counsel in Ohio</p>
       <h1>Legal strategy that moves as fast as your life.</h1>
       <p class="lead">
-        Vue + Laravel migration environment with production-style design, while preserving your new authenticated contacts and intake workflows.
+        Brian & Sandra Law helps individuals, families, and small businesses resolve legal issues with practical strategy,
+        consistent communication, and strong courtroom advocacy.
       </p>
       <div class="home-hero__actions">
-        <button type="button" class="hero-button hero-button--primary" @click="loadHealth" :disabled="isLoading">
-          {{ isLoading ? 'Checking API health...' : 'Check API health' }}
-        </button>
-        <button type="button" class="hero-button" @click="loadContacts" :disabled="!token">Reload contacts</button>
-        <button type="button" class="hero-button" @click="loadIntakeRecords" :disabled="!token || !hasPermission('intake.read')">
-          Reload intake
-        </button>
+        <a class="hero-button hero-button--primary" href="#contact">Book consultation</a>
+        <a class="hero-button" href="#practice">Explore practice areas</a>
       </div>
       <div class="home-hero__stats" aria-label="Firm highlights">
         <article class="card home-stat" v-for="stat in quickStats" :key="stat.label">
@@ -318,135 +385,201 @@ async function signIn() {
       </div>
     </section>
 
-    <section class="content-grid">
-      <article class="card home-panel home-panel--lift workspace-form-card">
-        <p class="eyebrow">Authentication</p>
-        <h2>Sign in</h2>
-        <form class="workspace-form" @submit.prevent="signIn">
-          <label>
-            Email
-            <input v-model="loginForm.email" type="email" />
-          </label>
-          <label>
-            Password
-            <input v-model="loginForm.password" type="password" />
-          </label>
-          <button type="submit" :disabled="isSigningIn">
-            {{ isSigningIn ? 'Signing in...' : 'Sign in' }}
-          </button>
-        </form>
-        <div v-if="actor" class="identity-card">
-          <p><strong>Signed in as:</strong> {{ actor.name }} ({{ actor.email }})</p>
-          <p><strong>Role:</strong> {{ actor.role }}</p>
-          <p><strong>Permissions:</strong> {{ actor.permissions.join(', ') }}</p>
-        </div>
+    <section id="about" class="content-grid home-panels">
+      <article class="card home-panel home-panel--lift">
+        <h2>Why clients choose us</h2>
+        <ul>
+          <li v-for="item in valueProps" :key="item">{{ item }}</li>
+        </ul>
       </article>
-
-      <article class="card home-panel home-panel--lift api-card">
-        <p class="eyebrow">Runtime status</p>
-        <h2>API connection</h2>
-        <p class="api-base"><strong>API base URL:</strong> {{ apiBaseUrl }}</p>
-        <pre v-if="health" class="health-json">{{ health }}</pre>
-        <p v-else class="muted">Run "Check API health" to load status details.</p>
+      <article class="card home-panel home-panel--lift">
+        <h2>Consultation hours</h2>
+        <p>Monday-Friday: 8:30 AM-6:00 PM</p>
+        <p>Saturday: By appointment</p>
+        <p>Same-week consultations available for urgent matters.</p>
       </article>
     </section>
 
-    <section class="content-grid">
-      <article class="card home-panel home-panel--lift workspace-form-card">
-        <p class="eyebrow">Contacts</p>
-        <h2>Create contact</h2>
-        <form class="workspace-form" @submit.prevent="createContact">
-          <label>
-            Name
-            <input v-model="form.display_name" type="text" />
-          </label>
-          <label>
-            Type
-            <select v-model="form.contact_type">
-              <option value="Person">Person</option>
-              <option value="Organization">Organization</option>
-            </select>
-          </label>
-          <label>
-            Email
-            <input v-model="form.primary_email" type="email" />
-          </label>
-          <label>
-            Phone
-            <input v-model="form.primary_phone" type="text" />
-          </label>
-          <button type="submit" :disabled="isSaving || !token">
-            {{ isSaving ? 'Saving...' : 'Create contact' }}
-          </button>
-        </form>
-      </article>
-
-      <article class="card home-panel home-panel--lift">
-        <p class="eyebrow">Directory</p>
-        <h2>Contacts</h2>
-        <label class="workspace-form__inline">
-          Search
-          <input v-model="query" type="text" @change="loadContacts" />
-        </label>
-        <ul class="record-list">
-          <li v-for="contact in contacts" :key="contact.id">
-            <strong>{{ contact.display_name }}</strong>
-            <span>{{ contact.contact_type }}</span>
-            <span>{{ contact.primary_email ?? 'No email on file' }}</span>
-            <span>{{ contact.primary_phone ?? 'No phone on file' }}</span>
-          </li>
-        </ul>
+    <section id="practice" class="home-practice-grid">
+      <article class="card home-practice-card home-panel--lift" v-for="item in practiceAreaHighlights" :key="item.title">
+        <p class="home-practice-card__tag">Practice area</p>
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.body }}</p>
       </article>
     </section>
 
-    <section class="content-grid">
-      <article class="card home-panel home-panel--lift workspace-form-card">
-        <p class="eyebrow">Intake workflow</p>
-        <h2>Create intake record</h2>
-        <form class="workspace-form" @submit.prevent="createIntake">
-          <label>
-            Prospective client name
-            <input v-model="intakeForm.prospectiveClientName" type="text" />
-          </label>
-          <label>
-            Practice area
-            <input v-model="intakeForm.practiceArea" type="text" />
-          </label>
-          <label>
-            Intake type
-            <input v-model="intakeForm.intakeType" type="text" />
-          </label>
-          <label>
-            Next action
-            <input v-model="intakeForm.nextAction" type="text" />
-          </label>
-          <button type="submit" :disabled="isSavingIntake || !token || !hasPermission('intake.manage')">
-            {{ isSavingIntake ? 'Saving...' : 'Create intake' }}
-          </button>
-        </form>
-      </article>
+    <section class="home-parallax-banner" aria-label="Approach">
+      <div class="home-parallax-banner__inner">
+        <p class="home-parallax-banner__kicker">Approach</p>
+        <h2>Built for clarity, speed, and confidence at every legal milestone.</h2>
+      </div>
+    </section>
 
-      <article class="card home-panel home-panel--lift">
-        <p class="eyebrow">Pipeline</p>
-        <h2>Intake records</h2>
-        <p v-if="!hasPermission('intake.read')" class="muted">
-          Current user does not have intake.read permission.
-        </p>
-        <ul class="record-list" v-else>
-          <li v-for="item in intakeRecords" :key="item.id">
-            <strong>{{ item.prospectiveClientName }}</strong>
-            <span>{{ item.stage }}</span>
-            <span>{{ item.practiceArea }}</span>
-            <span>{{ item.intakeType }}</span>
-          </li>
-        </ul>
+    <section id="attorneys" class="home-partners card">
+      <p class="home-partners__kicker">Partner spotlight</p>
+      <h2>Meet the attorneys behind every strategy.</h2>
+      <div class="home-partners__grid">
+        <article class="home-partner-card" v-for="partner in partnerProfiles" :key="partner.name">
+          <img :src="partner.image" :alt="partner.name" loading="lazy" />
+          <div class="home-partner-card__content">
+            <h3>{{ partner.name }}</h3>
+            <p class="home-partner-card__title">{{ partner.role }}</p>
+            <p>{{ partner.shortBio }}</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="home-process card">
+      <p class="home-process__kicker">What to expect</p>
+      <h2>A simple process designed to reduce uncertainty.</h2>
+      <ol class="home-process__list">
+        <li v-for="step in processSteps" :key="step">{{ step }}</li>
+      </ol>
+    </section>
+
+    <section class="content-grid home-testimonials">
+      <article class="card home-testimonial home-panel--lift" v-for="item in testimonials" :key="item.quote">
+        <p class="home-testimonial__quote">"{{ item.quote }}"</p>
+        <p class="home-testimonial__source">{{ item.source }}</p>
       </article>
+    </section>
+
+    <section id="workspace-tools" class="card workspace-tools">
+      <p class="eyebrow">Migration workspace</p>
+      <h2>Laravel API tools</h2>
+      <p class="muted">
+        These tools keep your migrated backend flows testable while preserving the production website aesthetic.
+      </p>
+      <div class="content-grid workspace-tools__grid">
+        <article class="card home-panel home-panel--lift workspace-form-card">
+          <h3>Sign in</h3>
+          <form class="workspace-form" @submit.prevent="signIn">
+            <label>
+              Email
+              <input v-model="loginForm.email" type="email" />
+            </label>
+            <label>
+              Password
+              <input v-model="loginForm.password" type="password" />
+            </label>
+            <button type="submit" :disabled="isSigningIn">
+              {{ isSigningIn ? 'Signing in...' : 'Sign in' }}
+            </button>
+          </form>
+          <div v-if="actor" class="identity-card">
+            <p><strong>Signed in as:</strong> {{ actor.name }} ({{ actor.email }})</p>
+            <p><strong>Role:</strong> {{ actor.role }}</p>
+            <p><strong>Permissions:</strong> {{ actor.permissions.join(', ') }}</p>
+          </div>
+        </article>
+
+        <article class="card home-panel home-panel--lift api-card">
+          <h3>API connection</h3>
+          <p class="api-base"><strong>API base URL:</strong> {{ apiBaseUrl }}</p>
+          <div class="workspace-actions">
+            <button type="button" class="hero-button hero-button--primary" @click="loadHealth" :disabled="isLoading">
+              {{ isLoading ? 'Checking API health...' : 'Check API health' }}
+            </button>
+            <button type="button" class="hero-button" @click="loadContacts" :disabled="!token">Reload contacts</button>
+            <button type="button" class="hero-button" @click="loadIntakeRecords" :disabled="!token || !hasPermission('intake.read')">
+              Reload intake
+            </button>
+          </div>
+          <pre v-if="health" class="health-json">{{ health }}</pre>
+          <p v-else class="muted">Run "Check API health" to load status details.</p>
+        </article>
+
+        <article class="card home-panel home-panel--lift workspace-form-card">
+          <h3>Create contact</h3>
+          <form class="workspace-form" @submit.prevent="createContact">
+            <label>
+              Name
+              <input v-model="form.display_name" type="text" />
+            </label>
+            <label>
+              Type
+              <select v-model="form.contact_type">
+                <option value="Person">Person</option>
+                <option value="Organization">Organization</option>
+              </select>
+            </label>
+            <label>
+              Email
+              <input v-model="form.primary_email" type="email" />
+            </label>
+            <label>
+              Phone
+              <input v-model="form.primary_phone" type="text" />
+            </label>
+            <button type="submit" :disabled="isSaving || !token">
+              {{ isSaving ? 'Saving...' : 'Create contact' }}
+            </button>
+          </form>
+        </article>
+
+        <article class="card home-panel home-panel--lift">
+          <h3>Contacts</h3>
+          <label class="workspace-form__inline">
+            Search
+            <input v-model="query" type="text" @change="loadContacts" />
+          </label>
+          <ul class="record-list">
+            <li v-for="contact in contacts" :key="contact.id">
+              <strong>{{ contact.display_name }}</strong>
+              <span>{{ contact.contact_type }}</span>
+              <span>{{ contact.primary_email ?? 'No email on file' }}</span>
+              <span>{{ contact.primary_phone ?? 'No phone on file' }}</span>
+            </li>
+          </ul>
+        </article>
+
+        <article class="card home-panel home-panel--lift workspace-form-card">
+          <h3>Create intake record</h3>
+          <form class="workspace-form" @submit.prevent="createIntake">
+            <label>
+              Prospective client name
+              <input v-model="intakeForm.prospectiveClientName" type="text" />
+            </label>
+            <label>
+              Practice area
+              <input v-model="intakeForm.practiceArea" type="text" />
+            </label>
+            <label>
+              Intake type
+              <input v-model="intakeForm.intakeType" type="text" />
+            </label>
+            <label>
+              Next action
+              <input v-model="intakeForm.nextAction" type="text" />
+            </label>
+            <button type="submit" :disabled="isSavingIntake || !token || !hasPermission('intake.manage')">
+              {{ isSavingIntake ? 'Saving...' : 'Create intake' }}
+            </button>
+          </form>
+        </article>
+
+        <article class="card home-panel home-panel--lift">
+          <h3>Intake records</h3>
+          <p v-if="!hasPermission('intake.read')" class="muted">
+            Current user does not have intake.read permission.
+          </p>
+          <ul class="record-list" v-else>
+            <li v-for="item in intakeRecords" :key="item.id">
+              <strong>{{ item.prospectiveClientName }}</strong>
+              <span>{{ item.stage }}</span>
+              <span>{{ item.practiceArea }}</span>
+              <span>{{ item.intakeType }}</span>
+            </li>
+          </ul>
+        </article>
+      </div>
     </section>
 
     <p v-if="error" class="error-message">{{ error }}</p>
   </main>
 
-  <footer class="site-footer">
+  <footer id="contact" class="site-footer">
     <div class="site-footer__inner">
       <p>Brian & Sandra Law | Client-focused representation for families and businesses.</p>
       <p>123 Justice Avenue, Suite 400, Columbus, OH 43215 | (614) 555-0134</p>

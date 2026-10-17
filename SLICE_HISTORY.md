@@ -1464,3 +1464,102 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** migration UI now renders with branded structure and styling closer to the previous React experience, and local Laravel CLI bootstrap/key generation is restored.
 - **Benefit and possible future downfall:** [D-20261017-4](Markdown/planning/decision-log.md). Benefit: improves stakeholder confidence and usability by reducing visible design regression during migration demos. Downfall: this is still a single-page Vue shell, not full route-for-route public/workspace parity yet.
 - **Next action:** continue extracting page-level parity (home/about/practice/attorneys/contact and workspace route structure) into dedicated Vue routes/components while preserving the validated Laravel API contracts.
+
+## 2026-10-17 - Restore pre-migration visual shell parity in Vue and repair compose file
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** align the migrated Vue frontend with the pre-migration React styling baseline from commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293`, while keeping current Laravel auth/contacts/intake behavior and fixing Docker Compose corruption that could break consistent local frontend runtime.
+
+### Changes
+
+- Legacy reference extraction from commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293`:
+  - `frontend/src/app/AppShell.css`
+  - `frontend/src/pages/public/HomePage.tsx`
+  - `frontend/src/components/layout/SiteNav.tsx`
+  - `frontend/src/components/layout/SiteFooter.tsx`
+- Vue UI parity pass:
+  - rewrote `vue-frontend/src/App.vue` to mirror prior public-shell composition:
+    - branded top navigation
+    - hero with layered image/glow/grid and stat cards
+    - value proposition and consultation-hours cards
+    - practice-area highlight cards
+    - partner spotlight cards with attorney imagery
+    - process and testimonial sections
+    - migration workflow panel for sign-in/API/contacts/intake below the public shell
+  - replaced `vue-frontend/src/style.css` with React-era design language tokens and component treatments (palette, spacing, typography, card states, button states, hero overlays, responsive behavior).
+  - updated `vue-frontend/index.html` title to `Brian & Sandra Law`.
+- Docker configuration repair:
+  - removed and recreated `docker-compose.yml` to eliminate a malformed accidental `working_dir` line in `frontend` service and restore valid compose structure.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `docker compose config` at repository root -> success; generated compose output shows valid `frontend` `working_dir: /workspace` and all services/networks/volumes resolved.
+
+### Checks not run, and why
+
+- No backend tests rerun because this slice changed frontend presentation and compose file structure only; API behavior was not modified.
+
+### Outcome and next action
+
+- **Outcome:** migrated Vue UI now follows the previous React-era aesthetic much more closely and Docker Compose file corruption is removed.
+- **Benefit and possible future downfall:** [D-20261017-5](Markdown/planning/decision-log.md). Benefit: preserves design continuity during platform migration while keeping functional Laravel workflows available. Downfall: single-page shell parity can hide remaining route-level and behavior-level parity gaps if not followed by component/route extraction.
+- **Next action:** split this restored shell into dedicated Vue routes/components to complete page-level parity (`home`, `about`, `practice`, `attorneys`, `contact`) and keep validating against Laravel endpoint behavior.
+
+## 2026-10-17 - Compose YAML diagnostic stabilization for frontend service
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** explain and mitigate persistent editor YAML diagnostics (`DUPLICATE_KEY`/`MULTILINE_IMPLICIT_KEY`) reported around `frontend.working_dir` in `docker-compose.yml` despite a compose-valid configuration.
+
+### Changes
+
+- Verified `docker-compose.yml` character content around `services.frontend` contains normal spaces and no hidden/tab characters.
+- Normalized `frontend.command` from folded scalar form to explicit list form:
+  - `sh`
+  - `-lc`
+  - `npm install && npm run dev -- --host 0.0.0.0 --port 5173`
+- Kept backend command in explicit list form for consistency and parser resilience.
+
+### Checks run (actual results)
+
+- `docker compose -f docker-compose.yml config` -> success; full compose model renders correctly with `frontend.working_dir: /workspace`.
+- Cursor diagnostics (`ReadLints`) -> still reports `DUPLICATE_KEY` on `frontend` keys, indicating likely stale/false-positive editor YAML parsing rather than runtime compose invalidity.
+
+### Checks not run, and why
+
+- Did not run full container startup cycle in this slice because the change only re-expressed command YAML structure; runtime validation via compose model expansion was sufficient for scope.
+
+### Outcome and next action
+
+- **Outcome:** compose file remains runtime-valid and command blocks are now written in a linter-friendlier explicit structure.
+- **Benefit and possible future downfall:** [D-20261017-6](Markdown/planning/decision-log.md). Benefit: clearer YAML structure and lower risk of scalar-parsing ambiguity in future edits. Downfall: IDE diagnostics can still show stale false positives until YAML language server cache is refreshed.
+- **Next action:** if editor squiggles persist, reload the Cursor window / YAML language service and continue using `docker compose config` as the source of truth for compose validity.
+
+## 2026-10-17 - Resolve duplicate-key lint false positive in compose frontend block
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** eliminate YAML parser ambiguity that surfaced as `DUPLICATE_KEY` on `frontend.working_dir`/`frontend.command` in `docker-compose.yml`.
+
+### Changes
+
+- Rewrote `backend.command` and `frontend.command` to inline YAML sequence form:
+  - `command: ["sh", "-lc", "..."]`
+- Normalized top-level volume declarations to explicit maps:
+  - `mysql_data: {}`
+  - `laravel_vendor: {}`
+  - `vue_node_modules: {}`
+
+### Checks run (actual results)
+
+- `docker compose -f docker-compose.yml config` -> success.
+- Cursor diagnostics (`ReadLints`) for `docker-compose.yml` -> no errors.
+
+### Checks not run, and why
+
+- No container restart/load test in this slice because command semantics were preserved and compose model expansion plus lint pass were sufficient for syntax-scope validation.
+
+### Outcome and next action
+
+- **Outcome:** duplicate-key lint error is resolved and `docker-compose.yml` parses cleanly in both Docker Compose and editor diagnostics.
+- **Benefit and possible future downfall:** [D-20261017-7](Markdown/planning/decision-log.md). Benefit: stable YAML parsing and fewer editor false alarms during compose edits. Downfall: inline command arrays are denser and can be less readable for very long shell chains.
+- **Next action:** keep this command style for compose edits unless commands become long enough to warrant external script files.

@@ -1,8 +1,25 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-16 23:59 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-17 16:00 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Vue visual parity recovery against pre-migration React snapshot
+
+**Status: Verified within stated scope.** Not committed. Scope: match the migrated `vue-frontend` shell to the prior React-era public styling direction from commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293` while preserving current Laravel API workflows.
+
+| Criterion | Result |
+|---|---|
+| Legacy reference source | Pulled style/structure references from `frontend/src/app/AppShell.css`, `frontend/src/pages/public/HomePage.tsx`, `SiteNav.tsx`, and `SiteFooter.tsx` at commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293` |
+| Vue page structure | `vue-frontend/src/App.vue` now renders a branded top nav, hero, value/capability panels, practice highlights, partner spotlight cards, process cards, and testimonial cards before migration tools |
+| Workflow preservation | Existing sign-in, health check, contacts create/list, and intake create/list behavior remains in the same Vue page under a dedicated "Migration workspace" section |
+| Theme parity | `vue-frontend/src/style.css` replaced with React-era visual language: warm palette tokens, hero image layering, card treatments, typography, spacing, hover states, and responsive collapse behavior |
+| Runtime fix | Recreated `docker-compose.yml` to remove a malformed accidental `working_dir` line and restore valid Docker Compose configuration |
+| Compose lint hardening | Converted both `backend` and `frontend` container commands to inline YAML sequence form (JSON-style array) and normalized top-level volume declarations to explicit empty maps (`{}`) |
+| Verification | `npm run build` in `vue-frontend` passed; `docker compose config` passed and confirms clean service configuration |
+| Diagnostics note | Cursor YAML diagnostics for `docker-compose.yml` now report no errors after command/volume normalization |
+
+Next action: split this branded shell into route-level Vue components/pages (`home`, `about`, `practice`, `attorneys`, `contact`, and workspace route shells) while keeping Laravel endpoint parity checks active.
 
 ## Current step: Laravel + Vue + Docker migration baseline and audit kickoff
 

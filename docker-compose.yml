@@ -7,12 +7,7 @@ services:
     working_dir: /var/www/html
     env_file:
       - ./laravel-backend/.env.docker
-    command: >
-      sh -lc "cp .env.docker .env &&
-              composer install --no-interaction &&
-              php artisan migrate --force &&
-              php artisan db:seed --force &&
-              php artisan serve --host=0.0.0.0 --port=8000"
+    command: ["sh", "-lc", "cp .env.docker .env && composer install --no-interaction && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"]
     volumes:
       - ./laravel-backend:/var/www/html
       - laravel_vendor:/var/www/html/vendor
@@ -31,15 +26,14 @@ services:
     image: node:22-alpine
     container_name: matterforge-vue-frontend
     working_dir: /workspace
-    command: >
-      sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    command: ["sh", "-lc", "npm install && npm run dev -- --host 0.0.0.0 --port 5173"]
     environment:
       VITE_API_BASE_URL: http://localhost:8080/api
     volumes:
       - ./vue-frontend:/workspace
       - vue_node_modules:/workspace/node_modules
     ports:
-      - "5174:5173"
+      - "5173:5173"
     depends_on:
       backend:
         condition: service_healthy
@@ -64,6 +58,6 @@ services:
       retries: 12
 
 volumes:
-  mysql_data:
-  laravel_vendor:
-  vue_node_modules:
+  mysql_data: {}
+  laravel_vendor: {}
+  vue_node_modules: {}

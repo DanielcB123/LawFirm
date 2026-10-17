@@ -30,6 +30,9 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 20 | 2026-10-14 05:03 EDT (UTC−04:00) | D-20261014-16 | Founder | Restore full Home hero visuals with blue-only tint layers |
 | 21 | 2026-10-14 05:06 EDT (UTC−04:00) | D-20261014-17 | Founder | Annotate Home hero CSS controls for manual tuning |
 | 22 | 2026-10-16 23:59 EDT (UTC−04:00) | D-20261016-1 | Founder | Start a dedicated `docs/migration` workspace and branch for Laravel/Vue/Docker migration |
+| 23 | 2026-10-17 15:34 EDT (UTC−04:00) | D-20261017-5 | Founder | Restore Vue shell styling from pre-migration React snapshot and repair malformed compose line |
+| 24 | 2026-10-17 15:56 EDT (UTC−04:00) | D-20261017-6 | Founder | Normalize compose command YAML to reduce false duplicate-key diagnostics |
+| 25 | 2026-10-17 16:00 EDT (UTC−04:00) | D-20261017-7 | Founder | Use inline command arrays and explicit volume maps in compose to clear duplicate-key lint |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -353,3 +356,39 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Styling parity at the shell level can mask remaining route/component parity gaps and may require additional refactors when full multi-page Vue architecture is introduced.
 - **Not done:** Full page-by-page parity (public marketing routes and workspace route ecosystem) is still pending.
 - **Evidence:** `docker compose exec -T frontend npm run build` passed; lint diagnostics clean for `vue-frontend/src/App.vue` and `vue-frontend/src/style.css`; runtime checks confirmed backend health on `http://localhost:8080/up`.
+
+## D-20261017-5 — Restore Vue shell styling from pre-migration snapshot and repair compose corruption
+
+- **When:** 2026-10-17 15:34 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Ported the Vue migration UI toward the pre-migration React visual shell by reworking `vue-frontend/src/App.vue` and `vue-frontend/src/style.css` using commit `a7352dc1d4e3778b9309fc5a435f81c646b3d293` as design reference, and recreated `docker-compose.yml` to remove a malformed accidental `frontend` `working_dir` line.
+- **Why:** The founder reported the current migrated frontend quality as unacceptable compared with the pre-migration UI and requested immediate visual restoration while keeping Laravel/Vue/Docker runtime direction.
+- **Good, because:** Demo and stakeholder-facing UI now better matches known product quality without interrupting existing migrated workflows (auth/contacts/intake).
+- **Bad, because:** Visual shell parity can create false confidence if route-level parity and deeper interaction parity are not completed next; manual CSS carry-over can also diverge from future design-token centralization unless consolidated.
+- **Not done:** Full multi-route Vue parity (`about`, `practice`, `attorneys`, `contact`, and signed-in route architecture) remains pending.
+- **Evidence:** `npm run build` in `vue-frontend` passed; `docker compose config` passed with clean `frontend` service configuration.
+
+## D-20261017-6 — Normalize compose command YAML to reduce false duplicate-key diagnostics
+
+- **When:** 2026-10-17 15:56 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Rewrote `docker-compose.yml` command declarations into explicit YAML list form (`command: [sh, -lc, ...]` equivalent multi-line list style) for both backend and frontend services.
+- **Why:** The editor kept reporting `DUPLICATE_KEY` around `frontend.working_dir` even though `docker compose config` successfully parsed the file; list-form commands reduce folded-scalar ambiguity in YAML language tooling.
+- **Good, because:** Compose intent is clearer and less sensitive to parser edge-cases when editing long shell chains.
+- **Bad, because:** IDE diagnostics can still remain stale after file corrections, which can mislead future edits unless runtime validation (`docker compose config`) is used as confirmation.
+- **Not done:** No service runtime behavior change and no additional stack startup checks beyond compose model validation in this decision.
+- **Evidence:** `docker compose -f docker-compose.yml config` succeeded after normalization while Cursor diagnostics still showed false-positive duplicate-key warnings.
+
+## D-20261017-7 — Use inline command arrays and explicit volume maps in compose to clear duplicate-key lint
+
+- **When:** 2026-10-17 16:00 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced multi-line list command declarations with inline command arrays for `backend` and `frontend` services, and declared top-level volumes as explicit empty maps (`{}`).
+- **Why:** The frontend block continued showing duplicate-key YAML diagnostics around `working_dir`/`command`; a tighter, unambiguous structure was needed to satisfy both Compose and editor parsing.
+- **Good, because:** The same file now validates in `docker compose config` and in editor diagnostics without YAML errors.
+- **Bad, because:** Long shell commands inside inline arrays are less human-readable and can become unwieldy as bootstrap logic grows.
+- **Not done:** No behavioral/runtime change testing beyond compose model rendering and lint diagnostics.
+- **Evidence:** `docker compose -f docker-compose.yml config` succeeded and Cursor `ReadLints` returned no errors for `docker-compose.yml`.
