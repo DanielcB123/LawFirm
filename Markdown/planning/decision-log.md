@@ -33,6 +33,8 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 23 | 2026-10-17 15:34 EDT (UTC−04:00) | D-20261017-5 | Founder | Restore Vue shell styling from pre-migration React snapshot and repair malformed compose line |
 | 24 | 2026-10-17 15:56 EDT (UTC−04:00) | D-20261017-6 | Founder | Normalize compose command YAML to reduce false duplicate-key diagnostics |
 | 25 | 2026-10-17 16:00 EDT (UTC−04:00) | D-20261017-7 | Founder | Use inline command arrays and explicit volume maps in compose to clear duplicate-key lint |
+| 26 | 2026-10-17 22:20 EDT (UTC−04:00) | D-20261017-8 | Founder | Rebuild route-level Vue parity and consultation queue flow with seeded role matrix |
+| 27 | 2026-10-17 23:46 EDT (UTC−04:00) | D-20261017-9 | Founder | Enforce single shared legacy-parity consultation modal across public CTA flows |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -392,3 +394,75 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Long shell commands inside inline arrays are less human-readable and can become unwieldy as bootstrap logic grows.
 - **Not done:** No behavioral/runtime change testing beyond compose model rendering and lint diagnostics.
 - **Evidence:** `docker compose -f docker-compose.yml config` succeeded and Cursor `ReadLints` returned no errors for `docker-compose.yml`.
+
+## D-20261017-8 — Rebuild route-level Vue parity and consultation queue flow with seeded role matrix
+
+- **When:** 2026-10-17 22:20 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced the single-page Vue migration shell with route-based public/workspace architecture, restored consultation booking UX via a Contact modal, added Laravel consultation queue APIs, and seeded role-based personas (Partner, Attorney, Paralegal, Accountant, LegalAssistant, AdminIT, Client) using a centralized role-to-permission matrix.
+- **Why:** The founder requested top-to-bottom migration continuation: scroll-animated public pages, attorney/background pages, real sign-in flow, and consultation intake-to-queue behavior parity with the pre-migration experience.
+- **Good, because:** The new stack now demonstrates an end-to-end flow from public booking to authenticated internal queue handling while preserving the Laravel/Vue/Docker runtime direction.
+- **Bad, because:** Workspace parity is still partial—calendar, matters, and several signed-in modules are currently navigable placeholders and can create a false sense of full parity if not completed quickly.
+- **Not done:** Full behavior-level migration for calendar/matters/modules beyond contacts/intake/consultations; no E2E browser automation tests were added in this slice.
+- **Evidence:** `npm run build` passed in `vue-frontend`; `php artisan test --compact` passed (11 tests); `docker compose config` passed; lint diagnostics clean.
+
+## D-20261017-9 — Enforce single shared legacy-parity consultation modal across public CTA flows
+
+- **When:** 2026-10-17 23:46 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced route/navigation-based consultation entry with a single globally mounted modal controller and rewrote the modal to legacy-style behavior (large two-column scheduler, 42-day slot grid, month navigation, close semantics) while wiring all consultation-intake public CTAs to this same component.
+- **Why:** Founder requested strict migration parity for the consultation modal experience and consistency across every relevant public CTA, with no redesign drift.
+- **Good, because:** Public intake UX is now consistent and reusable across pages, reducing implementation drift and restoring expected legacy flow from multiple entry points.
+- **Bad, because:** Strict parity introduces a denser component with more interaction logic, which can raise maintenance cost if later redesign efforts diverge from legacy interaction assumptions.
+- **Not done:** GIF capture was not produced in this decision; screenshot evidence was captured instead.
+- **Evidence:** frontend build and backend tests passed; lint diagnostics clean; Playwright screenshots captured for home/contact/other public CTA modal launches.
+
+## D-20261018-1 — Make Laravel container startup deterministic and profile-driven
+
+- **When:** 2026-10-18 03:45 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced runtime bootstrap chaining in `docker-compose.yml` with explicit orchestration primitives: a multi-stage Laravel image with built-in dependencies, a `migrate` one-shot service, a `backend-dev` service for bind-mounted development, and a separate immutable `backend` service for the `prod` profile. Added `docker/laravel/entrypoint.sh` to enforce lock-hash-based dependency sync in dev and stable startup modes (`web`, `dev-web`, `migrate`).
+- **Why:** `docker compose up -d` previously failed healthchecks when package discovery/cache state drifted from the mounted `vendor` volume and running container lifecycle, causing class-not-found bootstrap failures despite healthy infra dependencies.
+- **Good, because:** Startup behavior is now deterministic by design, migration responsibility is explicit, and dependency drift is proactively detected in dev before healthchecks fail.
+- **Bad, because:** Profiles add operational complexity (developers must use the correct `--profile` command), and a separate migration job means teams must keep runtime/DB workflow conventions synchronized.
+- **Not done:** Full `prod` profile runtime smoke start was not executed in this decision; validation focused on compose model correctness and the active `dev` profile runtime.
+- **Evidence:** `docker compose config`, `docker compose --profile dev config`, and `docker compose --profile prod config` all passed; `docker compose --profile dev up -d --build` completed with `backend-dev` healthy and `migrate` exited `0`; `curl http://localhost:8080/up` returned HTTP 200.
+
+## D-20261018-2 — Bind consultation modal host with top-level refs to avoid always-truthy nested ref conditionals
+
+- **When:** 2026-10-18 03:58 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Refactored `ConsultationModalHost.vue` from object-member template bindings (`modal.isOpen`, `modal.closeModal`) to destructured top-level bindings (`isOpen`, `closeModal`) returned from `useConsultationModal()`.
+- **Why:** The public site loaded with the consultation modal already open and non-dismissable because Vue treated the nested ref object in `v-if` as truthy, keeping the modal permanently mounted.
+- **Good, because:** Modal lifecycle now follows explicit boolean state and close interactions (`X`, backdrop, cancel, escape) can unmount the component as designed.
+- **Bad, because:** This bug class is subtle and can reappear if future composable hosts expose refs through nested plain objects and templates reuse member expressions in conditional rendering.
+- **Not done:** No browser automation test was added in this decision; validation focused on successful frontend build and direct causal code fix.
+- **Evidence:** `docker compose --profile dev exec -T frontend npm run build` passed after host binding update.
+
+## D-20261018-3 — Document Docker profile validation and operator commands in architecture README
+
+- **When:** 2026-10-18 04:05 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added a dedicated `Docker profile rollout verification` section to `Markdown/architecture/README.md` containing the exact validation checklist outcomes and the canonical run/stop commands for `dev` and `prod` compose profiles.
+- **Why:** The founder requested an explicit, centralized architecture-level record of the validated profile workflow so operators can reliably start, verify, and stop the stack using the new profile split.
+- **Good, because:** Operational onboarding is clearer, verification evidence is easy to find, and profile usage expectations are now codified in architecture docs.
+- **Bad, because:** This section can drift from reality if compose commands or profile wiring change without synchronized documentation updates.
+- **Not done:** No additional runtime checks were rerun in this decision; the documentation captures checks already executed and verified in the prior deterministic-bootstrap slice.
+- **Evidence:** `Markdown/architecture/README.md` now includes the requested validation bullets and command list verbatim in the new section.
+
+## D-20261018-4 — Publish seeded auth user and permission matrix in docs
+
+- **When:** 2026-10-18 04:12 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added `docs/seeded-auth-users-and-permissions.md` to document all seeded authenticated users, role types, permission sets, and permission-gated authenticated routes.
+- **Why:** Developers and QA needed a quick reference for local login personas and authorization coverage without repeatedly inspecting seeder and config files.
+- **Good, because:** Auth scenario setup is faster, role expectations are explicit, and permission-route mapping is easier to verify during manual and automated testing.
+- **Bad, because:** Documentation can become stale if user seeds, role permission mappings, or route middleware requirements change and this file is not updated.
+- **Not done:** No runtime validation or test run was added in this decision because the slice is documentation-only and source-backed.
+- **Evidence:** `docs/seeded-auth-users-and-permissions.md` was added with content sourced from `laravel-backend/database/seeders/DatabaseSeeder.php`, `laravel-backend/config/roles.php`, and `laravel-backend/routes/api.php`.

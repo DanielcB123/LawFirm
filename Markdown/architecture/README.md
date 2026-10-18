@@ -32,3 +32,27 @@ Background jobs, cache keys, full-text search, exports, scheduled tasks, telemet
 
 ## API and consistency
 Version external contracts; validate server-side; use concurrency tokens for contested changes. Paginate matter lists and search results. Use deterministic idempotency for payments, signatures, imports, and webhook processing. Request IDs are for tracing, not authorization. Distinguish pending work from failure. Explicitly document which changes become visible immediately and which are eventual.
+
+## Docker profile rollout verification
+
+### Validation performed
+
+- `docker compose config` ✅
+- `docker compose --profile dev config` ✅
+- `docker compose --profile prod config` ✅
+- `docker compose --profile dev up -d --build` ✅
+- `docker compose --profile dev ps` shows:
+  - `backend-dev` healthy
+  - `mysql` healthy
+  - `frontend` running
+  - `migrate` exited `0`
+- `curl http://localhost:8080/up` returns HTTP `200` ✅
+- Lint diagnostics on changed files: no errors ✅
+
+### New run commands
+
+- **Dev stack:** `docker compose --profile dev up -d --build`
+- **Prod-style backend stack:** `docker compose --profile prod up -d --build`
+- **Stop stacks:**
+  - `docker compose --profile dev down --remove-orphans`
+  - `docker compose --profile prod down --remove-orphans`

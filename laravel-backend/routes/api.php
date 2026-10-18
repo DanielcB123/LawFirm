@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\IntakeController;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,8 @@ Route::get('/health', function () {
 });
 
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::get('/consultations/available-slots', [ConsultationController::class, 'availableSlots']);
+Route::post('/consultations', [ConsultationController::class, 'store']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/identity/me', [AuthController::class, 'me']);
@@ -31,4 +34,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/contacts', [ContactController::class, 'store'])->middleware('permission:contacts.manage');
     Route::get('/intake', [IntakeController::class, 'index'])->middleware('permission:intake.read');
     Route::post('/intake', [IntakeController::class, 'store'])->middleware('permission:intake.manage');
+    Route::get('/consultations', [ConsultationController::class, 'index'])->middleware('permission:consultations.read');
+    Route::post('/consultations/{consultation}/status', [ConsultationController::class, 'updateStatus'])
+        ->middleware('permission:consultations.manage');
 });

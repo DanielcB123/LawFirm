@@ -1563,3 +1563,248 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** duplicate-key lint error is resolved and `docker-compose.yml` parses cleanly in both Docker Compose and editor diagnostics.
 - **Benefit and possible future downfall:** [D-20261017-7](Markdown/planning/decision-log.md). Benefit: stable YAML parsing and fewer editor false alarms during compose edits. Downfall: inline command arrays are denser and can be less readable for very long shell chains.
 - **Next action:** keep this command style for compose edits unless commands become long enough to warrant external script files.
+
+## 2026-10-17 - Route-level Vue parity, consultation queue APIs, and workspace auth shell
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** execute approved parity continuation phases by replacing the single-page Vue shell with route-based public pages, restoring consultation booking/queue flow, and introducing a real guarded workspace shell with seeded role personas.
+
+### Changes
+
+- Frontend route and shell architecture:
+  - added Vue Router and route map in `vue-frontend/src/router/index.ts`:
+    - public routes: `/`, `/about`, `/practice-areas`, `/attorneys`, `/attorneys/:slug`, `/contact`
+    - workspace routes: `/workspace/login`, `/workspace/*` (guarded)
+    - fallback: `/:pathMatch(.*)*`
+  - replaced `vue-frontend/src/App.vue` with router-only host (`<RouterView />`)
+  - introduced `PublicShell`, `WorkspaceShell`, `SiteNav`, `SiteFooter`
+- Public parity pages and styling:
+  - added public page components for home/about/practice/attorneys/attorney profile/contact
+  - added `useScrollReveal` composable (IntersectionObserver + reduced-motion handling) for reveal-on-scroll parity
+  - expanded `vue-frontend/src/style.css` with marketing-card, attorney-profile, modal, workspace shell, and reveal classes
+  - added `teamMembers` data model with attorney + staff role backgrounds
+- Consultation booking flow:
+  - added `ConsultationModal.vue` and consultation API client/types in `vue-frontend/src/features/consultations/`
+  - wired Contact-page CTA to modal and request submission
+- Backend consultation queue support:
+  - generated and implemented `ConsultationRequest` model/factory/migration
+  - implemented `ConsultationController` with:
+    - public `availableSlots` and `store`
+    - protected queue list and status update
+  - added routes:
+    - `GET /api/consultations/available-slots`
+    - `POST /api/consultations`
+    - `GET /api/consultations` (`consultations.read`)
+    - `POST /api/consultations/{consultation}/status` (`consultations.manage`)
+- Auth and role/permission seed matrix:
+  - added `useAuthSession` token/identity session module for guarded routes
+  - added `config/roles.php` role-to-permission map
+  - expanded `DatabaseSeeder` with seeded personas:
+    - Partner, Attorney, Paralegal, Accountant, LegalAssistant, AdminIT, Client
+  - seeded sample contacts/intake/consultation queue records
+- Tooling/setup side-effects:
+  - installed `vue-router` in `vue-frontend`
+  - installed Laravel Boost (`laravel/boost`) and generated its local config/guideline files in `laravel-backend`
+
+### Checks run (actual results)
+
+- `npm install` in `vue-frontend` -> success.
+- `npm run build` in `vue-frontend` -> success.
+- `php artisan test --compact` in `laravel-backend` -> success (11 tests, 50 assertions).
+- `vendor/bin/pint --dirty --format agent` in `laravel-backend` -> success (clean formatting pass).
+- `docker compose -f docker-compose.yml config` -> success.
+- Cursor lint diagnostics (`ReadLints`) for edited frontend/backend paths -> no errors.
+
+### Checks not run, and why
+
+- No browser/E2E interaction run in this slice; verification was API tests + TypeScript build + lint/compose validation due scope and time.
+
+### Outcome and next action
+
+- **Outcome:** migration stack now has route-based public frontend parity, working consultation booking + queue API pipeline, and a guarded workspace shell with seeded operational personas.
+- **Benefit and possible future downfall:** [D-20261017-8](Markdown/planning/decision-log.md). Benefit: restores high-confidence demo flow from public intake through internal follow-up queue while re-establishing authenticated workspace structure. Downfall: several workspace modules (calendar/matters/etc.) are still route placeholders pending deeper behavior migration.
+- **Next action:** implement Phase 4 depth on `calendar` and `matters` modules (UI + API + permission-aware behavior) and replace remaining placeholder workspace routes with functional parity slices.
+
+## 2026-10-17 - Strict shared consultation-modal parity across public CTAs
+
+- **Recorded:** 2026-10-17 EDT. **Not committed.**
+- **Objective and scope:** enforce strict pre-migration consultation modal parity by wiring all consultation-like public CTAs to one shared modal component with legacy-style layout, calendar behavior, accessibility semantics, and Laravel API contract compatibility.
+
+### Changes
+
+- Shared modal architecture:
+  - added `vue-frontend/src/features/consultations/modal.ts` as single source of open/close state with trigger-focus return.
+  - added `vue-frontend/src/components/consultation/ConsultationModalHost.vue` and mounted it once in `PublicShell`.
+  - removed page-local modal duplication from contact page.
+- CTA parity wiring:
+  - home CTA `Book consultation` now opens modal in-place.
+  - added home CTA `Start your consultation` and wired to same modal.
+  - converted consultation-style CTAs on other public pages to same modal:
+    - about: `Contact our office`
+    - practice areas: `Request consultation`
+    - attorneys: `Schedule consultation`
+    - attorney profile: `Contact the firm`
+    - contact page: `Request appointment`
+- Modal behavior/layout parity:
+  - rewrote `ConsultationModal.vue` to mirror legacy structure:
+    - backdrop close + close button + Escape close,
+    - `role="dialog"` + `aria-modal="true"` + `aria-labelledby`,
+    - large card sizing (`min(1420px, calc(100vw - 2rem))` equivalent),
+    - gradient header section,
+    - two-column details + scheduling layout with responsive collapse at parity breakpoints,
+    - 42-day calendar grid with month nav, availability states, selected state, past/outside-month handling, time-slot chips, selection summary,
+    - first-available auto-selection and selected-day/slot synchronization,
+    - month-switch modal-scroll position restoration.
+  - added body scroll-lock when modal is open (`body.modal-open`).
+  - preserved reveal animation behavior outside modal and reduced-motion handling.
+- API contract parity update:
+  - frontend slot client now supports `startDate` + `days`.
+  - backend `availableSlots` now validates/accepts `startDate=YYYY-MM-DD` while keeping existing behavior compatible.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `php artisan test --compact` in `laravel-backend` -> success.
+- `ReadLints` for edited frontend/backend files -> no errors.
+- Playwright screenshot capture (desktop + mobile) from multiple public CTA entry points -> generated under `artifacts/`.
+
+### Checks not run, and why
+
+- No GIF capture run in this slice; static screenshot evidence was captured instead.
+
+### Outcome and next action
+
+- **Outcome:** all relevant consultation-intake public CTAs now open one shared global modal with legacy-style interaction and near-identical structure/visual behavior.
+- **Benefit and possible future downfall:** [D-20261017-9](Markdown/planning/decision-log.md). Benefit: prevents drift from duplicated modal implementations and restores expected intake UX continuity. Downfall: keeping strict parity in one component increases complexity and requires careful maintenance during future design-token or workspace-shell refactors.
+- **Next action:** continue Phase 4 module parity (calendar/matters logic) and keep consultation modal regression checks in screenshot/test verification.
+
+## 2026-10-18 - Deterministic Laravel container bootstrap with compose dev/prod profile split
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** remove runtime dependency/cache drift in Docker bootstrap by shifting composer dependency install into image build, introducing an explicit migration job, and splitting Docker Compose into profile-driven dev and prod backend flows.
+
+### Changes
+
+- Added `docker/laravel/entrypoint.sh` with explicit modes:
+  - `web`: run application server only.
+  - `dev-web`: compare `composer.lock` hash against `vendor/.composer.lock.hash`, run `composer install` only when needed, then start server.
+  - `migrate`: run `php artisan migrate --force` for one-shot schema convergence.
+- Reworked `docker/laravel/Dockerfile` into deterministic multi-stage build:
+  - composer stage installs dependencies from lock file (`--no-scripts`),
+  - runtime stage copies vendor and app source, normalizes entrypoint LF line endings, and sets `ENTRYPOINT`.
+- Replaced inline bootstrap shell chain in `docker-compose.yml` with profile-separated services:
+  - `backend-dev` (`dev` profile, bind mount + vendor volume, command `dev-web`),
+  - `backend` (`prod` profile, immutable image, command `web`),
+  - `migrate` (`dev` + `prod` profiles, one-shot, command `migrate`),
+  - `frontend` moved to `dev` profile and now depends on `backend-dev`.
+
+### Checks run (actual results)
+
+- `docker compose config` -> success.
+- `docker compose --profile dev config` -> success.
+- `docker compose --profile prod config` -> success.
+- `docker compose --profile dev down --remove-orphans` -> success.
+- `docker compose --profile dev up -d --build` -> success after resolving two build/startup issues:
+  - composer stage script failure fixed by `composer install --no-scripts`,
+  - entrypoint startup failure fixed by CRLF normalization in Dockerfile.
+- `docker compose --profile dev ps` -> `backend-dev` healthy, `mysql` healthy, `frontend` running, `migrate` exited `0`.
+- `curl.exe -i http://localhost:8080/up` -> HTTP 200.
+
+### Checks not run, and why
+
+- Did not run full `prod` profile runtime startup (`docker compose --profile prod up`) in this slice to avoid port/service contention while validating the active developer stack first.
+- Did not run Laravel feature tests because this slice changed container/bootstrap orchestration and not application endpoint behavior.
+
+### Outcome and next action
+
+- **Outcome:** compose startup is now deterministic, dependency drift is constrained, and backend bootstrap responsibilities are split into explicit runtime (`web`/`dev-web`) and migration (`migrate`) phases.
+- **Benefit and possible future downfall:** [D-20261018-1](Markdown/planning/decision-log.md). Benefit: removes a broad class of unhealthy-container incidents caused by stale `vendor` + cache drift. Downfall: profile-driven startup now requires explicit `--profile dev` / `--profile prod` usage and adds one more operational command pattern to team onboarding.
+- **Next action:** add a short runbook section for profile-based startup commands and consider a dedicated `seed` job (separate from `migrate`) for deterministic non-production sample-data workflows.
+
+## 2026-10-18 - Fix consultation modal always-open host binding bug
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** resolve a public-site regression where the shared consultation modal opened by default and could not be dismissed via close button or backdrop click.
+
+### Changes
+
+- Updated `vue-frontend/src/components/consultation/ConsultationModalHost.vue` to bind top-level modal refs/functions directly in template:
+  - replaced `modal.isOpen`/`modal.closeModal` object-member binding with destructured `isOpen`/`closeModal`.
+- This avoids Vue nested-ref truthiness behavior (`v-if` seeing a ref object as always truthy) and restores correct conditional mount/unmount for the modal component.
+
+### Checks run (actual results)
+
+- `docker compose --profile dev exec -T frontend npm run build` -> success.
+
+### Checks not run, and why
+
+- No automated browser interaction test was run in this slice; build validation confirms compile/runtime wiring, while final dismissal behavior is a direct runtime UI interaction check.
+
+### Outcome and next action
+
+- **Outcome:** consultation modal no longer auto-renders at page load and close handlers can now fully unmount modal state.
+- **Benefit and possible future downfall:** [D-20261018-2](Markdown/planning/decision-log.md). Benefit: restores expected modal lifecycle and prevents permanent overlay lock on public routes. Downfall: future composable-return object patterns can reintroduce this class of Vue ref-unwrapping bug if nested refs are used directly in template conditionals.
+- **Next action:** keep shared composable template bindings either top-level or explicitly unwrapped for any new modal/dialog hosts.
+
+## 2026-10-18 - Capture Docker profile verification and run commands in architecture README
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** ensure architecture documentation explicitly contains the validated Docker profile rollout checks and operational run/stop commands for developers.
+
+### Changes
+
+- Updated `Markdown/architecture/README.md` with a new `Docker profile rollout verification` section.
+- Added exact validation checklist entries and outcomes:
+  - `docker compose config`
+  - `docker compose --profile dev config`
+  - `docker compose --profile prod config`
+  - `docker compose --profile dev up -d --build`
+  - `docker compose --profile dev ps` health summary (`backend-dev`, `mysql`, `frontend`, `migrate`)
+  - `curl http://localhost:8080/up` HTTP 200
+  - lint diagnostics status
+- Added explicit operator commands for:
+  - bringing up dev profile,
+  - bringing up prod-style backend profile,
+  - tearing down each profile with `--remove-orphans`.
+
+### Checks run (actual results)
+
+- Documentation update only; no runtime commands rerun in this slice because all listed checks were already executed and recorded in prior deterministic-bootstrap verification.
+
+### Checks not run, and why
+
+- No additional container startup or test execution was run in this slice; scope was limited to recording already-validated commands and outcomes in canonical architecture docs.
+
+### Outcome and next action
+
+- **Outcome:** architecture docs now include the exact rollout verification and profile command runbook requested for operational clarity.
+- **Benefit and possible future downfall:** [D-20261018-3](Markdown/planning/decision-log.md). Benefit: reduces startup ambiguity and anchors profile-based operations in a stable shared reference. Downfall: command/checklist sections can become stale if compose profiles evolve without synchronized doc maintenance.
+- **Next action:** keep the section updated whenever compose profile behavior or runtime command patterns change.
+
+## 2026-10-18 - Document seeded authenticated users and role permissions in docs
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** add an operator-friendly reference in `/docs` that lists seeded authenticated users, role types, and the currently enforced permission gates for authenticated API routes.
+
+### Changes
+
+- Added `docs/seeded-auth-users-and-permissions.md` with:
+  - complete seeded user list (`name`, `email`, `role`) sourced from `laravel-backend/database/seeders/DatabaseSeeder.php`,
+  - role-to-permission matrix sourced from `laravel-backend/config/roles.php`,
+  - permission-to-route gate mapping sourced from `laravel-backend/routes/api.php`,
+  - note of shared seeded password for local seed usage (`Passw0rd!`).
+- Updated `ProgressPlan.md` with a new current-step entry and refreshed last-updated timestamp to reflect this docs slice.
+
+### Checks run (actual results)
+
+- No runtime/build/test command executed; this is a documentation-only slice with direct source inspection.
+
+### Checks not run, and why
+
+- Did not run backend/frontend tests because no application code paths were modified.
+
+### Outcome and next action
+
+- **Outcome:** `/docs` now has a current, source-backed authentication persona and permissions reference for local sign-in and role-based validation workflows.
+- **Benefit and possible future downfall:** [D-20261018-4](Markdown/planning/decision-log.md). Benefit: faster QA and onboarding for auth-permission scenarios without searching seed files. Downfall: document drift risk if seed roles or permissions change without updating this reference.
+- **Next action:** keep this docs file synchronized whenever `DatabaseSeeder.php`, `config/roles.php`, or permission-gated routes change.

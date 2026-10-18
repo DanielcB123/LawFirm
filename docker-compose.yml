@@ -1,32 +1,59 @@
+x-backend-base: &backend-base
+  build:
+    context: .
+    dockerfile: docker/laravel/Dockerfile
+  working_dir: /var/www/html
+  env_file:
+    - ./laravel-backend/.env.docker
+  depends_on:
+    mysql:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD-SHELL", "php -r \"exit((bool) @file_get_contents('http://127.0.0.1:8000/up') ? 0 : 1);\""]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+
 services:
-  backend:
-    build:
-      context: ./laravel-backend
-      dockerfile: ../docker/laravel/Dockerfile
-    container_name: matterforge-laravel-backend
-    working_dir: /var/www/html
-    env_file:
-      - ./laravel-backend/.env.docker
-    command: ["sh", "-lc", "cp .env.docker .env && composer install --no-interaction && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"]
+  backend-dev:
+    <<: *backend-base
+    container_name: matterforge-laravel-backend-dev
+    command: ["dev-web"]
+    profiles: ["dev"]
+    restart: unless-stopped
     volumes:
       - ./laravel-backend:/var/www/html
       - laravel_vendor:/var/www/html/vendor
     ports:
       - "8080:8000"
+
+  backend:
+    <<: *backend-base
+    container_name: matterforge-laravel-backend
+    command: ["web"]
+    profiles: ["prod"]
+    restart: unless-stopped
+    ports:
+      - "8080:8000"
+
+  migrate:
+    <<: *backend-base
+    container_name: matterforge-laravel-migrate
+    command: ["migrate"]
+    profiles: ["dev", "prod"]
+    restart: "no"
+    healthcheck:
+      disable: true
     depends_on:
       mysql:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "php -r \"exit((bool) @file_get_contents('http://127.0.0.1:8000/up') ? 0 : 1);\""]
-      interval: 10s
-      timeout: 5s
-      retries: 12
 
   frontend:
     image: node:22-alpine
     container_name: matterforge-vue-frontend
     working_dir: /workspace
     command: ["sh", "-lc", "npm install && npm run dev -- --host 0.0.0.0 --port 5173"]
+    profiles: ["dev"]
     environment:
       VITE_API_BASE_URL: http://localhost:8080/api
     volumes:
@@ -35,7 +62,7 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      backend:
+      backend-dev:
         condition: service_healthy
 
   mysql:

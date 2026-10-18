@@ -1,8 +1,42 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-17 16:00 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-18 04:12 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Seeded auth personas documentation in docs
+
+**Status: Verified within stated scope.** Not committed. Scope: create a source-backed docs reference for seeded authenticated users, role types, and permission gates in the current Laravel migration stack.
+
+| Criterion | Result |
+|---|---|
+| Seeded user visibility | Added a docs matrix listing all seeded auth users with name, email, and role |
+| Permission visibility | Added role-to-permission mapping sourced from `config/roles.php` |
+| Route authorization mapping | Added permission-to-endpoint mapping for currently protected authenticated API routes |
+| Verification | Source-only documentation slice; values were taken directly from `DatabaseSeeder.php`, `roles.php`, and `routes/api.php` |
+
+Next action: continue the in-progress parity migration work (calendar and matters behavior depth) while keeping seeded role docs synchronized with any future auth matrix changes.
+
+## Current step: Route-level Vue parity + consultation queue + workspace auth restoration
+
+**Status: Verified within stated scope.** Not committed. Scope: execute the approved migration continuation phases by restoring route-level public pages, consultation booking flow, workspace authentication shell, and backend consultation queue support with seeded role personas.
+
+| Criterion | Result |
+|---|---|
+| Route parity foundation | Added Vue Router with dedicated public routes (`/`, `/about`, `/practice-areas`, `/attorneys`, `/attorneys/:slug`, `/contact`) and workspace routes under `/workspace/*` with 404 fallback |
+| Public shell + animations | Introduced `PublicShell`, reusable `SiteNav`/`SiteFooter`, and IntersectionObserver scroll-reveal behavior (`data-reveal`) for parity-style section animations |
+| Attorney/staff information | Ported and expanded `teamMembers` data with attorney and operational roles (partner, attorney, paralegal, accountant, legal assistant, admin IT) and wired attorney list/profile pages |
+| Book consultation UX | Implemented Contact-page consultation modal with available-slot loading and request submission via `GET /api/consultations/available-slots` + `POST /api/consultations` |
+| Strict shared modal parity | Replaced per-page modal usage with one global `ConsultationModalHost` and shared `useConsultationModal()` state so consultation CTAs open the same component across public pages (Home/About/Practice/Attorneys/Attorney Profile/Contact) |
+| CTA contract parity | Home `Book consultation` and `Start your consultation` now open the modal in-place; Contact button uses legacy-copy `Request appointment`; additional consultation CTAs (`Contact our office`, `Request consultation`, `Schedule consultation`, `Contact the firm`) route to the same modal |
+| Modal interaction parity | Modal now follows legacy structure/behavior: full-screen dark overlay, large card scale, gradient header, two-column details+scheduler layout, 42-day calendar grid, day/time state styling, month navigation with scroll-position preservation, and selection-summary rendering |
+| API query parity | Slot API now supports legacy-style `startDate` + `days` contract while remaining backward-compatible |
+| Backend queue flow | Added `ConsultationRequest` model/migration/factory, API controller, and protected queue/status routes (`consultations.read` / `consultations.manage`) |
+| Auth/workspace structure | Added session-based auth store, `/workspace/login`, guarded workspace shell/sidebar, and restored workspace navigation route set (functional `contacts`, `intake`, `consultations`; placeholders for remaining modules) |
+| Role/permission seed matrix | Added `config/roles.php` mapping and seeded personas for Partner, Attorney, Paralegal, Accountant, LegalAssistant, AdminIT, and Client, plus sample contacts/intake/consultation data |
+| Verification | `npm run build` (vue-frontend) passed; `php artisan test --compact` passed (11/11); `vendor/bin/pint --dirty --format agent` clean; `docker compose config` passed; lint diagnostics clean; Playwright captures generated for desktop/mobile modal entry points |
+
+Next action: continue Phase 4 parity depth by migrating calendar and matters behavior-level logic from pre-migration app into the new workspace routes and Laravel APIs while preserving permission boundaries.
 
 ## Current step: Vue visual parity recovery against pre-migration React snapshot
 
@@ -1011,3 +1045,49 @@ This file should stay truthful enough that a new developer can understand:
   - `curl.exe -i http://localhost:8080/up` -> HTTP 200,
   - `docker compose exec -T frontend npm run build` -> success,
   - edited-file lint diagnostics -> no errors.
+
+## 2026-10-18 migration checkpoint (deterministic Docker bootstrap + dev/prod profile split)
+
+- Implemented deterministic container bootstrap to prevent dependency/cache drift from breaking healthchecks:
+  - added `docker/laravel/entrypoint.sh` with explicit modes (`web`, `dev-web`, `migrate`),
+  - `dev-web` now checks `composer.lock` hash against `vendor/.composer.lock.hash` and runs `composer install` only when drift is detected.
+- Reworked `docker/laravel/Dockerfile` into multi-stage build with dependency install in image build-time:
+  - composer install runs in vendor stage with `--no-scripts`,
+  - runtime stage copies vendor + source and sets normalized executable entrypoint.
+- Replaced monolithic backend startup shell chain in `docker-compose.yml` with profile-based services:
+  - `backend-dev` (profile `dev`, bind mount + vendor volume),
+  - `backend` (profile `prod`, immutable runtime),
+  - `migrate` one-shot service (profiles `dev` + `prod`),
+  - `frontend` now scoped to `dev` profile and depends on `backend-dev`.
+- Validation:
+  - `docker compose config` -> success,
+  - `docker compose --profile dev config` -> success,
+  - `docker compose --profile prod config` -> success,
+  - `docker compose --profile dev up -d --build` -> success,
+  - `docker compose --profile dev ps` -> `backend-dev` healthy, `mysql` healthy, `frontend` running, `migrate` exited `0`,
+  - `curl.exe -i http://localhost:8080/up` -> HTTP 200.
+- Operational note:
+  - Standard local startup now requires explicit profile invocation (`docker compose --profile dev up -d --build`).
+
+## 2026-10-18 migration checkpoint (consultation modal host unwrapping fix)
+
+- Fixed a regression in the shared consultation modal host where the modal appeared open on initial page load and close interactions could not dismiss it.
+- Root cause:
+  - `ConsultationModalHost.vue` used `v-if="modal.isOpen"` where `isOpen` was a nested ref property on a plain object, making the expression effectively always truthy in template conditional rendering.
+- Change:
+  - destructured top-level values from `useConsultationModal()` and bound `v-if="isOpen"` plus `@close="closeModal"`.
+- Validation:
+  - `docker compose --profile dev exec -T frontend npm run build` -> success.
+
+## 2026-10-18 migration checkpoint (architecture README operational verification capture)
+
+- Added explicit Docker profile validation evidence and operator command runbook to `Markdown/architecture/README.md`.
+- Captured exact verification outcomes:
+  - `docker compose config`,
+  - `docker compose --profile dev config`,
+  - `docker compose --profile prod config`,
+  - `docker compose --profile dev up -d --build`,
+  - `docker compose --profile dev ps` health status summary,
+  - `curl http://localhost:8080/up` HTTP 200,
+  - lint diagnostics clean.
+- Added explicit run/stop commands for dev and prod-style profile usage.
