@@ -1,8 +1,48 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-19 05:22 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-19 05:40 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Consultations queue cards forced-visible fallback fix
+
+**Status: Verified within stated scope.** Not committed. Scope: prevent critical queue cards from being hidden when reveal-animation observers miss intersection timing in authenticated workspace.
+
+| Criterion | Result |
+|---|---|
+| Symptom confirmation | Queue header stats showed `Requested` records while card list area remained visually empty |
+| Root cause | `data-reveal` attributes on queue stats/toolbar/list allowed CSS default `opacity: 0` to hide essential triage content if reveal hook did not mark elements as revealed in time |
+| Fix | Removed `data-reveal` attributes from consultation queue stats, toolbar, and list containers so request cards always render visibly |
+| Verification | `npm run build` in `vue-frontend` passed; lint diagnostics for edited queue file were clean |
+
+Next action: reserve reveal animations for non-critical decorative sections; keep core operational lists always visible by default.
+
+## Current step: Consultation queue visibility fix in authenticated shell reveal lifecycle
+
+**Status: Verified within stated scope.** Not committed. Scope: resolve "blank consultations queue" behavior after adding reveal-animated cards to workspace pages.
+
+| Criterion | Result |
+|---|---|
+| Data presence validation | Verified consultation requests exist in DB (`consultation_requests`) including new public submissions |
+| Root cause | Queue cards used `[data-reveal]` styles but `useScrollReveal` observer was only initialized in `PublicShell`, not in authenticated workspace shell |
+| Fix | Enabled `useScrollReveal(() => route.fullPath)` in `WorkspaceShell.vue` so reveal-animated workspace sections become visible |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited file returned no diagnostics |
+
+Next action: when adding `[data-reveal]` to any new workspace page, no extra per-page wiring is needed because observer setup now lives in authenticated shell.
+
+## Current step: Consultation queue UX upgrade for authenticated intake triage
+
+**Status: Verified within stated scope.** Not committed. Scope: clarify where public appointment requests appear for staff and redesign the authenticated consultations queue into a more modern triage workspace with status visibility, searchability, and smoother editing flow.
+
+| Criterion | Result |
+|---|---|
+| Queue destination clarity | Confirmed public contact modal appointment requests (`POST /api/consultations`) are surfaced to staff in workspace route `/workspace/consultations` (`GET /api/consultations`) |
+| Visual modernization | Replaced basic list rendering with animated status stat tiles, polished queue cards, status pills, richer metadata blocks, and cleaner editor layout |
+| Triage ergonomics | Added client-side search across name/email/phone/status/assignee/notes and kept server-side status filtering + reload |
+| Workflow support | Preserved role-permission checks and per-record status/notes save actions while improving notes entry with textarea |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited queue/style files returned no diagnostics |
+
+Next action: optionally add assignment filter chips and "next follow-up" timestamp fields once backend includes dedicated follow-up columns.
 
 ## Current step: Public-page rendering recovery after route-transition integration
 

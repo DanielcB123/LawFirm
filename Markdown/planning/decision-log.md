@@ -605,3 +605,39 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Cross-route transition effects are deferred and may require a more nuanced implementation tied to reveal observer timing.
 - **Not done:** No reimplementation of global route transitions was done in this corrective slice.
 - **Evidence:** Updated files: `vue-frontend/src/layout/PublicShell.vue`, `vue-frontend/src/pages/public/AttorneyProfilePage.vue`, `vue-frontend/src/style.css`, `ProgressPlan.md`, `SLICE_HISTORY.md`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261019-7 — Upgrade authenticated consultations queue into modern triage workspace
+
+- **When:** 2026-10-19 05:31 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Redesigned `/workspace/consultations` with animated status summary tiles, richer per-request cards, status-pill signaling, client-side search, and improved notes editing ergonomics while preserving existing permission-gated status update flow.
+- **Why:** Founder asked where unauthenticated contact appointment requests are surfaced for legal assistants/paralegals and requested a visually modern, easy-to-manage queue for qualifying potential matters.
+- **Good, because:** Intake staff can now scan and act on incoming requests faster with clearer visual hierarchy, quicker filtering, and more actionable card-level context.
+- **Bad, because:** Expanded styling and page-level logic increase maintenance complexity until this queue is split into smaller reusable components.
+- **Not done:** No backend schema/field expansion (e.g., follow-up deadlines, explicit urgency flags, assignment filters) was introduced in this decision.
+- **Evidence:** Updated files: `vue-frontend/src/pages/workspace/ConsultationsQueuePage.vue`, `vue-frontend/src/style.css`, `ProgressPlan.md`, `SLICE_HISTORY.md`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261019-8 — Fix authenticated consultations queue invisibility by initializing reveal observer in workspace shell
+
+- **When:** 2026-10-19 05:37 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added `useScrollReveal(() => route.fullPath)` to `WorkspaceShell.vue` so `[data-reveal]` sections in authenticated routes transition into visible state.
+- **Why:** Founder reported that newly submitted public consultation requests did not appear in workspace queue; backend data check confirmed records existed, isolating issue to front-end reveal lifecycle.
+- **Good, because:** Restores queue visibility immediately and prevents similar hidden-content issues for future reveal-animated workspace sections.
+- **Bad, because:** Shell-level reveal observation broadens animation scope, which could require threshold/performance tuning on very dense authenticated pages.
+- **Not done:** No backend/API behavior changes were made; this decision addresses front-end rendering visibility only.
+- **Evidence:** DB query confirmed fresh rows in `consultation_requests`; updated `vue-frontend/src/layout/WorkspaceShell.vue`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261019-9 — Remove reveal-animation gating from critical consultations queue containers
+
+- **When:** 2026-10-19 05:40 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Removed `data-reveal` attributes from consultations queue stats/toolbar/list containers so queue content never depends on reveal observer timing to become visible.
+- **Why:** Founder screenshot showed non-zero queue counts with no visible records, indicating hidden content rather than missing data.
+- **Good, because:** Operational triage data is now visible by default and cannot appear blank due to animation lifecycle timing.
+- **Bad, because:** This reduces motion effects on that page, so visual polish is slightly lower than fully animated entry states.
+- **Not done:** No API/backend changes were needed; issue was presentation-layer visibility only.
+- **Evidence:** Updated `vue-frontend/src/pages/workspace/ConsultationsQueuePage.vue`; `npm run build` passed and lint diagnostics were clean.

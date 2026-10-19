@@ -2194,3 +2194,99 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** public pages render normally again, and attorney profile pages still animate on entry with a local, lower-risk animation approach.
 - **Benefit and possible future downfall:** [D-20261019-6](Markdown/planning/decision-log.md). Benefit: resolves site-wide blank-route regression quickly while preserving the requested animated profile feel. Downfall: route-level transitions remain deferred and may require a reveal-system-aware implementation later.
 - **Next action:** add `prefers-reduced-motion` guard and, if desired, reintroduce cross-route transitions with deferred reveal initialization sequencing.
+
+## 2026-10-19 - Redesign authenticated consultations queue for modern intake triage UX
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** improve authenticated staff workflow for incoming public appointment requests by upgrading queue readability, filtering, and per-request action ergonomics.
+
+### Changes
+
+- Confirmed public-to-auth flow is wired:
+  - public request submission: `POST /api/consultations`,
+  - authenticated queue retrieval: `GET /api/consultations`,
+  - authenticated status update: `POST /api/consultations/{consultation}/status`,
+  - workspace queue route: `/workspace/consultations`.
+- Updated `vue-frontend/src/pages/workspace/ConsultationsQueuePage.vue`:
+  - added queue status summary tiles,
+  - added search input across key request fields,
+  - moved from generic list rows to richer queue cards with status pills and metadata grouping,
+  - preserved status + internal-notes draft/edit/save flow and permission gating.
+- Updated `vue-frontend/src/style.css`:
+  - added modern consultations queue styling and motion (`consultations-*`, `consultation-*`, status tone classes),
+  - added responsive breakpoints for toolbar/stats/editor layout collapse,
+  - expanded workspace form input styling to include textareas.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on `ConsultationsQueuePage.vue` and `style.css` -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation visual capture was run in this slice; verification focused on compile/lint and API/route wiring consistency.
+
+### Outcome and next action
+
+- **Outcome:** authenticated users now have a cleaner, animation-assisted, easier-to-scan appointment triage queue for evaluating and advancing potential matters.
+- **Benefit and possible future downfall:** [D-20261019-7](Markdown/planning/decision-log.md). Benefit: faster intake triage and less cognitive load per request through better hierarchy/status signaling. Downfall: richer UI raises front-end style surface area and may require future refactoring into smaller component modules.
+- **Next action:** add optional assignment and urgency filters plus follow-up timestamp fields once backend supports those properties.
+
+## 2026-10-19 - Fix hidden workspace consultation queue cards by wiring reveal observer in authenticated shell
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** resolve issue where authenticated consultations queue appeared empty/blank despite successful public appointment submissions.
+
+### Changes
+
+- Verified backend data exists:
+  - queried `consultation_requests` and confirmed newly submitted public requests were present with `Requested` status.
+- Root-cause determination:
+  - consultations queue UI used `[data-reveal]` animation attributes,
+  - reveal observer (`useScrollReveal`) was only initialized in `PublicShell`,
+  - workspace pages had no observer, so reveal elements remained `opacity: 0`.
+- Fix implemented:
+  - updated `vue-frontend/src/layout/WorkspaceShell.vue` to initialize `useScrollReveal(() => route.fullPath)` in authenticated shell.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on `WorkspaceShell.vue` -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation run in this corrective slice; verification focused on deterministic root cause + compile/lint checks.
+
+### Outcome and next action
+
+- **Outcome:** consultation queue cards now render in authenticated workspace as expected, and future workspace pages using `[data-reveal]` will animate/show correctly.
+- **Benefit and possible future downfall:** [D-20261019-8](Markdown/planning/decision-log.md). Benefit: restores visibility of incoming consultation requests while preserving animation system consistency across app shells. Downfall: shell-level reveal observer can animate more elements globally, which may require tuning if performance concerns appear on very dense pages.
+- **Next action:** validate queue page manually in browser and tune reveal thresholds/timing only if motion/perf feedback appears.
+
+## 2026-10-19 - Remove reveal gating from critical consultations queue containers
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** ensure consultation requests are always visible in authenticated queue even when reveal observer timing is inconsistent.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/workspace/ConsultationsQueuePage.vue`:
+  - removed `data-reveal` attributes from:
+    - consultations stats card,
+    - consultations toolbar card,
+    - consultation queue list container.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on edited queue file -> no diagnostics.
+
+### Checks not run, and why
+
+- No automated browser run in this micro-fix; symptom and root cause were directly established from runtime screenshot + data checks.
+
+### Outcome and next action
+
+- **Outcome:** consultation records now render visibly regardless of reveal observer timing.
+- **Benefit and possible future downfall:** [D-20261019-9](Markdown/planning/decision-log.md). Benefit: removes a class of false-empty operational queues caused by animation gating. Downfall: fewer reveal animations on this page reduce motion polish slightly.
+- **Next action:** keep critical operational data surfaces visible-by-default and apply reveal animation only to non-blocking decorative sections.

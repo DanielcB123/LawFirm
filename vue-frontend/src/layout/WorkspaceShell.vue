@@ -3,10 +3,12 @@ import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthSession } from '../features/auth/session'
 import SiteFooter from '../components/layout/SiteFooter.vue'
+import { useScrollReveal } from '../composables/useScrollReveal'
 
 const auth = useAuthSession()
 const route = useRoute()
 const router = useRouter()
+useScrollReveal(() => route.fullPath)
 
 const navItems = [
   { to: '/workspace', label: 'Dashboard' },

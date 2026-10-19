@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ApiClientError } from '../../lib/apiClient'
 import { useAuthSession } from '../../features/auth/session'
 import { getConsultationQueue, updateConsultationStatus } from '../../features/consultations/api'
@@ -8,12 +8,37 @@ import type { ConsultationRequestItem } from '../../features/consultations/types
 const auth = useAuthSession()
 const records = ref<ConsultationRequestItem[]>([])
 const statusFilter = ref('')
+const searchTerm = ref('')
 const isLoading = ref(false)
 const isSavingId = ref<string | null>(null)
 const error = ref<string | null>(null)
 const drafts = ref<Record<string, { status: string; internalNotes: string }>>({})
 
 const queueStatuses = ['Requested', 'InReview', 'Contacted', 'Scheduled', 'Converted', 'Closed', 'Cancelled']
+
+const statusCounts = computed(() => {
+  const counts = Object.fromEntries(queueStatuses.map((status) => [status, 0])) as Record<string, number>
+  for (const item of records.value) {
+    counts[item.status] = (counts[item.status] ?? 0) + 1
+  }
+  return counts
+})
+
+const visibleRecords = computed(() => {
+  const query = searchTerm.value.trim().toLowerCase()
+  if (!query) {
+    return records.value
+  }
+
+  return records.value.filter((item) => {
+    const assigned = item.assignedToDisplayName ?? ''
+    const notes = drafts.value[item.id]?.internalNotes ?? item.internalNotes ?? ''
+    return [item.fullName, item.email, item.phone ?? '', item.practiceArea, item.status, assigned, notes]
+      .join(' ')
+      .toLowerCase()
+      .includes(query)
+  })
+})
 
 async function loadQueue() {
   const token = auth.token.value
@@ -75,7 +100,7 @@ function updateDraftStatus(item: ConsultationRequestItem, event: Event) {
 }
 
 function updateDraftNotes(item: ConsultationRequestItem, event: Event) {
-  const target = event.target as HTMLInputElement | null
+  const target = event.target as HTMLInputElement | HTMLTextAreaElement | null
   if (!target) {
     return
   }
@@ -86,13 +111,38 @@ function updateDraftNotes(item: ConsultationRequestItem, event: Event) {
   }
 }
 
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString()
+}
+
+function statusTone(status: string): string {
+  switch (status) {
+    case 'Requested':
+      return 'consultation-status--requested'
+    case 'InReview':
+      return 'consultation-status--review'
+    case 'Contacted':
+      return 'consultation-status--contacted'
+    case 'Scheduled':
+      return 'consultation-status--scheduled'
+    case 'Converted':
+      return 'consultation-status--converted'
+    case 'Closed':
+      return 'consultation-status--closed'
+    case 'Cancelled':
+      return 'consultation-status--cancelled'
+    default:
+      return ''
+  }
+}
+
 onMounted(() => {
   void loadQueue()
 })
 </script>
 
 <template>
-  <section class="workspace-page">
+  <section class="workspace-page consultations-page">
     <header class="workspace-page__header">
       <p class="eyebrow">Consultations</p>
       <h1>Consultation follow-up queue</h1>
@@ -101,25 +151,58 @@ onMounted(() => {
       </p>
     </header>
 
-    <article class="card">
-      <div class="workspace-actions">
-        <label class="workspace-form__inline">
-          Status
+    <article class="card consultations-stats">
+      <div class="consultations-stats__items">
+        <div v-for="status in queueStatuses" :key="status" class="consultations-stats__item">
+          <p class="consultations-stats__label">{{ status }}</p>
+          <p class="consultations-stats__value">{{ statusCounts[status] ?? 0 }}</p>
+        </div>
+      </div>
+    </article>
+
+    <article class="card consultations-toolbar">
+      <div class="consultations-toolbar__controls">
+        <label class="workspace-form__inline consultations-toolbar__control">
+          Queue status
           <select v-model="statusFilter" @change="loadQueue">
             <option value="">All statuses</option>
             <option v-for="status in queueStatuses" :key="status" :value="status">{{ status }}</option>
           </select>
         </label>
-        <button type="button" class="hero-button" @click="loadQueue">Reload queue</button>
-      </div>
 
-      <p v-if="isLoading" class="muted">Loading consultation queue...</p>
-      <ul v-else class="record-list">
-        <li v-for="item in records" :key="item.id">
-          <strong>{{ item.fullName }} ({{ item.status }})</strong>
-          <span>{{ item.practiceArea }} | {{ item.email }} | {{ item.phone ?? 'No phone' }}</span>
-          <span>Preferred: {{ new Date(item.preferredAtUtc).toLocaleString() }} ({{ item.timeZone }})</span>
-          <span>Submitted: {{ new Date(item.createdAtUtc).toLocaleString() }}</span>
+        <label class="workspace-form__inline consultations-toolbar__control">
+          Search
+          <input v-model="searchTerm" type="search" placeholder="Name, email, status, notes..." />
+        </label>
+      </div>
+      <button type="button" class="hero-button" @click="loadQueue">Reload queue</button>
+    </article>
+
+    <p v-if="isLoading" class="muted">Loading consultation queue...</p>
+    <p v-else-if="visibleRecords.length === 0" class="card muted consultations-empty">
+      No consultation requests match the current filters.
+    </p>
+    <ul v-else class="consultation-queue">
+      <li v-for="item in visibleRecords" :key="item.id" class="consultation-item">
+        <div class="consultation-item__header">
+          <div>
+            <strong>{{ item.fullName }}</strong>
+            <p class="muted">
+              {{ item.practiceArea }} · {{ item.email }} · {{ item.phone ?? 'No phone' }}
+            </p>
+          </div>
+          <span class="consultation-status" :class="statusTone(drafts[item.id]?.status ?? item.status)">
+            {{ drafts[item.id]?.status ?? item.status }}
+          </span>
+        </div>
+
+        <div class="consultation-item__meta">
+          <p><span>Preferred:</span> {{ formatDateTime(item.preferredAtUtc) }} ({{ item.timeZone }})</p>
+          <p><span>Submitted:</span> {{ formatDateTime(item.createdAtUtc) }}</p>
+          <p v-if="item.message"><span>Client note:</span> {{ item.message }}</p>
+        </div>
+
+        <div class="consultation-item__editor">
           <label class="workspace-form__inline">
             Status
             <select
@@ -130,25 +213,28 @@ onMounted(() => {
               <option v-for="status in queueStatuses" :key="status" :value="status">{{ status }}</option>
             </select>
           </label>
-          <label class="workspace-form__inline">
+
+          <label class="workspace-form__inline consultation-item__notes">
             Internal notes
-            <input
+            <textarea
               :value="drafts[item.id]?.internalNotes ?? ''"
               :disabled="!auth.hasPermission('consultations.manage') || isSavingId === item.id"
+              placeholder="Capture triage notes, priority, assignment context..."
               @input="updateDraftNotes(item, $event)"
             />
           </label>
+
           <button
             type="button"
-            class="hero-button hero-button--primary"
+            class="hero-button hero-button--primary consultation-item__save"
             :disabled="isSavingId === item.id || !auth.hasPermission('consultations.manage')"
             @click="saveItem(item)"
           >
             {{ isSavingId === item.id ? 'Saving...' : 'Save update' }}
           </button>
-        </li>
-      </ul>
-    </article>
+        </div>
+      </li>
+    </ul>
 
     <p v-if="error" class="error-message">{{ error }}</p>
   </section>
