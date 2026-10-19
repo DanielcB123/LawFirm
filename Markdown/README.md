@@ -57,6 +57,7 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Security | [Matter access policy](security/matter-access-policy.md) | Implemented single-firm matter authorization, role/action matrix, evidence |
 | Security | [Multi-firm threat model](security/multitenant-threat-model.md) | Threats T1–T32, controls, residual risks |
 | Operations | [Recovery and reliability](operations/reliability-and-recovery.md) | Restore, incidents, monitoring |
+| Operations | [Docker and Laravel command runbook](operations/docker-and-laravel-command-runbook.md) | Canonical command order, profile usage, and Artisan maintenance commands |
 | Operations | [Fleet provisioning and migration](operations/fleet-provisioning-and-migration-runbook.md) | Idempotent provisioning, fleet migrations, first-firm move |
 | Operations | [SaaS firm onboarding runbook](operations/saas-firm-onboarding-runbook.md) | End-to-end process for onboarding a new law-firm tenant |
 | Operations | [Recovery and offboarding](operations/recovery-and-offboarding-runbook.md) | Pools, noisy neighbor, one-firm restore, movement, deletion |

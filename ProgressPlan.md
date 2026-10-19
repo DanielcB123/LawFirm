@@ -1,8 +1,237 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-17 16:00 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-19 05:40 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Consultations queue cards forced-visible fallback fix
+
+**Status: Verified within stated scope.** Not committed. Scope: prevent critical queue cards from being hidden when reveal-animation observers miss intersection timing in authenticated workspace.
+
+| Criterion | Result |
+|---|---|
+| Symptom confirmation | Queue header stats showed `Requested` records while card list area remained visually empty |
+| Root cause | `data-reveal` attributes on queue stats/toolbar/list allowed CSS default `opacity: 0` to hide essential triage content if reveal hook did not mark elements as revealed in time |
+| Fix | Removed `data-reveal` attributes from consultation queue stats, toolbar, and list containers so request cards always render visibly |
+| Verification | `npm run build` in `vue-frontend` passed; lint diagnostics for edited queue file were clean |
+
+Next action: reserve reveal animations for non-critical decorative sections; keep core operational lists always visible by default.
+
+## Current step: Consultation queue visibility fix in authenticated shell reveal lifecycle
+
+**Status: Verified within stated scope.** Not committed. Scope: resolve "blank consultations queue" behavior after adding reveal-animated cards to workspace pages.
+
+| Criterion | Result |
+|---|---|
+| Data presence validation | Verified consultation requests exist in DB (`consultation_requests`) including new public submissions |
+| Root cause | Queue cards used `[data-reveal]` styles but `useScrollReveal` observer was only initialized in `PublicShell`, not in authenticated workspace shell |
+| Fix | Enabled `useScrollReveal(() => route.fullPath)` in `WorkspaceShell.vue` so reveal-animated workspace sections become visible |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited file returned no diagnostics |
+
+Next action: when adding `[data-reveal]` to any new workspace page, no extra per-page wiring is needed because observer setup now lives in authenticated shell.
+
+## Current step: Consultation queue UX upgrade for authenticated intake triage
+
+**Status: Verified within stated scope.** Not committed. Scope: clarify where public appointment requests appear for staff and redesign the authenticated consultations queue into a more modern triage workspace with status visibility, searchability, and smoother editing flow.
+
+| Criterion | Result |
+|---|---|
+| Queue destination clarity | Confirmed public contact modal appointment requests (`POST /api/consultations`) are surfaced to staff in workspace route `/workspace/consultations` (`GET /api/consultations`) |
+| Visual modernization | Replaced basic list rendering with animated status stat tiles, polished queue cards, status pills, richer metadata blocks, and cleaner editor layout |
+| Triage ergonomics | Added client-side search across name/email/phone/status/assignee/notes and kept server-side status filtering + reload |
+| Workflow support | Preserved role-permission checks and per-record status/notes save actions while improving notes entry with textarea |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited queue/style files returned no diagnostics |
+
+Next action: optionally add assignment filter chips and "next follow-up" timestamp fields once backend includes dedicated follow-up columns.
+
+## Current step: Public-page rendering recovery after route-transition integration
+
+**Status: Verified within stated scope.** Not committed. Scope: resolve blank-content regression across public routes after transition-wrapper integration while preserving animated feel on attorney detail pages.
+
+| Criterion | Result |
+|---|---|
+| Rendering reliability | Removed `RouterView` transition wrapper from `PublicShell` to restore stable rendering across all public routes |
+| Animation preservation | Added page-level entrance animation class on attorney profile card (`attorney-profile--animated`) to retain requested "fun/exciting" effect |
+| CSS transition cleanup | Removed now-unused route-transition classes and replaced with keyframe-based profile entry animation |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited shell/profile/style files returned no diagnostics |
+
+Next action: if needed, add reduced-motion media query guard for profile animation and then selectively reintroduce route-level transitions after coordinating with reveal observer timing.
+
+## Current step: Attorney detail-page experience uplift and partner-card deep links
+
+**Status: Verified within stated scope.** Not committed. Scope: enrich attorney profile detail pages with more dynamic visual structure and add route transition animation for profile navigation, while making Home partner spotlight cards link directly to profile detail pages.
+
+| Criterion | Result |
+|---|---|
+| Home partner deep links | Converted partner spotlight cards on Home into `RouterLink` cards to `/attorneys/:slug` |
+| Profile page richness | Added highlight chips, expectation panel, and action grouping in attorney detail page |
+| Route transition animation | Added targeted profile route transition (`profile-route`) via `PublicShell` `RouterView` transition wrapper; preserved subtle fallback fade for other public routes |
+| Visual polish | Added hover/cta styling for partner cards and new profile layout utility styles |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited files returned no diagnostics |
+
+Next action: if desired, extend profile-card links to operations-team entries on Attorneys page so non-attorney staff can also open the same rich profile detail page pattern.
+
+## Current step: Sticky footer baseline across public and authenticated shells
+
+**Status: Verified within stated scope.** Not committed. Scope: keep footer anchored to the bottom of the viewport on short pages for both public routes and authenticated workspace routes.
+
+| Criterion | Result |
+|---|---|
+| Public-shell footer behavior | Added shell-level flex layout so public-route `<main>` expands and footer stays at viewport bottom |
+| Auth-shell footer behavior | Added shared `SiteFooter` to `WorkspaceShell` and grid row allocation so footer is always rendered after workspace content |
+| Layout safety | Added `workspace-main` `min-width: 0` and footer grid placement to avoid overflow/column collapse regressions |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited shell/style files returned no diagnostics |
+
+Next action: if desired, tune footer spacing specifically for workspace pages to visually differentiate authenticated and public contexts while keeping sticky behavior.
+
+## Current step: Workspace login page routed through public shell navigation
+
+**Status: Verified within stated scope.** Not committed. Scope: make `/workspace/login` display the same non-authenticated top navigation/footer as public pages by routing it through the public shell instead of rendering as a standalone top-level route.
+
+| Criterion | Result |
+|---|---|
+| Navigation parity | `workspace-login` route moved under `PublicShell` children, so `SiteNav` and `SiteFooter` render on sign-in page |
+| URL continuity | Route path remains `/workspace/login` (no external link changes required) |
+| Template semantics | Removed nested `<main>` wrapper from `WorkspaceLoginPage.vue` to fit inside `PublicShell`'s existing `<main class="page">` container |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited route/login files returned no diagnostics |
+
+Next action: if requested, update nav active-state styling for `/workspace/login` so it can be visually distinguished from other public navigation states.
+
+## Current step: Vue frontend hot-reload hardening and Tailwind CSS enablement
+
+**Status: Verified within stated scope.** Not committed. Scope: ensure CSS/frontend edits apply immediately during local Docker dev sessions and add Tailwind CSS support to the migrated Vue frontend without disrupting existing stylesheet behavior.
+
+| Criterion | Result |
+|---|---|
+| Save-to-refresh reliability | Enabled Vite polling watch + explicit HMR host/port in `vue-frontend/vite.config.ts` for Docker-on-Windows bind-mount reliability |
+| Docker watch compatibility | Added `CHOKIDAR_USEPOLLING=true` and polling interval in `docker-compose.yml` frontend service environment |
+| Tailwind integration | Installed `tailwindcss` + `@tailwindcss/vite` (with PostCSS dependencies present) and enabled plugin in Vite config |
+| CSS entry wiring | Added `@import "tailwindcss";` at the top of `vue-frontend/src/style.css` so utility classes are available immediately |
+| Quality cleanup | Removed an invalid stray token in `.workspace-sidebar` CSS block that caused stylesheet parse/lint errors |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` for edited files reported no diagnostics; `http://localhost:5173` returned HTTP 200 |
+
+Next action: use Tailwind classes incrementally in Vue templates while preserving existing custom CSS blocks, then retire duplicated legacy style rules where practical.
+
+## Current step: Docker runbook start/finish clarity and volume-clean shutdown guidance
+
+**Status: Verified within stated scope.** Not committed. Scope: make local environment startup/finish behavior explicit in operations docs so developers have one clear "start here" path and one clear "when finished" shutdown path, including optional full cleanup (`--volumes`).
+
+| Criterion | Result |
+|---|---|
+| Start section clarity | Added `Start here (begin local dev)` command block with ordered `up -> ps -> migrate -> seed -> optimize:clear` sequence |
+| Finish section clarity | Added `When finished (clean shutdown)` with both standard stop and full clean stop (`down --remove-orphans --volumes`) |
+| Process hygiene | Added explicit expectation check (`docker compose --profile dev ps`) to confirm no compose-managed services remain after shutdown |
+| Data safety warning | Added clear note that `--volumes` deletes Docker-volume-backed MySQL data for this compose project |
+| Verification | Documentation-only slice; no compose profile or runtime command behavior changed |
+
+Next action: keep this runbook section synchronized with compose service/profile naming so shutdown/startup instructions stay accurate and safe.
+
+## Current step: Docker local-start command order clarification and PowerShell-safe runbook edits
+
+**Status: Verified within stated scope.** Not committed. Scope: reduce local startup confusion by making command order explicit in docs, adding a copy/paste-safe command sequence for PowerShell, and documenting why each command must be run in order.
+
+| Criterion | Result |
+|---|---|
+| PowerShell-safe sequence | Added a no-comment command block in `Markdown/operations/docker-and-laravel-command-runbook.md` for `up -> ps -> migrate -> seed -> optimize:clear` |
+| Order rationale | Added a "why this order matters" explanation describing container lifecycle, health checks, schema-before-seed, and cache consistency |
+| Operator guardrails | Added explicit notes to run one command at a time and to avoid pasting Markdown fence markers into terminal |
+| Architecture alignment | Updated `Markdown/architecture/README.md` command section to point to the operations runbook and include terminal-paste safety notes |
+| Verification | Documentation-only slice; commands had already been validated in the active local runtime (`docker compose --profile dev ps` healthy) |
+
+Next action: keep the runbook and architecture references synchronized whenever compose profile names, service names, or Artisan maintenance workflows change.
+
+## Current step: Workspace calendar Clio-style week-grid UX and double-click event modal
+
+**Status: Verified within stated scope.** Not committed. Scope: reshape the signed-in calendar page into a week-first scheduling experience with accurate time-grid selection, persistent left-side mini month navigation, and a richer event-capture modal opened by double-clicking a calendar slot.
+
+| Criterion | Result |
+|---|---|
+| Default tab behavior | Calendar now defaults to `week` view instead of `month` |
+| Time-grid precision | Week/day views now render a 30-minute slot grid across 24 hours for more precise slot targeting |
+| Left-side month traversal | Added persistent mini month navigator with month prev/next controls and day selection |
+| Slot interaction | Double-clicking a week/day/month slot opens a calendar event modal seeded to that selected date/time |
+| Event-capture modal | Added larger event modal fields for title, start/end, type, deadline type, matter reference, location, and description before save |
+| Existing-item continuity | Selected-day agenda remains visible with complete/reopen actions for existing items |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited calendar files returned no diagnostics |
+
+Next action: validate end-to-end user interaction in browser (week-grid double-click create flow, mobile responsiveness, and slot readability density) and tune spacing if users request denser or larger slot rows.
+
+## Current step: Dedicated Docker/Laravel command runbook placement under operations docs
+
+**Status: Verified within stated scope.** Not committed. Scope: move command-order guidance into a dedicated operations document and link it from the top-level documentation index and architecture page so operators can find command sequencing quickly.
+
+| Criterion | Result |
+|---|---|
+| Dedicated runbook file | Added `Markdown/operations/docker-and-laravel-command-runbook.md` as canonical command-order and use-case guide |
+| Sequence coverage | Included exact dev and prod-style ordered sequences (`up -> ps -> exec -> down`) with migration/seed/cache clear commands |
+| Discoverability | Linked runbook in `Markdown/README.md` operations index and `Markdown/architecture/README.md` header links |
+| Ownership clarity | Runbook documents command-definition ownership: `docker-compose.yml`, `docker/laravel/entrypoint.sh`, and historical logs in `docs/migration/PROGRESS.md` |
+| Verification | Documentation-only slice; no runtime command behavior changed |
+
+Next action: keep this runbook synchronized whenever compose profile names, container names, or artisan maintenance workflows change.
+
+## Current step: Docker/Artisan command source-of-truth comments and runbook hardening
+
+**Status: Verified within stated scope.** Not committed. Scope: answer operator command-location question by documenting command ownership files and adding use-case comments directly above compose/runtime command definitions plus canonical runbook commands.
+
+| Criterion | Result |
+|---|---|
+| Command ownership map | Documented where commands live: `docker-compose.yml` (command mode wiring), `docker/laravel/entrypoint.sh` (mode behavior), and `Markdown/architecture/README.md` (canonical operator catalog) |
+| Compose comments | Added use-case comments above `backend-dev`, `backend`, `migrate`, and `frontend` `command` entries |
+| Entrypoint comments | Added use-case comments above dependency-sync, migration, and mode case branches (`web`, `dev-web`, `migrate`) |
+| Runbook command comments | Added explicit commented command blocks for profile up/down, migrate, seed, `optimize:clear`, cache/route/config clear, tests, and frontend build in architecture docs |
+| Verification | Source-inspection slice; no runtime behavior change to commands themselves |
+
+Next action: keep this command catalog synchronized whenever compose profiles, entrypoint modes, or Laravel maintenance workflows change.
+
+## Current step: Calendar + matters + tasks parity slice on Laravel/Vue workspace
+
+**Status: Verified within stated scope.** Not committed. Scope: replace placeholder signed-in routes with working calendar/matters/tasks flows, align consultation queue triage behavior with legacy flow depth, and preserve public-to-authenticated consultation queue continuity.
+| Criterion | Result |
+|---|---|
+| Calendar route parity | Replaced workspace calendar placeholder with a permission-gated page supporting month/week/day tabs, date-range navigation, list rendering, create entry, and complete/reopen actions |
+| Backend calendar APIs | Added Laravel `CalendarController` + `calendar_entries` schema with authenticated `GET /api/calendar/entries`, `POST /api/calendar/entries`, and `POST /api/calendar/entries/{entry}/complete` guarded by `calendar.read` / `calendar.manage` |
+| Matters route parity | Replaced workspace matters placeholder with a matter list page backed by `GET /api/matters` and open-task counts per matter |
+| Tasks route parity | Added new workspace tasks page, route, and sidebar entry backed by `GET /api/tasks`, `POST /api/tasks`, and `POST /api/tasks/{task}/status` with role permissions `tasks.read` / `tasks.manage` |
+| Consultation queue depth | Upgraded queue UI from one-click "Mark scheduled" to per-record status + internal notes drafts with explicit save, while preserving public non-auth consultation submission pipeline |
+| Seed and permission expansion | Expanded role matrix (`calendar`, `matters`, `tasks` permissions) and seeded sample matter/task/calendar records to make logged-in pages immediately usable |
+| Verification | `vendor/bin/pint --dirty --format agent` passed; `php artisan test --compact` passed (18 tests, 79 assertions); `npm run build` passed in `vue-frontend`; edited-file lint diagnostics clean |
+
+Next action: migrate the remaining authenticated placeholder destinations (activities/documents/communications/reports) and deepen matter detail workflows (task editing, document metadata, and timeline actions) using the same permission-first Laravel route pattern.
+
+## Current step: Seeded auth personas documentation in docs
+
+**Status: Verified within stated scope.** Not committed. Scope: create a source-backed docs reference for seeded authenticated users, role types, and permission gates in the current Laravel migration stack.
+
+| Criterion | Result |
+|---|---|
+| Seeded user visibility | Added a docs matrix listing all seeded auth users with name, email, and role |
+| Permission visibility | Added role-to-permission mapping sourced from `config/roles.php` |
+| Route authorization mapping | Added permission-to-endpoint mapping for currently protected authenticated API routes |
+| Verification | Source-only documentation slice; values were taken directly from `DatabaseSeeder.php`, `roles.php`, and `routes/api.php` |
+
+Next action: continue the in-progress parity migration work (calendar and matters behavior depth) while keeping seeded role docs synchronized with any future auth matrix changes.
+
+## Current step: Route-level Vue parity + consultation queue + workspace auth restoration
+
+**Status: Verified within stated scope.** Not committed. Scope: execute the approved migration continuation phases by restoring route-level public pages, consultation booking flow, workspace authentication shell, and backend consultation queue support with seeded role personas.
+
+| Criterion | Result |
+|---|---|
+| Route parity foundation | Added Vue Router with dedicated public routes (`/`, `/about`, `/practice-areas`, `/attorneys`, `/attorneys/:slug`, `/contact`) and workspace routes under `/workspace/*` with 404 fallback |
+| Public shell + animations | Introduced `PublicShell`, reusable `SiteNav`/`SiteFooter`, and IntersectionObserver scroll-reveal behavior (`data-reveal`) for parity-style section animations |
+| Attorney/staff information | Ported and expanded `teamMembers` data with attorney and operational roles (partner, attorney, paralegal, accountant, legal assistant, admin IT) and wired attorney list/profile pages |
+| Book consultation UX | Implemented Contact-page consultation modal with available-slot loading and request submission via `GET /api/consultations/available-slots` + `POST /api/consultations` |
+| Strict shared modal parity | Replaced per-page modal usage with one global `ConsultationModalHost` and shared `useConsultationModal()` state so consultation CTAs open the same component across public pages (Home/About/Practice/Attorneys/Attorney Profile/Contact) |
+| CTA contract parity | Home `Book consultation` and `Start your consultation` now open the modal in-place; Contact button uses legacy-copy `Request appointment`; additional consultation CTAs (`Contact our office`, `Request consultation`, `Schedule consultation`, `Contact the firm`) route to the same modal |
+| Modal interaction parity | Modal now follows legacy structure/behavior: full-screen dark overlay, large card scale, gradient header, two-column details+scheduler layout, 42-day calendar grid, day/time state styling, month navigation with scroll-position preservation, and selection-summary rendering |
+| API query parity | Slot API now supports legacy-style `startDate` + `days` contract while remaining backward-compatible |
+| Backend queue flow | Added `ConsultationRequest` model/migration/factory, API controller, and protected queue/status routes (`consultations.read` / `consultations.manage`) |
+| Auth/workspace structure | Added session-based auth store, `/workspace/login`, guarded workspace shell/sidebar, and restored workspace navigation route set (functional `contacts`, `intake`, `consultations`; placeholders for remaining modules) |
+| Role/permission seed matrix | Added `config/roles.php` mapping and seeded personas for Partner, Attorney, Paralegal, Accountant, LegalAssistant, AdminIT, and Client, plus sample contacts/intake/consultation data |
+| Verification | `npm run build` (vue-frontend) passed; `php artisan test --compact` passed (11/11); `vendor/bin/pint --dirty --format agent` clean; `docker compose config` passed; lint diagnostics clean; Playwright captures generated for desktop/mobile modal entry points |
+
+Next action: continue Phase 4 parity depth by migrating calendar and matters behavior-level logic from pre-migration app into the new workspace routes and Laravel APIs while preserving permission boundaries.
 
 ## Current step: Vue visual parity recovery against pre-migration React snapshot
 
@@ -1011,3 +1240,49 @@ This file should stay truthful enough that a new developer can understand:
   - `curl.exe -i http://localhost:8080/up` -> HTTP 200,
   - `docker compose exec -T frontend npm run build` -> success,
   - edited-file lint diagnostics -> no errors.
+
+## 2026-10-18 migration checkpoint (deterministic Docker bootstrap + dev/prod profile split)
+
+- Implemented deterministic container bootstrap to prevent dependency/cache drift from breaking healthchecks:
+  - added `docker/laravel/entrypoint.sh` with explicit modes (`web`, `dev-web`, `migrate`),
+  - `dev-web` now checks `composer.lock` hash against `vendor/.composer.lock.hash` and runs `composer install` only when drift is detected.
+- Reworked `docker/laravel/Dockerfile` into multi-stage build with dependency install in image build-time:
+  - composer install runs in vendor stage with `--no-scripts`,
+  - runtime stage copies vendor + source and sets normalized executable entrypoint.
+- Replaced monolithic backend startup shell chain in `docker-compose.yml` with profile-based services:
+  - `backend-dev` (profile `dev`, bind mount + vendor volume),
+  - `backend` (profile `prod`, immutable runtime),
+  - `migrate` one-shot service (profiles `dev` + `prod`),
+  - `frontend` now scoped to `dev` profile and depends on `backend-dev`.
+- Validation:
+  - `docker compose config` -> success,
+  - `docker compose --profile dev config` -> success,
+  - `docker compose --profile prod config` -> success,
+  - `docker compose --profile dev up -d --build` -> success,
+  - `docker compose --profile dev ps` -> `backend-dev` healthy, `mysql` healthy, `frontend` running, `migrate` exited `0`,
+  - `curl.exe -i http://localhost:8080/up` -> HTTP 200.
+- Operational note:
+  - Standard local startup now requires explicit profile invocation (`docker compose --profile dev up -d --build`).
+
+## 2026-10-18 migration checkpoint (consultation modal host unwrapping fix)
+
+- Fixed a regression in the shared consultation modal host where the modal appeared open on initial page load and close interactions could not dismiss it.
+- Root cause:
+  - `ConsultationModalHost.vue` used `v-if="modal.isOpen"` where `isOpen` was a nested ref property on a plain object, making the expression effectively always truthy in template conditional rendering.
+- Change:
+  - destructured top-level values from `useConsultationModal()` and bound `v-if="isOpen"` plus `@close="closeModal"`.
+- Validation:
+  - `docker compose --profile dev exec -T frontend npm run build` -> success.
+
+## 2026-10-18 migration checkpoint (architecture README operational verification capture)
+
+- Added explicit Docker profile validation evidence and operator command runbook to `Markdown/architecture/README.md`.
+- Captured exact verification outcomes:
+  - `docker compose config`,
+  - `docker compose --profile dev config`,
+  - `docker compose --profile prod config`,
+  - `docker compose --profile dev up -d --build`,
+  - `docker compose --profile dev ps` health status summary,
+  - `curl http://localhost:8080/up` HTTP 200,
+  - lint diagnostics clean.
+- Added explicit run/stop commands for dev and prod-style profile usage.

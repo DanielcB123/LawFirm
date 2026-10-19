@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --text: #4d3f36;
   --text-h: #2f1f1a;
@@ -50,6 +52,16 @@ body::before {
 
 #app {
   min-height: 100svh;
+}
+
+.public-shell {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.public-shell > .page {
+  flex: 1;
 }
 
 h1,
@@ -377,6 +389,18 @@ p {
   background: color-mix(in srgb, var(--card-bg) 88%, var(--soft-bg) 12%);
 }
 
+.home-partner-card--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.home-partner-card--link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -24px rgba(35, 31, 46, 0.55);
+}
+
 .home-partner-card img {
   width: 100%;
   height: 270px;
@@ -393,6 +417,13 @@ p {
   font-size: 0.85rem;
   font-weight: 700;
   margin: 0.2rem 0 0.4rem;
+}
+
+.home-partner-card__action {
+  display: inline-flex;
+  margin-top: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .home-process {
@@ -503,7 +534,8 @@ p {
 }
 
 .workspace-form input,
-.workspace-form select {
+.workspace-form select,
+.workspace-form textarea {
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
@@ -587,6 +619,14 @@ p {
   padding: 0.7rem 0.8rem;
 }
 
+.success-message {
+  border: 1px solid color-mix(in srgb, #1e6f3d 45%, var(--border));
+  background: color-mix(in srgb, #1e6f3d 10%, var(--card-bg));
+  color: #1e6f3d;
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.8rem;
+}
+
 .site-footer {
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg) 92%, #fff4e8 8%);
@@ -606,6 +646,1095 @@ p {
 
 .site-footer p + p {
   margin-top: 0.3rem;
+}
+
+.site-brand-link {
+  text-decoration: none;
+}
+
+.marketing-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.marketing-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.marketing-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.marketing-card ul {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.attorney-card--link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.attorney-card img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 0.55rem;
+  margin-bottom: 0.65rem;
+}
+
+.attorney-card__role {
+  margin-bottom: 0.45rem;
+}
+
+.attorney-card__action {
+  margin-top: 0.55rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.team-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.attorney-profile {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 1.1rem;
+}
+
+.attorney-profile__image {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  max-height: 480px;
+  object-fit: cover;
+  border-radius: 0.7rem;
+}
+
+.attorney-profile__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attorney-profile__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.25rem;
+}
+
+.attorney-profile__chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+  background: color-mix(in srgb, var(--soft-bg) 54%, var(--card-bg));
+  color: color-mix(in srgb, var(--accent) 84%, var(--text-h));
+  border-radius: 999px;
+  padding: 0.24rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.attorney-profile__panel {
+  border: 1px solid color-mix(in srgb, var(--border) 86%, var(--accent) 14%);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--card-bg) 82%, #ffffff 18%);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.attorney-profile__panel h2 {
+  margin: 0;
+}
+
+.attorney-profile__content ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.attorney-profile__role {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.attorney-profile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.attorney-profile--animated {
+  animation: profile-enter 380ms ease both;
+}
+
+@keyframes profile-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(8, 11, 17, 0.6);
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  overflow-anchor: none;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.modal-card--appointment {
+  width: min(1420px, calc(100vw - 2rem));
+  font-size: 1.4rem;
+  padding: 0;
+  overflow: auto;
+}
+
+.appointment-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.1rem;
+  padding: 1rem 1.3rem 0.9rem;
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--accent) 16%, var(--card-bg)) 0%, var(--card-bg) 58%),
+    var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.appointment-modal__header h2 {
+  margin: 0.12rem 0 0.2rem;
+  font-size: 2rem;
+}
+
+.appointment-modal__header .muted {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.appointment-modal__close {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-h);
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.appointment-modal__form {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.95fr) minmax(0, 1.2fr);
+  gap: 1.1rem;
+  padding: 1rem 1.3rem 1.15rem;
+  align-items: start;
+}
+
+.appointment-modal__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.appointment-modal__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 0.85rem;
+}
+
+.appointment-modal__fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.94rem;
+  font-weight: 650;
+  color: var(--text-h);
+}
+
+.appointment-modal__fields input,
+.appointment-modal__fields select,
+.appointment-modal__fields textarea {
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.mini-action {
+  border: 1px solid var(--border);
+  background: var(--soft-bg);
+  color: var(--text-h);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+}
+
+.appointment-modal__message {
+  grid-column: 1 / -1;
+}
+
+.appointment-modal__schedule {
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--soft-bg) 55%, var(--card-bg));
+}
+
+.appointment-modal__schedule legend {
+  margin-bottom: 0.5rem;
+  font-size: 1.6rem;
+}
+
+.appointment-modal__schedule-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.marketing-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.marketing-cta__kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.consultation-picker {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.consultation-picker__calendar {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  padding: 0.6rem;
+  background: color-mix(in srgb, var(--card-bg) 94%, var(--soft-bg) 6%);
+}
+
+.consultation-picker__calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.consultation-picker__month-label {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.consultation-picker__month-nav {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-h);
+  border-radius: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.consultation-picker__month-nav:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.consultation-picker__hint {
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+  color: color-mix(in srgb, var(--text) 85%, transparent);
+}
+
+.consultation-picker__weekdays,
+.consultation-picker__calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.consultation-picker__weekdays {
+  margin-bottom: 0.35rem;
+}
+
+.consultation-picker__weekdays span {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--text) 80%, transparent);
+}
+
+.consultation-picker__time-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-top: 0;
+  align-content: start;
+}
+
+.consultation-picker__day,
+.consultation-picker__time {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.consultation-picker__day {
+  border-radius: 0.5rem;
+  min-height: 2rem;
+  padding: 0.28rem 0;
+}
+
+.consultation-picker__day:not(.consultation-picker__day--unavailable):not(.consultation-picker__day--selected) {
+  background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.consultation-picker__day--selected,
+.consultation-picker__time--selected {
+  border: 2px solid color-mix(in srgb, var(--accent) 78%, var(--border));
+  color: var(--text-h);
+  background: color-mix(in srgb, var(--soft-bg) 78%, var(--card-bg));
+  font-weight: 700;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.consultation-picker__day--unavailable,
+.consultation-picker__time--unavailable {
+  background: color-mix(in srgb, var(--card-bg) 70%, #8d8d8d 30%);
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.consultation-picker__day--unavailable span,
+.consultation-picker__time--unavailable {
+  opacity: 0.75;
+}
+
+.consultation-picker__day--past {
+  background: color-mix(in srgb, var(--card-bg) 65%, #9b9b9b 35%);
+}
+
+.consultation-picker__day--outside-month {
+  opacity: 0.72;
+}
+
+.consultation-picker__time--selected::before {
+  content: "✓ ";
+  font-weight: 800;
+}
+
+.consultation-picker__selection-summary {
+  grid-column: 1 / -1;
+  margin-top: 0.2rem;
+  margin-bottom: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--soft-bg) 52%, var(--card-bg));
+  color: var(--text-h);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.workspace-shell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.workspace-sidebar {
+  background: #0c476e;
+  color: #eaf2ff;
+  padding: 1rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-right: 1px solid color-mix(in srgb, #082348 80%, #ffffff 20%);
+}
+
+.workspace-sidebar__brand {
+  margin: 0;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.workspace-sidebar__section {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a8c6f1;
+}
+
+.workspace-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.workspace-nav__link {
+  color: #dbe9ff;
+  text-decoration: none;
+  padding: 0.5rem 0.58rem;
+  border-radius: 0.45rem;
+  font-size: 0.9rem;
+}
+
+.workspace-nav__link:hover {
+  background: rgb(55, 112, 158);
+}
+
+.workspace-nav__link--active {
+  background: #3486c9;
+  color: #ffffff;
+}
+
+.workspace-sidebar__footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.workspace-sidebar__actor {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.workspace-signout {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-radius: 0.45rem;
+  padding: 0.42rem 0.62rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.workspace-main {
+  padding: 1rem;
+  min-width: 0;
+}
+
+.workspace-footer {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.workspace-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.workspace-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.consultations-page {
+  gap: 0.75rem;
+}
+
+.consultations-stats__items {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.consultations-stats__item {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--card-bg) 88%, var(--soft-bg) 12%);
+  padding: 0.6rem 0.62rem;
+  animation: pop-in 280ms ease both;
+}
+
+.consultations-stats__label {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text) 76%, transparent);
+}
+
+.consultations-stats__value {
+  margin: 0.16rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 750;
+  color: var(--text-h);
+}
+
+.consultations-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.consultations-toolbar__controls {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.consultations-toolbar__control {
+  margin: 0;
+}
+
+.consultations-empty {
+  margin: 0;
+}
+
+.consultation-queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.consultation-item {
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 0.85rem;
+  background:
+    linear-gradient(
+      130deg,
+      color-mix(in srgb, var(--card-bg) 96%, var(--soft-bg) 4%),
+      color-mix(in srgb, var(--card-bg) 93%, #ffffff 7%)
+    );
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  animation: lift-in 320ms ease both;
+}
+
+.consultation-item__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.consultation-item__header strong {
+  color: var(--text-h);
+}
+
+.consultation-status {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.58rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--soft-bg) 66%, var(--card-bg));
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.consultation-status--requested {
+  border-color: color-mix(in srgb, #1f7ac0 48%, var(--border));
+  color: #124e86;
+}
+
+.consultation-status--review {
+  border-color: color-mix(in srgb, #6e55c6 52%, var(--border));
+  color: #4a2f94;
+}
+
+.consultation-status--contacted {
+  border-color: color-mix(in srgb, #7a61d3 52%, var(--border));
+  color: #4e3b9b;
+}
+
+.consultation-status--scheduled {
+  border-color: color-mix(in srgb, #1e6f3d 46%, var(--border));
+  color: #14552f;
+}
+
+.consultation-status--converted {
+  border-color: color-mix(in srgb, #0e6e79 46%, var(--border));
+  color: #0b4f58;
+}
+
+.consultation-status--closed {
+  border-color: color-mix(in srgb, #475569 46%, var(--border));
+  color: #334155;
+}
+
+.consultation-status--cancelled {
+  border-color: color-mix(in srgb, #9f1239 38%, var(--border));
+  color: #7f1d1d;
+}
+
+.consultation-item__meta {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+.consultation-item__meta p {
+  margin: 0;
+}
+
+.consultation-item__meta span {
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.consultation-item__editor {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.consultation-item__notes textarea {
+  min-height: 5.1rem;
+  resize: vertical;
+}
+
+.consultation-item__save {
+  height: fit-content;
+}
+
+@keyframes lift-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.calendar-tabs {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.calendar-shell {
+  padding: 1rem;
+}
+
+.calendar-shell__content {
+  margin-top: 0.7rem;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.calendar-month-sidebar {
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--card-bg) 90%, var(--soft-bg) 10%);
+  padding: 0.75rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.calendar-month-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.calendar-month-sidebar__header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.calendar-month-sidebar__nav {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.calendar-month-sidebar__weekdays,
+.calendar-month-sidebar__days {
+  margin-top: 0.55rem;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.22rem;
+}
+
+.calendar-month-sidebar__weekdays span {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--text) 84%, transparent);
+}
+
+.calendar-month-sidebar__day {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  min-height: 1.9rem;
+  border-radius: 0.42rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.calendar-month-sidebar__day--outside {
+  opacity: 0.58;
+}
+
+.calendar-month-sidebar__day--today {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+}
+
+.calendar-month-sidebar__day--selected {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+  background: color-mix(in srgb, var(--soft-bg) 70%, var(--card-bg));
+  font-weight: 700;
+}
+
+.calendar-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mini-action--active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.calendar-period-label {
+  margin-top: 0.65rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.calendar-month-grid {
+  margin-top: 0.65rem;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.calendar-month-grid__head {
+  font-size: 0.8rem;
+  text-align: center;
+  color: color-mix(in srgb, var(--text) 84%, transparent);
+  font-weight: 700;
+}
+
+.calendar-month-cell {
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--card-bg) 90%, var(--soft-bg) 10%);
+  min-height: 120px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-month-cell--faded {
+  opacity: 0.7;
+}
+
+.calendar-month-cell--selected {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+}
+
+.calendar-month-cell__date {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.calendar-month-cell__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.calendar-chip {
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.76rem;
+  background: color-mix(in srgb, var(--soft-bg) 68%, var(--card-bg));
+}
+
+.calendar-time-grid {
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  overflow: auto;
+  max-height: 72vh;
+  background: color-mix(in srgb, var(--card-bg) 96%, var(--soft-bg) 4%);
+}
+
+.calendar-time-grid--week {
+  display: grid;
+  grid-template-columns: 90px repeat(7, minmax(120px, 1fr));
+}
+
+.calendar-time-grid--day {
+  display: grid;
+  grid-template-columns: 90px minmax(220px, 1fr);
+}
+
+.calendar-time-grid__corner,
+.calendar-time-grid__head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--soft-bg) 75%, var(--card-bg));
+}
+
+.calendar-time-grid__corner {
+  left: 0;
+  z-index: 5;
+}
+
+.calendar-time-grid__head {
+  min-height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-h);
+  padding: 0.35rem;
+  border-left: 1px solid var(--border);
+}
+
+.calendar-time-grid__time {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.74rem;
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card-bg) 95%, var(--soft-bg) 5%);
+}
+
+.calendar-time-grid__cell {
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card-bg) 99%, transparent);
+  min-height: 2rem;
+  text-align: left;
+  padding: 0.12rem;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.calendar-time-grid__cell:hover {
+  background: color-mix(in srgb, var(--soft-bg) 34%, var(--card-bg));
+}
+
+.calendar-slot-entry {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  background: color-mix(in srgb, var(--soft-bg) 72%, var(--card-bg));
+  color: var(--text-h);
+}
+
+.calendar-agenda-card h3 {
+  margin: 0 0 0.6rem;
+}
+
+.modal-card--calendar-event {
+  width: min(900px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
+.calendar-event-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.85rem;
+  padding: 1rem 1.2rem 1.1rem;
+}
+
+.calendar-event-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+.calendar-event-form input,
+.calendar-event-form select,
+.calendar-event-form textarea {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.55rem 0.62rem;
+  font: inherit;
+}
+
+.calendar-event-form__description {
+  grid-column: 1 / -1;
+}
+
+.workspace-login-card {
+  width: min(460px, 100%);
+  margin: 3rem auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 440ms ease, transform 440ms ease;
+}
+
+[data-reveal="left"] {
+  transform: translateX(-20px);
+}
+
+[data-reveal="right"] {
+  transform: translateX(20px);
+}
+
+[data-reveal="zoom"] {
+  transform: scale(0.97);
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 1500px) {
+  .appointment-modal__form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .modal-card--appointment {
+    font-size: 1rem;
+  }
+
+  .appointment-modal__form,
+  .appointment-modal__fields,
+  .appointment-modal__schedule-body,
+  .consultation-picker__time-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 960px) {
@@ -636,5 +1765,77 @@ p {
 
   .hero-button {
     text-align: center;
+  }
+
+  .workspace-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-sidebar {
+    position: static;
+  }
+
+  .marketing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attorney-profile {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-month-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-shell__content {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-month-sidebar {
+    position: static;
+  }
+
+  .calendar-time-grid--week {
+    grid-template-columns: 76px repeat(7, minmax(94px, 1fr));
+  }
+
+  .calendar-time-grid--day {
+    grid-template-columns: 76px minmax(200px, 1fr);
+  }
+
+  .consultations-stats__items {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .consultation-item__editor {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .consultation-item__save {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 800px) {
+  .consultations-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .consultations-toolbar__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .consultations-stats__items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-month-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-event-form {
+    grid-template-columns: 1fr;
   }
 }

@@ -45,3 +45,13 @@ These are in the applied schema. They are called out so a later diagram does not
 | `intake_records.ApprovedConflictDecisionId` | conflict decision | Guid column, no foreign key |
 | `matters.LinkedIntakeRecordId` | intake record | Guid column, no foreign key |
 | `calendar_entries.MatterReference` | matter | Free text, not a foreign key |
+
+## Laravel migration stack additions (2026-10-18)
+
+The current runtime stack in this repository is Laravel + Vue. The following schema changes were added in the Laravel migration timeline during this session:
+
+| Order | When (UTC) | Migration id | Decided by | What changed |
+|---|---|---|---|---|
+| L1 | 2026-10-18 08:31:59 | `2026_10_18_083159_create_matter_records_table` | Founder | Added `matter_records` with UUID key, matter number uniqueness, stage/status fields, staffing actor fields, and indexes on `practice_area`, `stage`, and `status`. |
+| L2 | 2026-10-18 08:31:59 | `2026_10_18_083159_create_matter_tasks_table` | Founder | Added `matter_tasks` with UUID key, foreign key `matter_record_id -> matter_records.id` (`cascadeOnDelete`), assignee/priority/status fields, due/completed timestamps, and indexes on `status` and `due_at_utc`. |
+| L3 | 2026-10-18 08:31:59 | `2026_10_18_083159_create_calendar_entries_table` | Founder | Added `calendar_entries` with UUID key, entry/deadline classification, owner fields, schedule and completion metadata, reminder JSON, and indexes on `entry_type`, `scheduled_at_utc`, and `is_completed`. |
