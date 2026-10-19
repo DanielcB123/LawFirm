@@ -11,6 +11,8 @@ if [ -f ".env.docker" ]; then
 fi
 
 sync_composer_dependencies_if_needed() {
+    # Use case: dev-mode safety. Reinstall dependencies only when lock hash changes
+    # or vendor/autoload.php is missing.
     if [ ! -f "composer.lock" ]; then
         return
     fi
@@ -29,10 +31,12 @@ sync_composer_dependencies_if_needed() {
 }
 
 run_migrations() {
+    # Use case: migration job container (`command: ["migrate"]`).
     php artisan migrate --force
 }
 
 start_server() {
+    # Use case: web-serving modes (`web` and `dev-web`).
     php artisan serve --host=0.0.0.0 --port=8000
 }
 
@@ -40,13 +44,16 @@ mode="${1:-web}"
 
 case "${mode}" in
     web)
+        # Use case: prod-style runtime, no dependency sync check.
         start_server
         ;;
     dev-web)
+        # Use case: local dev runtime with composer lock drift protection.
         sync_composer_dependencies_if_needed
         start_server
         ;;
     migrate)
+        # Use case: one-shot schema bootstrap/update at startup orchestration.
         sync_composer_dependencies_if_needed
         run_migrations
         ;;

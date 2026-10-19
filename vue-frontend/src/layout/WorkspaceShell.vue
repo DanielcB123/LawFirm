@@ -10,6 +10,7 @@ const router = useRouter()
 const navItems = [
   { to: '/workspace', label: 'Dashboard' },
   { to: '/workspace/calendar', label: 'Calendar' },
+  { to: '/workspace/tasks', label: 'Tasks' },
   { to: '/workspace/matters', label: 'Matters' },
   { to: '/workspace/contacts', label: 'Contacts' },
   { to: '/workspace/activities', label: 'Activities' },

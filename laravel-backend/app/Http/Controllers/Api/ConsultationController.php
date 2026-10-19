@@ -85,10 +85,12 @@ class ConsultationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['nullable', 'string', 'max:40'],
+            'status' => ['nullable', 'in:Requested,InReview,Contacted,Scheduled,Converted,Closed,Cancelled'],
         ]);
 
-        $query = ConsultationRequest::query()->orderByDesc('created_at');
+        $query = ConsultationRequest::query()
+            ->orderByRaw("CASE WHEN status = 'Requested' THEN 0 WHEN status = 'InReview' THEN 1 ELSE 2 END")
+            ->orderBy('preferred_at_utc');
 
         if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
@@ -102,7 +104,7 @@ class ConsultationController extends Controller
     public function updateStatus(Request $request, ConsultationRequest $consultation): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'string', 'max:40'],
+            'status' => ['required', 'in:Requested,InReview,Contacted,Scheduled,Converted,Closed,Cancelled'],
             'assignedToActorId' => ['nullable', 'string', 'max:64'],
             'assignedToDisplayName' => ['nullable', 'string', 'max:120'],
             'internalNotes' => ['nullable', 'string'],

@@ -18,6 +18,8 @@ services:
   backend-dev:
     <<: *backend-base
     container_name: matterforge-laravel-backend-dev
+    # Use case: default local development mode.
+    # Runs dependency drift checks (composer.lock hash) before starting Laravel.
     command: ["dev-web"]
     profiles: ["dev"]
     restart: unless-stopped
@@ -30,6 +32,8 @@ services:
   backend:
     <<: *backend-base
     container_name: matterforge-laravel-backend
+    # Use case: prod-style backend runtime with immutable image contents.
+    # Skips live bind-mount behavior and starts Laravel web server directly.
     command: ["web"]
     profiles: ["prod"]
     restart: unless-stopped
@@ -39,6 +43,8 @@ services:
   migrate:
     <<: *backend-base
     container_name: matterforge-laravel-migrate
+    # Use case: one-shot schema convergence job for both dev and prod profiles.
+    # Runs `php artisan migrate --force` and exits.
     command: ["migrate"]
     profiles: ["dev", "prod"]
     restart: "no"
@@ -52,10 +58,14 @@ services:
     image: node:22-alpine
     container_name: matterforge-vue-frontend
     working_dir: /workspace
-    command: ["sh", "-lc", "npm install && npm run dev -- --host 0.0.0.0 --port 5173"]
+    # Use case: local frontend development server.
+    # Installs npm deps in container, then runs Vite dev server.
+    command: ["sh", "-lc", "npm install && npm run dev"]
     profiles: ["dev"]
     environment:
       VITE_API_BASE_URL: http://localhost:8080/api
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "100"
     volumes:
       - ./vue-frontend:/workspace
       - vue_node_modules:/workspace/node_modules

@@ -153,3 +153,43 @@ classDiagram
 ## When this file changes
 
 Update it in the same change as the EF migration, then add a row to [schema evolution](schema-evolution.md). Do not paste the future billing or trust classes here until a migration creates their tables. Those designed tables stay on the ERD.
+
+## Laravel migration stack snapshot (2026-10-18)
+
+The active migration stack in this repository is Laravel. The following class diagram captures the newly added workspace-parity entities implemented in this session:
+
+```mermaid
+classDiagram
+  class MatterRecord {
+    <<table matter_records>>
+    uuid Id
+    string MatterNumber
+    string Title
+    string PracticeArea
+    string Stage
+    string Status
+  }
+
+  class MatterTask {
+    <<table matter_tasks>>
+    uuid Id
+    uuid MatterRecordId
+    string Title
+    string Status
+    string Priority
+    datetime DueAtUtc
+  }
+
+  class CalendarEntry {
+    <<table calendar_entries>>
+    uuid Id
+    string Title
+    string EntryType
+    string DeadlineType
+    datetime ScheduledAtUtc
+    bool IsCompleted
+    string MatterReference
+  }
+
+  MatterRecord "1" --> "*" MatterTask : MatterRecordId CASCADE
+```

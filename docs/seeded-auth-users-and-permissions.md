@@ -32,12 +32,12 @@ Permissions are seeded from `config/roles.php` and stored per user in the `permi
 
 | Role | Granted Permissions |
 |---|---|
-| Partner | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage` |
-| Attorney | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage` |
-| Paralegal | `contacts.read`, `intake.read`, `consultations.read` |
+| Partner | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage`, `calendar.read`, `calendar.manage`, `matters.read`, `tasks.read`, `tasks.manage` |
+| Attorney | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage`, `calendar.read`, `calendar.manage`, `matters.read`, `tasks.read`, `tasks.manage` |
+| Paralegal | `contacts.read`, `intake.read`, `consultations.read`, `calendar.read`, `matters.read`, `tasks.read` |
 | Accountant | `contacts.read` |
-| LegalAssistant | `contacts.read`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage` |
-| AdminIT | `contacts.read`, `consultations.read` |
+| LegalAssistant | `contacts.read`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage`, `calendar.read`, `calendar.manage`, `matters.read`, `tasks.read`, `tasks.manage` |
+| AdminIT | `contacts.read`, `consultations.read`, `calendar.read`, `matters.read`, `tasks.read` |
 | Client | (no seeded permissions) |
 
 ## What these permissions currently gate
@@ -50,5 +50,10 @@ Authenticated routes in `routes/api.php` apply permission middleware as follows:
 - `intake.manage` -> `POST /api/intake`
 - `consultations.read` -> `GET /api/consultations`
 - `consultations.manage` -> `POST /api/consultations/{consultation}/status`
+- `calendar.read` -> `GET /api/calendar/entries`
+- `calendar.manage` -> `POST /api/calendar/entries`, `POST /api/calendar/entries/{entry}/complete`
+- `matters.read` -> `GET /api/matters`
+- `tasks.read` -> `GET /api/tasks`
+- `tasks.manage` -> `POST /api/tasks`, `POST /api/tasks/{task}/status`
 
 The middleware returns `403 Forbidden` if the authenticated user lacks the required permission.

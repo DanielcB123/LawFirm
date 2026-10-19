@@ -1808,3 +1808,264 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** `/docs` now has a current, source-backed authentication persona and permissions reference for local sign-in and role-based validation workflows.
 - **Benefit and possible future downfall:** [D-20261018-4](Markdown/planning/decision-log.md). Benefit: faster QA and onboarding for auth-permission scenarios without searching seed files. Downfall: document drift risk if seed roles or permissions change without updating this reference.
 - **Next action:** keep this docs file synchronized whenever `DatabaseSeeder.php`, `config/roles.php`, or permission-gated routes change.
+
+## 2026-10-18 - Workspace calendar/matters/tasks parity implementation
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** replace remaining signed-in placeholders for calendar and matters depth with functional Laravel/Vue workflows, add a dedicated tasks page, and upgrade consultation queue triage interactions while preserving public consultation intake continuity.
+
+### Changes
+
+- Laravel backend schema and domain:
+  - added `matter_records`, `matter_tasks`, and `calendar_entries` migrations with UUID keys, indexes, and matter-task foreign key.
+  - implemented models/factories: `MatterRecord`, `MatterTask`, `CalendarEntry`.
+  - expanded seeding in `DatabaseSeeder` with sample matters, tasks, and calendar entries for immediate workspace data visibility.
+- Laravel API endpoints and permissions:
+  - added `CalendarController` endpoints:
+    - `GET /api/calendar/entries` (`calendar.read`)
+    - `POST /api/calendar/entries` (`calendar.manage`)
+    - `POST /api/calendar/entries/{entry}/complete` (`calendar.manage`)
+  - added `MatterController` endpoint:
+    - `GET /api/matters` (`matters.read`)
+  - added `TaskController` endpoints:
+    - `GET /api/tasks` (`tasks.read`)
+    - `POST /api/tasks` (`tasks.manage`)
+    - `POST /api/tasks/{task}/status` (`tasks.manage`)
+  - updated `config/roles.php` to include calendar/matters/tasks permissions across operational roles.
+- Consultation queue behavior depth:
+  - upgraded `ConsultationsQueuePage.vue` from single-action scheduling to per-record editable status + internal notes drafts with explicit save actions.
+  - aligned status options with queue lifecycle values (`Requested`, `InReview`, `Contacted`, `Scheduled`, `Converted`, `Closed`, `Cancelled`).
+  - hardened backend queue validation/sorting in `ConsultationController`.
+- Vue workspace route parity:
+  - replaced placeholders with real pages:
+    - `WorkspaceCalendarPage.vue` (month/week/day tabs, create entry, complete/reopen).
+    - `MattersPage.vue` (matter list with staffing and open-task counts).
+    - `TasksPage.vue` (task queue, filter, status transitions, create task).
+  - added feature clients/types:
+    - `features/calendar/{api,types}.ts`
+    - `features/matters/{api,types}.ts`
+  - updated router/sidebar wiring for `/workspace/calendar`, `/workspace/tasks`, `/workspace/matters`.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format agent` in `laravel-backend` -> success.
+- `php artisan test --compact` in `laravel-backend` -> success (18 tests, 79 assertions).
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on edited frontend/backend files -> no linter errors.
+
+### Checks not run, and why
+
+- No browser automation playback was run in this slice; behavior verification focused on backend feature tests and TypeScript production build compile checks.
+
+### Outcome and next action
+
+- **Outcome:** workspace users now have functional calendar/month-week-day scheduling, matter list visibility, and task queue management in the migrated Laravel/Vue stack; consultation queue triage is now editable record-by-record instead of one-click status jump.
+- **Benefit and possible future downfall:** [D-20261018-5](Markdown/planning/decision-log.md). Benefit: removes high-friction placeholder gaps in authenticated operations and restores end-to-end operational flow parity for daily legal staff use. Downfall: this slice introduces broader role-permission and schema surface area that will drift unless future module slices (activities/documents/communications) reuse the same contract and test discipline.
+- **Next action:** implement matter-detail depth (task editing, document metadata workflow, and timeline actions) and expand parity checks for remaining authenticated placeholder routes.
+
+## 2026-10-18 - Docker/Artisan command ownership map and use-case comment hardening
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** answer command-location ambiguity by documenting where operational commands are defined and adding explicit use-case comments above compose and entrypoint command declarations, plus a canonical commented command catalog for daily operations.
+
+### Changes
+
+- Added use-case comments directly in runtime command definition files:
+  - `docker-compose.yml`:
+    - `backend-dev` command (`dev-web`) comment for default local development mode.
+    - `backend` command (`web`) comment for prod-style immutable runtime.
+    - `migrate` command (`migrate`) comment for one-shot migration execution.
+    - `frontend` command comment for npm install + Vite dev flow.
+  - `docker/laravel/entrypoint.sh`:
+    - comments above dependency-sync, migration, server-start helpers, and mode branches (`web`, `dev-web`, `migrate`).
+- Expanded architecture runbook with a canonical command catalog:
+  - `Markdown/architecture/README.md` now includes:
+    - command source-of-truth file map,
+    - commented `docker compose` up/down commands for dev and prod profiles,
+    - commented Laravel maintenance commands (`migrate`, `db:seed`, `optimize:clear`, `cache:clear`, `route:clear`, `config:clear`),
+    - commented verification commands for backend tests and frontend build.
+- Clarified that `docs/migration/PROGRESS.md` remains historical evidence rather than the primary day-to-day operator source.
+
+### Checks run (actual results)
+
+- Documentation/configuration update only; no runtime command execution rerun.
+
+### Checks not run, and why
+
+- Did not re-run compose startup, artisan commands, or tests because this slice did not alter command semantics—only command comments and documentation discoverability.
+
+### Outcome and next action
+
+- **Outcome:** operator command discoverability is now explicit: command definitions are annotated in-place, and one canonical runbook section explains when to use each compose/artisan command.
+- **Benefit and possible future downfall:** [D-20261018-6](Markdown/planning/decision-log.md). Benefit: reduces onboarding/debug friction and prevents command drift between team members by centralizing operational intent. Downfall: if compose profiles or container names change without synchronized updates, comments can become stale and misleading.
+- **Next action:** keep the architecture command catalog and in-file command comments synchronized whenever compose service names, profile wiring, or Laravel maintenance workflows change.
+
+## 2026-10-18 - Docker command runbook moved to dedicated operations doc
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** place Docker/Artisan command guidance in a dedicated, clearly named operations document while retaining architecture-level discoverability links.
+
+### Changes
+
+- Added new canonical runbook:
+  - `Markdown/operations/docker-and-laravel-command-runbook.md`
+  - includes:
+    - command ownership map,
+    - exact ordered dev sequence (`up -> ps -> migrate/seed/clear -> down`),
+    - targeted clear commands (`cache:clear`, `route:clear`, `config:clear`),
+    - prod-style profile sequence,
+    - explicit command-order rule.
+- Linked the runbook from primary doc indexes:
+  - `Markdown/README.md` operations table.
+  - `Markdown/architecture/README.md` related-links header.
+- Kept `Markdown/architecture/README.md` as architecture context while moving day-to-day operator command flow to the dedicated operations runbook.
+
+### Checks run (actual results)
+
+- Documentation-only updates; no runtime commands rerun in this slice.
+
+### Checks not run, and why
+
+- No compose/artisan execution was rerun because this slice changed documentation placement and link structure only.
+
+### Outcome and next action
+
+- **Outcome:** Docker and Artisan operational command sequencing now has a dedicated, easy-to-find runbook under `Markdown/operations/` with architecture and top-level documentation links.
+- **Benefit and possible future downfall:** [D-20261018-7](Markdown/planning/decision-log.md). Benefit: reduces ambiguity by separating architecture narrative from operator command execution guidance. Downfall: two linked docs (architecture + operations) can drift if command updates are only applied to one.
+- **Next action:** update both the operations runbook and architecture link references whenever compose profile or command workflows change.
+
+## 2026-10-18 - Calendar week-grid default, month navigator, and double-click event modal
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** update the workspace calendar UX to better match Clio-style scheduling flow by defaulting to week view, rendering precise time-grid selection, keeping a left-side traversable month picker visible, and opening a richer event capture surface on slot double-click.
+
+### Changes
+
+- Reworked `vue-frontend/src/pages/workspace/WorkspaceCalendarPage.vue`:
+  - changed default calendar tab from `month` to `week`,
+  - added persistent left mini-month navigator with month traversal and date selection,
+  - replaced week/day list cards with a 30-minute slot time grid across 24 hours,
+  - wired slot double-click (week/day/month) to open event creation modal seeded to selected slot time,
+  - added a larger create-event modal collecting title, start/end time, entry type, deadline type, matter reference, location, and description,
+  - retained selected-day agenda listing and complete/reopen actions for existing entries.
+- Extended calendar styling in `vue-frontend/src/style.css`:
+  - added sidebar month navigator styles,
+  - added week/day time-grid layout styles with sticky headers/times and slot chips,
+  - added dedicated calendar event modal form styling and responsive behavior.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on edited files (`WorkspaceCalendarPage.vue`, `style.css`) -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation playback or manual UI recording was captured in this slice; verification was compile/lint based with interaction logic validated by source-level review.
+
+### Outcome and next action
+
+- **Outcome:** the workspace calendar now opens in a week-first grid experience with visibly selectable time rows, a traversable left-side month picker, and direct double-click event creation in a modal aligned with requested scheduling depth.
+- **Benefit and possible future downfall:** [D-20261018-8](Markdown/planning/decision-log.md). Benefit: improves scheduling precision and reduces event-creation friction by anchoring interactions to visible time slots. Downfall: denser grid/modal UX increases front-end complexity and may require additional tuning for small screens or heavy daily event volume.
+- **Next action:** run a browser interaction pass for slot density/readability and adjust row height/typography if users request tighter or larger scheduling cells.
+
+## 2026-10-18 - Clarify Docker local-start order and PowerShell-safe command usage
+
+- **Recorded:** 2026-10-18 EDT. **Not committed.**
+- **Objective and scope:** remove local onboarding confusion by documenting the exact Docker/Artisan command order, explaining why the order matters, and making the sequence safer to copy into PowerShell.
+
+### Changes
+
+- Updated `Markdown/operations/docker-and-laravel-command-runbook.md`:
+  - added a "Before running commands" checklist (repo root, Docker Desktop running, one command at a time),
+  - added a copy/paste-safe dev sequence block without inline comments,
+  - added explicit order rationale (`up -> ps -> migrate -> seed -> optimize:clear`),
+  - added a guardrail note not to paste Markdown fence markers into terminal.
+- Updated `Markdown/architecture/README.md`:
+  - clarified that architecture now provides command ownership context while the operations runbook is canonical for day-to-day sequence,
+  - added a command-usage warning about command order and Markdown fence copy mistakes.
+
+### Checks run (actual results)
+
+- Documentation-only updates; no runtime behavior change was made to compose profiles, services, or Artisan commands.
+- Verified current runtime state remained healthy during support flow:
+  - `docker compose --profile dev ps` showed `backend-dev` and `mysql` healthy, `frontend` running, and one-shot `migrate` exited `0`.
+
+### Checks not run, and why
+
+- No additional compose/artisan rerun was required because this slice only changed documentation phrasing/order guidance and not executable command definitions.
+
+### Outcome and next action
+
+- **Outcome:** local Docker instructions now state the required order, explain the dependency between steps, and reduce copy/paste errors in PowerShell.
+- **Benefit and possible future downfall:** [D-20261018-9](Markdown/planning/decision-log.md). Benefit: fewer startup failures caused by sequence errors (`exec` on stopped containers, seed before migration, pasted markdown fences). Downfall: if service names or profile wiring change and docs are not updated immediately, clearer instructions can still become stale.
+- **Next action:** keep `Markdown/operations/docker-and-laravel-command-runbook.md` and architecture cross-references synchronized whenever operational commands change.
+
+## 2026-10-19 - Add explicit start/finish sections for clean Docker dev shutdown workflows
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** make it explicit where developers begin local dev startup and where they perform clean shutdown, including optional volume teardown, so no compose-managed containers are left running unintentionally.
+
+### Changes
+
+- Updated `Markdown/operations/docker-and-laravel-command-runbook.md`:
+  - added `Start here (begin local dev)` section with the ordered startup/prepare command sequence,
+  - added `When finished (clean shutdown)` section with:
+    - standard stop (`down --remove-orphans`),
+    - full clean stop (`down --remove-orphans --volumes`),
+    - post-shutdown `ps` check to confirm no project services remain,
+  - added explicit warning that `--volumes` removes project volume-backed MySQL data.
+- Added optional prod-profile full cleanup command (`down --remove-orphans --volumes`) for parity.
+
+### Checks run (actual results)
+
+- Documentation-only updates; no runtime command semantics or compose service wiring changed.
+- Lint diagnostics for edited docs were clean.
+
+### Checks not run, and why
+
+- No compose execution was rerun in this slice because the change only clarified/operator-documented existing commands.
+
+### Outcome and next action
+
+- **Outcome:** the runbook now has a prominent "start here" and "when finished" flow, including safe defaults and explicit full-clean options.
+- **Benefit and possible future downfall:** [D-20261019-1](Markdown/planning/decision-log.md). Benefit: reduces forgotten running containers and shutdown ambiguity during local development. Downfall: stronger cleanup guidance can still be misused if users run `--volumes` without intending to reset local DB data.
+- **Next action:** keep these sections aligned with compose profile/service-name changes and add troubleshooting checks when new recurring operator issues appear.
+
+## 2026-10-19 - Enable Vue Tailwind support and harden Docker hot-reload behavior
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** make frontend style edits reliably hot-load during local Docker development and introduce Tailwind CSS into the Vue frontend stack for utility-first styling.
+
+### Changes
+
+- Updated `vue-frontend/vite.config.ts`:
+  - added `@tailwindcss/vite` plugin,
+  - set explicit dev server host/port,
+  - enabled polling-based watch config and explicit HMR host/port for Docker-on-Windows file-change reliability.
+- Updated `docker-compose.yml` frontend service:
+  - switched command to `npm run dev` (server config now lives in Vite config),
+  - added `CHOKIDAR_USEPOLLING` and `CHOKIDAR_INTERVAL` environment variables.
+- Updated `vue-frontend/src/style.css`:
+  - added `@import "tailwindcss";` so Tailwind utilities are available,
+  - removed invalid stray `ddd` token in `.workspace-sidebar` block that caused CSS parse/lint failures.
+- Updated frontend dependencies in `vue-frontend/package.json` / `vue-frontend/package-lock.json`:
+  - added `tailwindcss`,
+  - added `@tailwindcss/vite`,
+  - included required PostCSS tooling entries now present in dev dependencies.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` for `vue-frontend/vite.config.ts`, `vue-frontend/src/style.css`, and `docker-compose.yml` -> no diagnostics.
+- `curl -I http://localhost:5173` -> HTTP 200 from Vite dev server.
+- `docker compose --profile dev ps` -> `backend-dev` healthy, `mysql` healthy, `frontend` running.
+
+### Checks not run, and why
+
+- No browser automation flow was executed in this slice; verification focused on compile/lint and live dev-server reachability.
+
+### Outcome and next action
+
+- **Outcome:** frontend style edits now use polling-compatible hot reload in Docker-based local development, and Tailwind utilities are available for incremental adoption.
+- **Benefit and possible future downfall:** [D-20261019-2](Markdown/planning/decision-log.md). Benefit: faster frontend iteration with fewer missed file-change events and a modern utility styling option. Downfall: mixed Tailwind + large legacy stylesheet can increase short-term style complexity until consolidation is performed.
+- **Next action:** migrate high-churn UI surfaces to Tailwind utilities first, then prune redundant legacy CSS blocks in controlled passes.

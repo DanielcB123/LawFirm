@@ -14,6 +14,9 @@ import WorkspaceHomePage from '../pages/workspace/WorkspaceHomePage.vue'
 import ContactsPage from '../pages/workspace/ContactsPage.vue'
 import IntakePage from '../pages/workspace/IntakePage.vue'
 import ConsultationsQueuePage from '../pages/workspace/ConsultationsQueuePage.vue'
+import WorkspaceCalendarPage from '../pages/workspace/WorkspaceCalendarPage.vue'
+import MattersPage from '../pages/workspace/MattersPage.vue'
+import TasksPage from '../pages/workspace/TasksPage.vue'
 import PlaceholderPage from '../pages/workspace/PlaceholderPage.vue'
 
 const routes = [
@@ -44,8 +47,9 @@ const routes = [
       { path: 'contacts', name: 'workspace-contacts', component: ContactsPage },
       { path: 'intake', name: 'workspace-intake', component: IntakePage },
       { path: 'consultations', name: 'workspace-consultations', component: ConsultationsQueuePage },
-      { path: 'calendar', name: 'workspace-calendar', component: PlaceholderPage, props: { title: 'Calendar' } },
-      { path: 'matters', name: 'workspace-matters', component: PlaceholderPage, props: { title: 'Matters' } },
+      { path: 'calendar', name: 'workspace-calendar', component: WorkspaceCalendarPage },
+      { path: 'tasks', name: 'workspace-tasks', component: TasksPage },
+      { path: 'matters', name: 'workspace-matters', component: MattersPage },
       { path: 'activities', name: 'workspace-activities', component: PlaceholderPage, props: { title: 'Activities' } },
       { path: 'billing', name: 'workspace-billing', component: PlaceholderPage, props: { title: 'Billing' } },
       {

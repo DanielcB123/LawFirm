@@ -28,6 +28,28 @@ class ConsultationApiTest extends TestCase
             ->assertJsonPath('status', 'Requested');
     }
 
+    public function test_public_submission_is_visible_in_authenticated_queue(): void
+    {
+        $this->postJson('/api/consultations', [
+            'fullName' => 'Queue Prospect',
+            'email' => 'queue.prospect@example.com',
+            'practiceArea' => 'ConstructionLaw',
+            'preferredAtUtc' => now()->addDays(3)->setTime(10, 0)->toISOString(),
+            'timeZone' => 'America/New_York',
+        ])->assertCreated();
+
+        Sanctum::actingAs(User::factory()->create([
+            'permissions' => ['consultations.read'],
+        ]));
+
+        $this->getJson('/api/consultations')
+            ->assertOk()
+            ->assertJsonFragment([
+                'fullName' => 'Queue Prospect',
+                'email' => 'queue.prospect@example.com',
+            ]);
+    }
+
     public function test_available_slots_endpoint_returns_values(): void
     {
         $this->getJson('/api/consultations/available-slots?days=3')
