@@ -2069,3 +2069,128 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** frontend style edits now use polling-compatible hot reload in Docker-based local development, and Tailwind utilities are available for incremental adoption.
 - **Benefit and possible future downfall:** [D-20261019-2](Markdown/planning/decision-log.md). Benefit: faster frontend iteration with fewer missed file-change events and a modern utility styling option. Downfall: mixed Tailwind + large legacy stylesheet can increase short-term style complexity until consolidation is performed.
 - **Next action:** migrate high-churn UI surfaces to Tailwind utilities first, then prune redundant legacy CSS blocks in controlled passes.
+
+## 2026-10-19 - Render workspace login inside public shell navigation
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** make the workspace sign-in page show the same non-authenticated navigation and footer as other public routes.
+
+### Changes
+
+- Updated `vue-frontend/src/router/index.ts`:
+  - moved `workspace-login` route to be a child of `PublicShell` with path `workspace/login`,
+  - removed standalone top-level `/workspace/login` route declaration.
+- Updated `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`:
+  - removed outer `<main class="page">` wrapper so the page fits cleanly inside `PublicShell`'s existing `<main>` container.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on `router/index.ts` and `WorkspaceLoginPage.vue` -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation pass was run in this slice; verification focused on compile/lint and route wiring correctness.
+
+### Outcome and next action
+
+- **Outcome:** `/workspace/login` now renders with the same public navigation/footer shell as other non-auth pages while preserving login route path and guest-only behavior.
+- **Benefit and possible future downfall:** [D-20261019-3](Markdown/planning/decision-log.md). Benefit: consistent unauthenticated UX and easier navigation return path when users leave workspace sign-in. Downfall: if future public-shell changes become heavy, they will also apply to login and may require route-specific overrides.
+- **Next action:** optionally fine-tune sign-in page spacing and active-link styling under public-shell context if UX feedback requests visual adjustments.
+
+## 2026-10-19 - Enforce footer-at-bottom layout on public and workspace pages
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** ensure footer stays at the bottom of the viewport on short-content pages for both non-auth and authenticated experiences.
+
+### Changes
+
+- Updated `vue-frontend/src/style.css`:
+  - added `.public-shell` column-flex min-height layout,
+  - made `.public-shell > .page` expand (`flex: 1`) so footer is pushed to viewport bottom on short pages,
+  - updated `.workspace-shell` grid to include footer row (`minmax(0, 1fr) auto`),
+  - added `.workspace-footer` grid placement and `workspace-main` `min-width: 0` hardening.
+- Updated `vue-frontend/src/layout/WorkspaceShell.vue`:
+  - imported and rendered shared `SiteFooter` as `workspace-footer`.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on `WorkspaceShell.vue` and `style.css` -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation capture was run in this slice; verification focused on shell composition and compile/lint correctness.
+
+### Outcome and next action
+
+- **Outcome:** footer now remains at the bottom on short pages in both public and authenticated route shells, including workspace sign-in and workspace feature pages.
+- **Benefit and possible future downfall:** [D-20261019-4](Markdown/planning/decision-log.md). Benefit: consistent, production-grade page framing and less visual "floating footer" behavior on sparse pages. Downfall: shared footer in workspace shell may require route-level spacing refinements for dense workspace pages.
+- **Next action:** validate spacing and footer prominence across small/large viewports and adjust shell padding tokens if needed.
+
+## 2026-10-19 - Add animated attorney profile transitions and link home partner cards to profile pages
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** make attorney profile pages feel more lively and engaging, add transition animation when navigating into profile detail routes, and make Home partner spotlight cards navigate to those same profile pages.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/public/HomePage.vue`:
+  - converted partner spotlight cards to `RouterLink` elements targeting `/attorneys/:slug`,
+  - added explicit "View full profile" call-to-action text on each partner card.
+- Updated `vue-frontend/src/pages/public/AttorneyProfilePage.vue`:
+  - added role-based highlight chips,
+  - added "What clients can expect" content panel,
+  - grouped profile actions into a dedicated actions row.
+- Updated `vue-frontend/src/layout/PublicShell.vue`:
+  - wrapped routed public page output in transition wrapper,
+  - applied dedicated `profile-route` transition for attorney detail pages and fallback fade transition for other pages.
+- Updated `vue-frontend/src/style.css`:
+  - added linked-partner-card hover styling and profile CTA styles,
+  - added attorney-profile chips/panel/actions styles,
+  - added `page-fade` and `profile-route` transition class animations.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on `HomePage.vue`, `AttorneyProfilePage.vue`, `PublicShell.vue`, and `style.css` -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation/screenshot comparison was run in this slice; verification focused on compilation/lint and route/template correctness.
+
+### Outcome and next action
+
+- **Outcome:** users now get animated, more visually engaging attorney profile pages and can open those pages directly from both Attorneys and Home partner spotlight cards.
+- **Benefit and possible future downfall:** [D-20261019-5](Markdown/planning/decision-log.md). Benefit: improves perceived quality and engagement on team profile exploration flows. Downfall: route-level animations increase visual complexity and may require tuning for users who prefer reduced motion.
+- **Next action:** optionally add `prefers-reduced-motion` handling for profile transitions and consider making operations-team list entries in Attorneys page deep-link cards as well.
+
+## 2026-10-19 - Fix blank public-page rendering by replacing route-wrapper transitions with profile-local animation
+
+- **Recorded:** 2026-10-19 EDT. **Not committed.**
+- **Objective and scope:** correct a regression where public pages appeared blank after introducing route-level transition wrapping in `PublicShell`.
+
+### Changes
+
+- Updated `vue-frontend/src/layout/PublicShell.vue`:
+  - removed `RouterView` transition wrapper and restored direct `<RouterView />` rendering.
+- Updated `vue-frontend/src/pages/public/AttorneyProfilePage.vue`:
+  - added `attorney-profile--animated` class to profile card container.
+- Updated `vue-frontend/src/style.css`:
+  - removed route-transition class set (`page-fade`, `profile-route`),
+  - added keyframe animation (`profile-enter`) used by `.attorney-profile--animated`.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on edited files -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation run in this corrective slice; verification focused on compile/lint stability and known rendering-path rollback.
+
+### Outcome and next action
+
+- **Outcome:** public pages render normally again, and attorney profile pages still animate on entry with a local, lower-risk animation approach.
+- **Benefit and possible future downfall:** [D-20261019-6](Markdown/planning/decision-log.md). Benefit: resolves site-wide blank-route regression quickly while preserving the requested animated profile feel. Downfall: route-level transitions remain deferred and may require a reveal-system-aware implementation later.
+- **Next action:** add `prefers-reduced-motion` guard and, if desired, reintroduce cross-route transitions with deferred reveal initialization sequencing.

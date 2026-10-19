@@ -557,3 +557,51 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Running Tailwind alongside the existing large custom stylesheet can temporarily increase styling overlap and maintenance complexity until targeted cleanup is done.
 - **Not done:** No broad style refactor to Tailwind utilities was performed in this decision; this slice only enables the toolchain and reliability settings.
 - **Evidence:** Updated files: `vue-frontend/vite.config.ts`, `vue-frontend/src/style.css`, `docker-compose.yml`, `vue-frontend/package.json`, `vue-frontend/package-lock.json`, `ProgressPlan.md`, `SLICE_HISTORY.md`.
+
+## D-20261019-3 — Route workspace login through public shell for unauth navigation parity
+
+- **When:** 2026-10-19 04:59 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Moved `workspace-login` route under `PublicShell` children (path remains `/workspace/login`) so `SiteNav` and `SiteFooter` render on the sign-in page; adjusted `WorkspaceLoginPage.vue` markup to remove nested `<main>` wrapper under the shell.
+- **Why:** Founder requested the workspace sign-in page to show the same navigation experience as other non-authenticated/public routes.
+- **Good, because:** Unauthenticated UX is now consistent across public and sign-in routes, and users can navigate away from sign-in using the same top-nav patterns.
+- **Bad, because:** Future changes to public shell layout/styles will also affect workspace sign-in, which may require route-specific spacing or visual overrides.
+- **Not done:** No new route-level visual redesign was done for sign-in; this decision changes shell composition/routing only.
+- **Evidence:** Updated files: `vue-frontend/src/router/index.ts`, `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`, `ProgressPlan.md`, `SLICE_HISTORY.md`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261019-4 — Apply sticky footer shell behavior to public and authenticated layouts
+
+- **When:** 2026-10-19 05:06 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added shell-level layout rules so footer is pinned to viewport bottom on short pages in both app contexts: public shell now uses flex-column with expandable main, and workspace shell now includes shared `SiteFooter` with explicit grid footer row.
+- **Why:** Founder identified a UX issue where footer appeared directly after short sign-in content instead of at page bottom, and requested this behavior consistently across authenticated and non-authenticated pages.
+- **Good, because:** Page framing is now consistent and visually stable on sparse routes, matching common UI expectations for both login and workspace pages.
+- **Bad, because:** Adding a global footer to workspace shell can introduce extra vertical density on some data-heavy pages and may require future spacing refinements.
+- **Not done:** No page-specific footer redesign or responsive spacing tuning was done in this decision.
+- **Evidence:** Updated files: `vue-frontend/src/style.css`, `vue-frontend/src/layout/WorkspaceShell.vue`, `ProgressPlan.md`, `SLICE_HISTORY.md`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261019-5 — Enrich attorney profile UX with animated transitions and home partner deep links
+
+- **When:** 2026-10-19 05:13 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added profile-route transition animations in the public shell, enhanced attorney detail page content structure (highlight chips + expectation panel + action grouping), and converted Home partner spotlight cards to deep links into `/attorneys/:slug` detail pages.
+- **Why:** Founder requested a more exciting, engaging profile experience and consistent navigation paths from both Attorneys and Home partner cards into detailed team-member pages.
+- **Good, because:** Team-profile navigation now feels more intentional and premium, with better page energy and stronger conversion paths to consultation actions.
+- **Bad, because:** Additional transition and styling layers increase CSS/UI complexity and may need accessibility tuning for reduced-motion users.
+- **Not done:** Reduced-motion preference overrides were not implemented in this slice; non-attorney operations-team entries on Attorneys page remain list items rather than full profile cards.
+- **Evidence:** Updated files: `vue-frontend/src/pages/public/HomePage.vue`, `vue-frontend/src/pages/public/AttorneyProfilePage.vue`, `vue-frontend/src/layout/PublicShell.vue`, `vue-frontend/src/style.css`, `ProgressPlan.md`, `SLICE_HISTORY.md`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261019-6 — Roll back route-wrapper transitions to fix blank public pages and keep profile-local animation
+
+- **When:** 2026-10-19 05:22 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Removed route-wrapper transition composition from `PublicShell` and replaced it with a localized attorney-profile card entrance animation to preserve visual liveliness without destabilizing public route rendering.
+- **Why:** Founder reported blank content across all top-nav public routes after transition integration; the issue pointed to interaction risk between shell-level route transitions and reveal lifecycle behavior.
+- **Good, because:** Restores reliable rendering across public pages while keeping the requested animated experience on attorney detail pages.
+- **Bad, because:** Cross-route transition effects are deferred and may require a more nuanced implementation tied to reveal observer timing.
+- **Not done:** No reimplementation of global route transitions was done in this corrective slice.
+- **Evidence:** Updated files: `vue-frontend/src/layout/PublicShell.vue`, `vue-frontend/src/pages/public/AttorneyProfilePage.vue`, `vue-frontend/src/style.css`, `ProgressPlan.md`, `SLICE_HISTORY.md`; `npm run build` passed and lint diagnostics were clean.

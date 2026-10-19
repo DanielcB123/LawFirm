@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthSession } from '../features/auth/session'
+import SiteFooter from '../components/layout/SiteFooter.vue'
 
 const auth = useAuthSession()
 const route = useRoute()
@@ -77,5 +78,6 @@ async function signOut() {
     <main class="workspace-main">
       <RouterView />
     </main>
+    <SiteFooter class="workspace-footer" />
   </div>
 </template>

@@ -25,26 +25,24 @@ async function submit() {
 </script>
 
 <template>
-  <main class="page">
-    <section class="card workspace-login-card">
-      <p class="eyebrow">Workspace sign in</p>
-      <h1>Access case operations</h1>
-      <p class="muted">Use seeded migration credentials to access workspace routes and operational queues.</p>
+  <section class="card workspace-login-card">
+    <p class="eyebrow">Workspace sign in</p>
+    <h1>Access case operations</h1>
+    <p class="muted">Use seeded migration credentials to access workspace routes and operational queues.</p>
 
-      <form class="workspace-form" @submit.prevent="submit">
-        <label>
-          Email
-          <input v-model="email" type="email" />
-        </label>
-        <label>
-          Password
-          <input v-model="password" type="password" />
-        </label>
-        <p v-if="error" class="error-message">{{ error }}</p>
-        <button type="submit" class="hero-button hero-button--primary" :disabled="auth.isSigningIn.value">
-          {{ auth.isSigningIn.value ? 'Signing in...' : 'Sign in' }}
-        </button>
-      </form>
-    </section>
-  </main>
+    <form class="workspace-form" @submit.prevent="submit">
+      <label>
+        Email
+        <input v-model="email" type="email" />
+      </label>
+      <label>
+        Password
+        <input v-model="password" type="password" />
+      </label>
+      <p v-if="error" class="error-message">{{ error }}</p>
+      <button type="submit" class="hero-button hero-button--primary" :disabled="auth.isSigningIn.value">
+        {{ auth.isSigningIn.value ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+  </section>
 </template>

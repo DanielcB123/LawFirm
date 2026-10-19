@@ -121,14 +121,20 @@ function openConsultation(event: MouseEvent) {
       <p class="home-partners__kicker">Partner spotlight</p>
       <h2>Meet the attorneys behind every strategy.</h2>
       <div class="home-partners__grid">
-        <article class="home-partner-card" v-for="partner in partnerProfiles" :key="partner.slug">
+        <RouterLink
+          v-for="partner in partnerProfiles"
+          :key="partner.slug"
+          :to="`/attorneys/${partner.slug}`"
+          class="home-partner-card home-partner-card--link"
+        >
           <img :src="partner.image" :alt="partner.name" loading="lazy" />
           <div class="home-partner-card__content">
             <h3>{{ partner.name }}</h3>
             <p class="home-partner-card__title">{{ partner.role }}</p>
             <p>{{ partner.shortBio }}</p>
+            <span class="home-partner-card__action">View full profile</span>
           </div>
-        </article>
+        </RouterLink>
       </div>
     </section>
 

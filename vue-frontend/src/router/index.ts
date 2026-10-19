@@ -30,13 +30,8 @@ const routes = [
       { path: 'attorneys', name: 'attorneys', component: AttorneysPage },
       { path: 'attorneys/:slug', name: 'attorney-profile', component: AttorneyProfilePage },
       { path: 'contact', name: 'contact', component: ContactPage },
+      { path: 'workspace/login', name: 'workspace-login', component: WorkspaceLoginPage, meta: { guestOnly: true } },
     ],
-  },
-  {
-    path: '/workspace/login',
-    name: 'workspace-login',
-    component: WorkspaceLoginPage,
-    meta: { guestOnly: true },
   },
   {
     path: '/workspace',

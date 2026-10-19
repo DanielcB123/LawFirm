@@ -1,8 +1,61 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-19 03:59 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-19 05:22 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Public-page rendering recovery after route-transition integration
+
+**Status: Verified within stated scope.** Not committed. Scope: resolve blank-content regression across public routes after transition-wrapper integration while preserving animated feel on attorney detail pages.
+
+| Criterion | Result |
+|---|---|
+| Rendering reliability | Removed `RouterView` transition wrapper from `PublicShell` to restore stable rendering across all public routes |
+| Animation preservation | Added page-level entrance animation class on attorney profile card (`attorney-profile--animated`) to retain requested "fun/exciting" effect |
+| CSS transition cleanup | Removed now-unused route-transition classes and replaced with keyframe-based profile entry animation |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited shell/profile/style files returned no diagnostics |
+
+Next action: if needed, add reduced-motion media query guard for profile animation and then selectively reintroduce route-level transitions after coordinating with reveal observer timing.
+
+## Current step: Attorney detail-page experience uplift and partner-card deep links
+
+**Status: Verified within stated scope.** Not committed. Scope: enrich attorney profile detail pages with more dynamic visual structure and add route transition animation for profile navigation, while making Home partner spotlight cards link directly to profile detail pages.
+
+| Criterion | Result |
+|---|---|
+| Home partner deep links | Converted partner spotlight cards on Home into `RouterLink` cards to `/attorneys/:slug` |
+| Profile page richness | Added highlight chips, expectation panel, and action grouping in attorney detail page |
+| Route transition animation | Added targeted profile route transition (`profile-route`) via `PublicShell` `RouterView` transition wrapper; preserved subtle fallback fade for other public routes |
+| Visual polish | Added hover/cta styling for partner cards and new profile layout utility styles |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited files returned no diagnostics |
+
+Next action: if desired, extend profile-card links to operations-team entries on Attorneys page so non-attorney staff can also open the same rich profile detail page pattern.
+
+## Current step: Sticky footer baseline across public and authenticated shells
+
+**Status: Verified within stated scope.** Not committed. Scope: keep footer anchored to the bottom of the viewport on short pages for both public routes and authenticated workspace routes.
+
+| Criterion | Result |
+|---|---|
+| Public-shell footer behavior | Added shell-level flex layout so public-route `<main>` expands and footer stays at viewport bottom |
+| Auth-shell footer behavior | Added shared `SiteFooter` to `WorkspaceShell` and grid row allocation so footer is always rendered after workspace content |
+| Layout safety | Added `workspace-main` `min-width: 0` and footer grid placement to avoid overflow/column collapse regressions |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited shell/style files returned no diagnostics |
+
+Next action: if desired, tune footer spacing specifically for workspace pages to visually differentiate authenticated and public contexts while keeping sticky behavior.
+
+## Current step: Workspace login page routed through public shell navigation
+
+**Status: Verified within stated scope.** Not committed. Scope: make `/workspace/login` display the same non-authenticated top navigation/footer as public pages by routing it through the public shell instead of rendering as a standalone top-level route.
+
+| Criterion | Result |
+|---|---|
+| Navigation parity | `workspace-login` route moved under `PublicShell` children, so `SiteNav` and `SiteFooter` render on sign-in page |
+| URL continuity | Route path remains `/workspace/login` (no external link changes required) |
+| Template semantics | Removed nested `<main>` wrapper from `WorkspaceLoginPage.vue` to fit inside `PublicShell`'s existing `<main class="page">` container |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited route/login files returned no diagnostics |
+
+Next action: if requested, update nav active-state styling for `/workspace/login` so it can be visually distinguished from other public navigation states.
 
 ## Current step: Vue frontend hot-reload hardening and Tailwind CSS enablement
 
