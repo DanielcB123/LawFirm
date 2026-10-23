@@ -33,6 +33,7 @@ Route::get('/health', function () {
 });
 
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::get('/onboarding/firm-name-availability', [FirmOnboardingController::class, 'availability'])->middleware('throttle:60,1');
 Route::post('/onboarding/register', [FirmOnboardingController::class, 'register'])->middleware('throttle:12,1');
 Route::get('/public/branding', [PublicBrandingController::class, 'show']);
 Route::middleware('public-tenant')->group(function (): void {
@@ -44,6 +45,7 @@ Route::middleware(['auth:sanctum', 'platform-admin'])->prefix('platform')->group
     Route::get('/firms', [PlatformFirmController::class, 'index'])->middleware('platform-permission:platform.firms.read');
     Route::post('/firms', [PlatformFirmController::class, 'store'])->middleware('platform-permission:platform.firms.create');
     Route::post('/firms/{firm}/review', [PlatformFirmController::class, 'review'])->middleware('platform-permission:platform.firms.review.finalize');
+    Route::post('/firms/{firm}/reopen', [PlatformFirmController::class, 'reopen'])->middleware('platform-permission:platform.firms.review.finalize');
     Route::post('/firms/{firm}/suspend', [PlatformFirmController::class, 'suspend'])->middleware('platform-permission:platform.firms.lifecycle.manage');
     Route::post('/firms/{firm}/reactivate', [PlatformFirmController::class, 'reactivate'])->middleware('platform-permission:platform.firms.lifecycle.manage');
     Route::post('/firms/{firm}/provision', [PlatformFirmController::class, 'provision'])->middleware('platform-permission:platform.firms.provision');

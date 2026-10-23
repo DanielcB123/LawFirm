@@ -677,7 +677,11 @@ class FirmTenancyTest extends TestCase
             'status' => 'verified',
             'method' => 'manual',
             'notes' => 'Ops confirmed formation records.',
-            'evidenceReferences' => ['file:ops-verification'],
+            'evidence' => [
+                'legal_business_name' => 'Ops Verification Firm',
+                'tin_ein_last4' => '0099',
+                'irs_lookup_reference' => 'ops:file:ops-verification',
+            ],
         ])->assertOk();
 
         $this->assertDatabaseHas('firms', [

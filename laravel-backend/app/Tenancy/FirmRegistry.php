@@ -9,6 +9,7 @@ use App\Models\FirmDomain;
 use App\Models\FirmPublicProfile;
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class FirmRegistry
 {
@@ -17,11 +18,18 @@ class FirmRegistry
     public function register(string $legalName, string $displayName, ?User $actor = null): Firm
     {
         $platform = config('tenancy.platform_public');
+        $slug = $this->slugCandidate($displayName);
+        if (! $this->isSlugAvailable($slug)) {
+            $suggestions = $this->availableSlugSuggestions($slug);
+            throw ValidationException::withMessages([
+                'firmName' => $this->unavailableSlugMessage($slug, $suggestions),
+            ]);
+        }
 
         $firm = new Firm([
             'legal_name' => $legalName,
             'display_name' => $displayName,
-            'slug' => $this->uniqueSlug($displayName),
+            'slug' => $slug,
         ]);
         $firm->forceFill([
             'lifecycle_status' => FirmLifecycleStatus::PendingReview,
@@ -48,17 +56,95 @@ class FirmRegistry
         return $firm;
     }
 
-    private function uniqueSlug(string $displayName): string
+    public function slugCandidate(string $displayName): string
     {
         $base = Str::slug($displayName);
-        $base = $base !== '' ? $base : 'firm';
-        $base = Str::limit($base, 40, '');
+        if ($base === '') {
+            return 'firm';
+        }
 
-        do {
-            $slug = $base.'-'.bin2hex(random_bytes(3));
-        } while (Firm::query()->where('slug', $slug)->exists());
+        return Str::limit($base, 80, '');
+    }
 
-        return $slug;
+    public function isSlugAvailable(string $slug): bool
+    {
+        return ! Firm::query()->where('slug', $slug)->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function availableSlugSuggestions(string $slug, int $limit = 5): array
+    {
+        $base = Str::limit(Str::of($slug)->lower()->replaceMatches('/[^a-z0-9-]/', '')->trim('-')->value(), 70, '');
+        if ($base === '') {
+            $base = 'firm';
+        }
+
+        $suggestions = [];
+        foreach ($this->configuredSuffixes() as $suffix) {
+            $candidate = Str::limit($base.'-'.$suffix, 80, '');
+            if ($this->isSlugAvailable($candidate) && ! in_array($candidate, $suggestions, true)) {
+                $suggestions[] = $candidate;
+            }
+            if (count($suggestions) >= $limit) {
+                return $suggestions;
+            }
+        }
+
+        $counter = 2;
+        while (count($suggestions) < $limit && $counter <= 200) {
+            $candidate = Str::limit($base.'-'.$counter, 80, '');
+            if ($this->isSlugAvailable($candidate) && ! in_array($candidate, $suggestions, true)) {
+                $suggestions[] = $candidate;
+            }
+            $counter++;
+        }
+
+        return $suggestions;
+    }
+
+    /**
+     * @return array{slug:string,available:bool,suggestions:list<string>}
+     */
+    public function slugAvailability(string $displayName): array
+    {
+        $slug = $this->slugCandidate($displayName);
+        $available = $this->isSlugAvailable($slug);
+
+        return [
+            'slug' => $slug,
+            'available' => $available,
+            'suggestions' => $available ? [] : $this->availableSlugSuggestions($slug),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $suggestions
+     */
+    private function unavailableSlugMessage(string $slug, array $suggestions): string
+    {
+        if ($suggestions === []) {
+            return "The firm URL slug '{$slug}' is unavailable. Choose a different firm name.";
+        }
+
+        return "The firm URL slug '{$slug}' is unavailable. Try: ".implode(', ', $suggestions).'.';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function configuredSuffixes(): array
+    {
+        $configured = config('onboarding.name_suggestion_suffixes', []);
+        if (! is_array($configured)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $value): string => Str::of((string) $value)->slug('-')->value(), $configured),
+            static fn (string $suffix): bool => $suffix !== ''
+        ));
     }
 
     private function ensureFallbackDomain(Firm $firm): void

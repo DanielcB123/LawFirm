@@ -30,11 +30,24 @@ export type PlatformFirm = {
     revision: number | null
     approvalCount: number
     requiredApprovals: number
+    devSimplifiedFlow: boolean
     verificationStatuses: Array<{
       type: string
+      label: string
       status: string
       method: string
+      notes: string | null
+      evidence: Record<string, string>
       reviewedAt: string | null
+      workflow: {
+        description: string
+        steps: string[]
+        requiredFields: Array<{
+          key: string
+          label: string
+          helpText: string | null
+        }>
+      }
     }>
   }
 }
@@ -87,6 +100,10 @@ export async function suspendPlatformFirm(token: string, firmId: string, reason:
 
 export async function reactivatePlatformFirm(token: string, firmId: string, reason: string): Promise<PlatformFirm> {
   return postJson<PlatformFirm, { reason: string }>(`/platform/firms/${firmId}/reactivate`, { reason }, token)
+}
+
+export async function reopenPlatformFirm(token: string, firmId: string, reason: string): Promise<PlatformFirm> {
+  return postJson<PlatformFirm, { reason: string }>(`/platform/firms/${firmId}/reopen`, { reason }, token)
 }
 
 export async function addPlatformFirmMembership(
@@ -144,7 +161,13 @@ export async function savePlatformFirmBranding(
 export async function savePlatformFirmVerification(
   token: string,
   firmId: string,
-  payload: { verificationType: string; status: string; method: 'manual' | 'provider'; notes?: string | null },
+  payload: {
+    verificationType: string
+    status: string
+    method: 'manual' | 'provider'
+    notes?: string | null
+    evidence?: Record<string, string>
+  },
 ): Promise<PlatformFirm> {
   return postJson(`/platform/firms/${firmId}/verifications`, payload, token)
 }

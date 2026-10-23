@@ -14,6 +14,7 @@ use App\Models\FirmVerification;
 use App\Models\User;
 use App\Tenancy\Exceptions\FirmLifecycleException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class FirmReviewService
@@ -112,6 +113,49 @@ class FirmReviewService
             $this->audit->record($firm, $reviewer, 'firm.reactivated', 'Firm reactivated.');
 
             return $firm;
+        });
+    }
+
+    public function reopenOnboardingApplication(Firm $firm, User $reviewer, string $reason): Firm
+    {
+        $application = $firm->onboardingApplication()->first();
+        if (! $application instanceof FirmOnboardingApplication) {
+            throw new FirmLifecycleException('Onboarding application is not available.');
+        }
+
+        if ($firm->lifecycle_status !== FirmLifecycleStatus::Rejected) {
+            throw new FirmLifecycleException('Only rejected onboarding applications can be reopened.');
+        }
+
+        return DB::transaction(function () use ($firm, $application, $reviewer, $reason): Firm {
+            $lockedFirm = Firm::query()->whereKey($firm->id)->lockForUpdate()->firstOrFail();
+            if ($lockedFirm->lifecycle_status !== FirmLifecycleStatus::Rejected) {
+                throw new FirmLifecycleException('Only rejected onboarding applications can be reopened.');
+            }
+
+            FirmOnboardingReview::query()
+                ->where('firm_id', $lockedFirm->id)
+                ->where('revision', $application->revision)
+                ->delete();
+
+            $this->storeVerification($lockedFirm, $reviewer, 'reopen', $reason, ['manual:reopen']);
+
+            $lockedFirm->forceFill([
+                'lifecycle_status' => FirmLifecycleStatus::PendingReview,
+                'provisioning_status' => FirmProvisioningStatus::NotRequested,
+                'provisioning_failure_reason' => null,
+                'rejected_at' => null,
+                'approved_at' => null,
+            ])->save();
+
+            $this->audit->record(
+                $lockedFirm->refresh(),
+                $reviewer,
+                'onboarding.reopened',
+                'Rejected onboarding application reopened for review.',
+            );
+
+            return $lockedFirm->refresh();
         });
     }
 
@@ -259,6 +303,7 @@ class FirmReviewService
         string $status,
         string $method,
         ?string $notes,
+        ?array $evidencePayload = null,
     ): FirmOnboardingVerification {
         $application = $firm->onboardingApplication()->first();
         if (! $application instanceof FirmOnboardingApplication) {
@@ -281,6 +326,9 @@ class FirmReviewService
             }
         }
 
+        $statusIsPending = in_array($status, ['pending', 'in_review'], true);
+        $normalizedEvidence = $this->normalizedEvidencePayload($verificationType, $status, $evidencePayload ?? []);
+
         $verification = FirmOnboardingVerification::query()->updateOrCreate(
             [
                 'firm_id' => $firm->id,
@@ -291,8 +339,9 @@ class FirmReviewService
                 'status' => $status,
                 'method' => $method,
                 'notes' => $notes ? mb_substr($notes, 0, 255) : null,
-                'reviewer_user_id' => $status === 'pending' ? null : $reviewer->id,
-                'reviewed_at' => $status === 'pending' ? null : now(),
+                'evidence_payload' => $normalizedEvidence === [] ? null : $normalizedEvidence,
+                'reviewer_user_id' => $statusIsPending ? null : $reviewer->id,
+                'reviewed_at' => $statusIsPending ? null : now(),
             ],
         );
 
@@ -499,5 +548,50 @@ class FirmReviewService
                 throw new FirmLifecycleException('Verification requirements are not complete for this application revision.');
             }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $evidencePayload
+     * @return array<string, string>
+     */
+    private function normalizedEvidencePayload(string $verificationType, string $status, array $evidencePayload): array
+    {
+        $workflow = config('onboarding.verification_workflows.'.$verificationType);
+        if (! is_array($workflow)) {
+            return [];
+        }
+
+        $fields = $workflow['required_fields'] ?? [];
+        if (! is_array($fields)) {
+            return [];
+        }
+
+        $normalized = [];
+        $missing = [];
+        foreach ($fields as $field) {
+            if (! is_array($field) || ! is_string($field['key'] ?? null) || $field['key'] === '') {
+                continue;
+            }
+
+            $key = $field['key'];
+            $raw = $evidencePayload[$key] ?? null;
+            $value = is_string($raw) ? trim($raw) : '';
+
+            if ($status === 'verified' && $value === '') {
+                $missing[] = $key;
+            }
+
+            if ($value !== '') {
+                $normalized[$key] = Str::limit($value, 255, '');
+            }
+        }
+
+        if ($status === 'verified' && $missing !== []) {
+            throw ValidationException::withMessages([
+                'evidence' => 'Verification evidence is incomplete: '.implode(', ', $missing).'.',
+            ]);
+        }
+
+        return $normalized;
     }
 }

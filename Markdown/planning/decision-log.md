@@ -53,6 +53,8 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 | 43 | 2026-10-23 11:15 EDT (UTC−04:00) | D-20261023-3 | Founder | Remove cross-host post-login redirects on platform host to prevent localStorage token loss across origins |
 | 44 | 2026-10-23 13:01 EDT (UTC−04:00) | D-20261023-4 | Founder | Split platform administration into PlatformOwner and PlatformOps with action-level backend permission enforcement |
 | 45 | 2026-10-23 15:36 EDT (UTC−04:00) | D-20261023-5 | Founder | Let firm partners manage firm users in-tenant with role-based permissions and add firm-branded seeded login |
+| 46 | 2026-10-23 17:40 EDT (UTC−04:00) | D-20261023-6 | Founder | Block workspace entry until firm membership lifecycle is active |
+| 47 | 2026-10-23 17:43 EDT (UTC−04:00) | D-20261023-7 | Founder | Add applicant-facing exit path from onboarding status card to a next-steps communication card |
 
 ## D-20261013-1 — Signed-in Parties becomes Contacts
 
@@ -808,3 +810,123 @@ Append-only. Oldest first. The index below is the order of the `When` timestamps
 - **Bad, because:** Role permissions are still user-level today (not per-membership override), so multi-firm users with different intended firm roles need a future membership-scoped permission model to avoid over-broad effective permissions.
 - **Not done:** Full sidebar-level dynamic page hiding across all workspace routes remains follow-up; current security enforcement is API-first with settings-page role matrix visibility.
 - **Evidence:** `laravel-backend/app/Http/Controllers/Api/TenantUserController.php`, `laravel-backend/routes/api.php`, `laravel-backend/config/roles.php`, `vue-frontend/src/pages/workspace/WorkspaceUsersPage.vue`, `laravel-backend/tests/Feature/FirmTenancyTest.php`, and runbook/auth docs updates.
+
+## D-20261023-6 — Block workspace entry until firm membership lifecycle is active
+
+- **When:** 2026-10-23 17:40 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Updated frontend auth/session/router behavior so non-platform users can only enter workspace routes when at least one membership is `active`; pending/rejected/suspended/unprovisioned memberships now route to onboarding status instead of workspace shell.
+- **Why:** Founder observed that users could register a firm and immediately open authenticated workspace UI before verification/provisioning, which violated onboarding lifecycle gates.
+- **Good, because:** UX now matches backend tenancy invariants: activation gates are visible and enforced before workspace entry, reducing false-positive "firm is ready" state for applicants.
+- **Bad, because:** The frontend now depends on membership lifecycle metadata from auth payloads for early routing; if payloads are stale, users may need refresh/relogin to clear outdated selected-firm context.
+- **Not done:** No browser automation evidence was captured in this slice; verification was build + lint plus source-level guard review.
+- **Evidence:** `vue-frontend/src/features/auth/session.ts`, `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`, `vue-frontend/src/router/index.ts`, `vue-frontend/src/pages/workspace/FirmSelectorPage.vue`; `npm run build` and lint diagnostics clean.
+
+## D-20261023-7 — Add exit path from onboarding status details to applicant next-steps guidance
+
+- **When:** 2026-10-23 17:43 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added an explicit `Exit` button on the onboarding application status view that swaps to a simpler "what happens next" card, including communication expectations and a return action to re-open status details.
+- **Why:** Founder requested less friction after firm registration submission and clearer reassurance that the platform team will follow up via the provided email.
+- **Good, because:** Applicants now get a calmer post-submission state with actionable expectations instead of remaining locked in technical status details.
+- **Bad, because:** Dismissing the status card introduces a second UI state; if copy drifts from lifecycle reality, applicants can be over/under-promised without coordinated updates.
+- **Not done:** No browser automation/screenshot evidence was captured in this slice; validation was source/build/lint.
+- **Evidence:** `vue-frontend/src/pages/public/OnboardingStatusPage.vue`; `npm run build` passed and lint diagnostics were clean.
+
+## D-20261023-8 — Use deterministic firm slugs with availability checks and evidence-backed verification workflows
+
+- **When:** 2026-10-23 18:22 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Replaced random hex suffix slug generation with deterministic slug candidates plus a public availability endpoint/suggestion flow (`/api/onboarding/firm-name-availability`), and upgraded onboarding verification from one-click string actions to structured, step-driven workflows that require evidence payload fields (including business-existence identifiers such as TIN/EIN last-4 and IRS/public lookup reference) before `verified` status is accepted.
+- **Why:** Founder requested cleaner customer-facing firm URLs and stronger legitimacy checks for new firms so onboarding verification reflects a real review process rather than a static checklist card.
+- **Good, because:** Applicants now get predictable branded URLs and early collision feedback, while platform reviewers must capture verification evidence through explicit workflows before approvals can proceed.
+- **Bad, because:** Deterministic slugs increase collision frequency and require user-visible renaming decisions; manual evidence workflows still rely on reviewer diligence until external verification-provider integrations are implemented.
+- **Not done:** No live third-party IRS/business registry integrations or automated authority-check providers are wired yet; workflow guidance and evidence capture are implemented, but integrations remain follow-up.
+- **Evidence:** `laravel-backend/app/Tenancy/FirmRegistry.php`, `laravel-backend/app/Http/Controllers/Api/FirmOnboardingController.php`, `laravel-backend/app/Tenancy/FirmReviewService.php`, `laravel-backend/app/Http/Controllers/Api/PlatformFirmController.php`, `laravel-backend/config/onboarding.php`, `vue-frontend/src/pages/public/RegisterFirmPage.vue`, `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`, `laravel-backend/tests/Feature/FirmOnboardingApiTest.php`.
+
+## D-20261023-9 — Make platform verification rows directly open workflow panels
+
+- **When:** 2026-10-23 18:31 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Updated the platform "firm clients" verification UX so each verification row is directly clickable (mouse + keyboard) to open the multi-step workflow panel, added instructional copy, and surfaced explicit read-only permission messaging when a platform role can view workflows but cannot save verification decisions.
+- **Why:** Founder reported that clicking around the verification card did not appear to launch any verification process, creating a usability gap and making onboarding checks feel non-functional.
+- **Good, because:** The primary interaction now matches reviewer expectations: click verification row -> open actionable workflow immediately.
+- **Bad, because:** Expanding row-level click targets increases accidental opens if reviewers are trying to scroll/select text; this is acceptable for now given workflow visibility priority.
+- **Not done:** No browser automation capture was recorded for this UX fix slice.
+- **Evidence:** `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`; `npm run build` passed and `ReadLints` reported no diagnostics.
+
+## D-20261023-10 — Label and group platform firm card action controls
+
+- **When:** 2026-10-23 18:36 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Reorganized the lower segment of each platform firm card into an explicit `Platform actions` section with subgroup headings for lifecycle/review and domain/branding/membership controls.
+- **Why:** Founder flagged that the bottom section looked like unrelated text and did not visually belong to the verification workflow content.
+- **Good, because:** The UI now clearly communicates that those controls are separate control-plane actions, reducing reviewer confusion.
+- **Bad, because:** Adds one extra heading layer per card, increasing vertical density on long firm lists.
+- **Not done:** No browser automation capture was recorded for this refinement.
+- **Evidence:** `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`; `npm run build` passed and `ReadLints` reported no diagnostics.
+
+## D-20261023-11 — Add explicit reopen flow for rejected onboarding firms
+
+- **When:** 2026-10-23 18:45 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added control-plane reopen action (`POST /api/platform/firms/{firm}/reopen`) so rejected onboarding applications can be returned to `pending_review`, prior review votes for that revision are cleared, and fresh two-reviewer approvals can proceed without requiring applicant-side revision edits.
+- **Why:** Founder hit a business-flow blocker where a firm remained `rejected / not_requested` with `0/2` approvals despite completed verification evidence and had no obvious recovery path.
+- **Good, because:** Preserves security controls (two distinct reviewer approvals) while restoring an operational path to complete onboarding after rejection is reconsidered.
+- **Bad, because:** Reopen introduces another lifecycle transition that reviewers must understand; misuse could bypass intentional reject finality if governance policies are weak.
+- **Not done:** No browser automation capture was recorded for this slice.
+- **Evidence:** `laravel-backend/app/Tenancy/FirmReviewService.php`, `laravel-backend/app/Http/Controllers/Api/PlatformFirmController.php`, `laravel-backend/routes/api.php`, `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`, `laravel-backend/tests/Feature/FirmOnboardingApiTest.php`.
+
+## D-20261023-12 — Provision firm-scoped demo login identities for tenant-host UX clarity
+
+- **When:** 2026-10-23 19:07 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added local/dev provisioning behavior that creates role-based demo users per firm using emails in `{prefix}.{firm-slug}.firms@localhost` format and auto-attaches them to the provisioned firm (`Partner`, `Attorney`, `Paralegal`, `LegalAssistant`, `AdminIT`).
+- **Why:** Founder requested login identifiers that explicitly include firm identity and align with tenant-host URLs instead of ambiguous global emails such as `partner@matterforge.local`.
+- **Good, because:** Tenant-host sign-in and test flows now clearly map email identity to a single firm context, reducing operator confusion and setup friction.
+- **Bad, because:** Auto-generated local demo identities increase account count and are not a production account-management strategy; production still requires controlled invitation/identity workflows.
+- **Not done:** Existing already-provisioned firms are not backfilled automatically without rerunning provisioning/seed/manual assignment steps.
+- **Evidence:** `laravel-backend/config/onboarding.php`, `laravel-backend/app/Tenancy/FirmOnboardingService.php`, `laravel-backend/tests/Feature/FirmOnboardingApiTest.php`.
+
+## D-20261023-13 — Enable simplified dev onboarding progression to provision directly after verification
+
+- **When:** 2026-10-23 19:18 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added env-gated simplified onboarding flow (`FIRM_ONBOARDING_DEV_SIMPLIFIED_FLOW`) that, in local/dev mode, promotes a verified onboarding application to `approved/requested` at provisioning time so `Provision` can proceed directly even if the firm is currently `rejected`.
+- **Why:** Founder requested temporary removal of reviewer-loop friction to keep dev business-flow testing moving while preserving core validation checks and tenant login identity goals.
+- **Good, because:** Unblocks tenant onboarding in local/dev and allows firm-scoped login identities to be generated reliably through provisioning.
+- **Bad, because:** Lifecycle transitions become less strict in simplified mode; if enabled beyond dev, governance/audit expectations for review finality would be weakened.
+- **Not done:** This does not replace full production review policy; it is a dev-focused bridge controlled by env configuration.
+- **Evidence:** `laravel-backend/config/onboarding.php`, `laravel-backend/.env.docker`, `laravel-backend/app/Tenancy/FirmOnboardingService.php`, `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`, `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`, `tests/Feature/FirmOnboardingApiTest.php`.
+
+## D-20261023-14 — Make dev reseeding resilient to previously rejected seeded firms
+
+- **When:** 2026-10-23 19:21 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Updated `DatabaseSeeder` to normalize existing seeded firm lifecycle to a provisionable state (`approved/requested`) when onboarding artifacts leave it rejected in local dev, preventing `db:seed` crashes.
+- **Why:** Founder hit repeatable seed failures after onboarding experiments changed seeded firm lifecycle status to `rejected/not_requested`.
+- **Good, because:** Local iteration can reseed reliably without manual table resets after lifecycle workflow tests.
+- **Bad, because:** Seeder now contains a dev-specific lifecycle recovery branch that would be inappropriate for strict production data assumptions.
+- **Not done:** No dedicated test was added for this seeder branch; validation is command-level (`php artisan db:seed --force`) in dev container.
+- **Evidence:** `laravel-backend/database/seeders/DatabaseSeeder.php`; `vendor/bin/pint --dirty --format=agent`; `docker compose --profile dev exec -T backend-dev php artisan db:seed --force`.
+
+## D-20261023-15 — Add reason-coded auth diagnostics for tenant login failures
+
+- **When:** 2026-10-23 19:28 EDT (UTC−04:00). Not committed.
+- **Decided by:** Founder.
+- **Status:** accepted.
+- **What:** Added local/debug-environment login diagnostics in `AuthController` that log `auth.login.failed` (`user_not_found` / `invalid_password`) and `auth.login.succeeded` with host + membership context to `laravel.log`.
+- **Why:** Founder encountered repeated `401 Invalid email or password` tenant-host sign-in failures with no backend log evidence to narrow root cause.
+- **Good, because:** Provides immediate, low-friction observability for auth failures without introducing external tooling.
+- **Bad, because:** Even sanitized auth telemetry can increase log volume/noise during rapid local retries and must remain environment-scoped.
+- **Not done:** No automated log-assertion tests were added.
+- **Evidence:** `laravel-backend/app/Http/Controllers/Api/AuthController.php`; `vendor/bin/pint --dirty --format=agent`.

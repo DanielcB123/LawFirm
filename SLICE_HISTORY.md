@@ -1,3 +1,280 @@
+## 2026-10-23 - Auth login diagnostics in laravel.log for tenant sign-in failures
+
+- **Recorded:** 2026-10-23 19:28 EDT. **Not committed.**
+- **Objective and scope:** make tenant sign-in failures observable by writing reason-coded diagnostics to `laravel.log` when `/api/auth/login` returns `401`.
+
+### Changes
+
+- Updated `laravel-backend/app/Http/Controllers/Api/AuthController.php`:
+  - added local/debug env-gated logging helpers,
+  - logs `auth.login.failed` with reason (`user_not_found` or `invalid_password`), request host/ip, user id when known, and membership counts,
+  - logs `auth.login.succeeded` with host/user/membership context,
+  - ensures no secret values (password/token) are written.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> first run hung; process terminated and rerun; final run passed.
+
+### Outcome and next action
+
+- **Outcome:** login failures are now diagnosable from backend logs instead of opaque `401` responses.
+- **Next action:** reproduce one failed login and inspect `laravel.log` for `auth.login.failed` entry to isolate whether user creation, password mismatch, or membership path is at fault.
+
+## 2026-10-23 - Seed recovery for rejected onboarding lifecycle state
+
+- **Recorded:** 2026-10-23 19:21 EDT. **Not committed.**
+- **Objective and scope:** fix local seed failure when previously modified seeded firms are left in rejected onboarding states and seeder attempts provisioning.
+
+### Changes
+
+- Updated `laravel-backend/database/seeders/DatabaseSeeder.php`:
+  - imported `FirmProvisioningStatus`,
+  - added lifecycle normalization branch for existing seeded firms:
+    - if firm has onboarding application and is neither active nor approved, force lifecycle to `approved` + provisioning `requested` before provisioning.
+  - preserved existing standard review approval path for non-onboarding seeded firm states.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `docker compose --profile dev exec -T backend-dev php artisan db:seed --force` -> passed.
+
+### Outcome and next action
+
+- **Outcome:** reseeding no longer fails with `The firm cannot be provisioned from its current state.` when prior dev workflow left seeded firms rejected.
+- **Next action:** continue local onboarding/provision/sign-in flow; rerun seed safely after lifecycle experiments.
+
+## 2026-10-23 - Simplified dev onboarding path to unblock provisioning and firm login
+
+- **Recorded:** 2026-10-23 19:18 EDT. **Not committed.**
+- **Objective and scope:** reduce local/dev onboarding friction by removing reviewer-loop dependency for provisioning while preserving verification checks and firm-scoped login identity behavior.
+
+### Changes
+
+- Added simplified-flow gate:
+  - new config `onboarding.dev_simplified_flow` from `FIRM_ONBOARDING_DEV_SIMPLIFIED_FLOW`,
+  - enabled in `laravel-backend/.env.docker` and documented default false in `.env.example`.
+- Updated onboarding provisioning behavior in `FirmOnboardingService`:
+  - in simplified mode, if onboarding application verifications are complete, firm is auto-promoted to `approved/requested` immediately before provisioning,
+  - supports progression even from previously rejected state without manual reopen/dual-approval loop,
+  - kept verification completeness enforcement before provisioning.
+- Updated platform payload/UI:
+  - added `onboarding.devSimplifiedFlow` flag in platform firm payload,
+  - adjusted approvals display and lifecycle messaging in `PlatformFirmsPage.vue`,
+  - hid reopen/approve/reject controls while simplified flow is active to avoid mixed-path confusion.
+- Updated tenant login UX hint:
+  - `WorkspaceLoginPage.vue` now displays host-aware tenant demo email hint (`attorney.<firm-slug>.firms@localhost`) on tenant hosts, and keeps platform-admin hint on platform hosts.
+- Retained firm-scoped demo identity generation:
+  - provision path still creates role-based users such as `attorney.<firm-slug>.firms@localhost`.
+- Added test coverage:
+  - new onboarding feature test validates rejected firm can provision to active in simplified flow after verifications.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php` -> passed (12 tests, 75 assertions).
+- `npm run build` in `vue-frontend` -> passed (rerun after tenant login hint update).
+- `ReadLints` on edited frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** local/dev onboarding no longer blocks business-flow testing on reviewer loops; verified firms can provision and produce firm-scoped login identities immediately via `Provision`.
+- **Next action:** restart backend/config cache, click `Provision` for verified onboarding firms, then sign in with generated `*.{firm-slug}.firms@localhost` users.
+
+## 2026-10-23 - Auto-provision firm-scoped demo login identities
+
+- **Recorded:** 2026-10-23 19:07 EDT. **Not committed.**
+- **Objective and scope:** support firm-explicit sign-in identities on tenant hosts by creating demo accounts in `{role}.{firm-slug}.firms@localhost` format during firm provisioning.
+
+### Changes
+
+- Updated `laravel-backend/config/onboarding.php`:
+  - added `firm_demo_users` config block (enabled flag, email domain, password, account templates/roles).
+- Updated `laravel-backend/app/Tenancy/FirmOnboardingService.php`:
+  - added `createLocalDemoUsers()` provisioning hook,
+  - during `provisionAndAssignOwner()`, creates/updates per-firm demo users and assigns tenant memberships using role map.
+- Updated `laravel-backend/tests/Feature/FirmOnboardingApiTest.php`:
+  - extended fast-track provisioning test to assert creation + membership assignment of `attorney.<firm-slug>.firms@localhost`.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php` -> passed (11 tests, 66 assertions).
+
+### Outcome and next action
+
+- **Outcome:** newly provisioned firms in local/dev now get firm-scoped demo users suitable for tenant-host sign-in patterns (e.g., `attorney.burgessfamilylaw.firms@localhost`).
+- **Next action:** reprovision/reseed target firm state, then sign in at tenant host with generated firm-scoped accounts.
+
+## 2026-10-23 - Reopen rejected onboarding applications for business-flow recovery
+
+- **Recorded:** 2026-10-23 18:45 EDT. **Not committed.**
+- **Objective and scope:** unblock onboarding when a firm was previously rejected but later completes verification evidence, by adding an explicit control-plane reopen path before re-approval.
+
+### Changes
+
+- Backend:
+  - added `FirmReviewService::reopenOnboardingApplication()` to transition rejected onboarding firms back to `pending_review`,
+  - clears prior onboarding review votes for the current revision during reopen,
+  - records control-plane verification/audit events for reopen action,
+  - added controller endpoint `PlatformFirmController@reopen`,
+  - routed `POST /api/platform/firms/{firm}/reopen` with existing review-finalize permission gate.
+- Frontend:
+  - added `reopenPlatformFirm()` API helper in `vue-frontend/src/features/platform/api.ts`,
+  - added rejected-state warning and `Reopen application` action in `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`,
+  - hid regular approve/reject buttons while firm remains rejected to prevent misleading no-op attempts.
+- Tests:
+  - added onboarding feature test proving reject -> reopen -> two approvals transitions firm to `approved`/`requested`.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php` -> passed (11 tests, 64 assertions).
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** rejected onboarding firms now have a clear, intentional recovery path that supports business continuity while preserving two-reviewer controls.
+- **Next action:** in platform UI, click `Reopen application` for rejected firms, then collect two approvals and run provisioning.
+
+## 2026-10-23 - Platform firm card action-group layout clarification
+
+- **Recorded:** 2026-10-23 18:36 EDT. **Not committed.**
+- **Objective and scope:** fix confusing card composition on platform onboarding page where legacy control-plane action buttons appeared as an unlabeled bottom segment.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`:
+  - grouped existing approve/reject/provision/lifecycle/domain/branding/membership controls into a dedicated `Platform actions` section,
+  - split controls into labeled subgroups (`Lifecycle and review`, `Domain, branding, and membership`) for clearer intent.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on `PlatformFirmsPage.vue` -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** the card bottom area is now explicitly identified as platform action controls and no longer appears to be stray or out-of-place content.
+- **Next action:** reload `/workspace/platform/firms` and verify the updated sectioning for the affected firm card.
+
+## 2026-10-23 - Platform verification card click-through UX fix
+
+- **Recorded:** 2026-10-23 18:31 EDT. **Not committed.**
+- **Objective and scope:** resolve reviewer confusion on the platform onboarding page by making verification workflows open when users click the verification row itself, not only a small control.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`:
+  - made each verification row clickable (`click`, keyboard enter/space) to open the workflow panel,
+  - added explicit helper copy: "Click a verification row to open the multi-step workflow.",
+  - replaced tiny row-level action control with clearer row behavior,
+  - added read-only permission notice for roles that can view but not save verification decisions,
+  - disabled save action when `platform.firms.verifications.record` is absent while keeping workflow visible.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on `PlatformFirmsPage.vue` -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** verification workflows now open directly from card row clicks, matching expected multi-step interaction behavior in the SaaS "law firm clients" verification surface.
+- **Next action:** reload `/workspace/platform/firms`, open the target firm, and click any verification row to confirm the workflow panel appears consistently.
+
+## 2026-10-23 - Firm-name availability and evidence-backed onboarding verification workflows
+
+- **Recorded:** 2026-10-23 18:22 EDT. **Not committed.**
+- **Objective and scope:** remove random-looking seeded firm hostname behavior by introducing firm-name availability checks/suggestions, and replace platform onboarding verification string-buttons with a multi-step, evidence-backed workflow.
+
+### Changes
+
+- Updated onboarding naming + slug policy:
+  - added `GET /api/onboarding/firm-name-availability` in `laravel-backend/routes/api.php` and `FirmOnboardingController@availability`,
+  - updated `laravel-backend/app/Tenancy/FirmRegistry.php` to generate deterministic slug candidates, expose availability/suggestion helpers, and reject unavailable names with fail-closed validation.
+- Added structured onboarding verification evidence storage:
+  - new migration `laravel-backend/database/migrations/2026_10_23_181500_add_evidence_payload_to_firm_onboarding_verifications.php`,
+  - updated `FirmOnboardingVerification` model fillable/casts for `evidence_payload`.
+- Expanded verification workflow config in `laravel-backend/config/onboarding.php`:
+  - added per-verification labels, multi-step reviewer guidance, and required evidence fields (including TIN/IRS/public-reference checks for business existence flow).
+- Hardened verification save semantics:
+  - `PlatformFirmController@storeVerification` now supports `in_review` and structured `evidence`,
+  - `FirmReviewService::saveOnboardingVerification()` now validates required evidence fields before allowing `verified` status.
+- Upgraded platform onboarding UI:
+  - `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue` now renders per-check workflow panels with guided steps, required evidence inputs, explicit status, and save actions.
+- Added applicant live availability checker:
+  - `vue-frontend/src/features/onboarding/api.ts` new availability API call/types,
+  - `vue-frontend/src/pages/public/RegisterFirmPage.vue` now performs debounce availability checks and suggests alternatives before submit.
+- Improved applicant status readability:
+  - onboarding verification labels now returned and rendered in `FirmOnboardingService` + `OnboardingStatusPage.vue`.
+- Updated tests:
+  - `FirmOnboardingApiTest` now covers availability endpoint, unavailable-name rejection, and required evidence validation,
+  - `FirmTenancyTest` verification payload updated for required evidence fields.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php tests/Feature/FirmTenancyTest.php` -> passed (29 tests, 198 assertions).
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** firm onboarding now supports deterministic branded slug checks with suggestions and a stronger reviewer verification workflow that requires structured evidence before marking checks verified.
+- **Next action:** run `php artisan migrate`, test name-collision UX on `/register-firm`, then perform manual reviewer walkthrough on `/workspace/platform/firms` for each workflow before approve/provision.
+
+## 2026-10-23 - Onboarding status exit-to-next-steps UX
+
+- **Recorded:** 2026-10-23 17:43 EDT. **Not committed.**
+- **Objective and scope:** allow applicants to close the detailed application status card and show a clear next-steps communication card after firm registration submission.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/public/OnboardingStatusPage.vue`:
+  - added `Exit` action to dismiss the application status card,
+  - added follow-up card content explaining review/provisioning next steps,
+  - added explicit communication notice referencing applicant email,
+  - added `View application status` action to restore full status card.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on `OnboardingStatusPage.vue` -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** onboarding UX now supports a "close status details, show what happens next" flow that aligns with applicant expectations after form submission.
+- **Next action:** manually validate browser flow on `/onboarding/status` for dismiss/reopen behavior and message clarity.
+
+## 2026-10-23 - Enforce active-membership gate before firm workspace entry
+
+- **Recorded:** 2026-10-23 17:40 EDT. **Not committed.**
+- **Objective and scope:** block pending/rejected/suspended/unprovisioned firm applicants from entering authenticated workspace shell via frontend routing until a firm membership is active.
+
+### Changes
+
+- Updated `vue-frontend/src/features/auth/session.ts`:
+  - selected-firm reconciliation now only considers memberships with `lifecycleStatus === 'active'`.
+- Updated `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`:
+  - post-login routing now sends non-platform users with zero active memberships to `/onboarding/status`.
+  - platform-owner SaaS routing remains unchanged.
+- Updated `vue-frontend/src/router/index.ts`:
+  - global requires-auth guard now redirects authenticated non-platform users with zero active memberships to `/onboarding/status`.
+  - multi-firm selector guard now keys off active memberships only.
+  - guestOnly redirect now honors onboarding-status gate.
+- Updated `vue-frontend/src/pages/workspace/FirmSelectorPage.vue`:
+  - selector list now includes active memberships only.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** newly registered firms no longer enter workspace routes before lifecycle activation; they stay on onboarding status until platform review/provisioning produces active membership context.
+- **Next action:** manually verify browser flow: register firm -> submit application -> click `Firm Sign in` -> lands on `/onboarding/status`; then activate via platform owner and confirm workspace access opens afterward.
+
 ## 2026-10-23 - Firm partner user-management and seeded login expansion
 
 - **Recorded:** 2026-10-23 15:36 EDT. **Not committed.**

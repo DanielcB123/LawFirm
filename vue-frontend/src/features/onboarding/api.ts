@@ -3,6 +3,7 @@ import type { LoginResponse } from '../../types/auth'
 
 export type OnboardingVerificationStatus = {
   type: string
+  label: string
   status: string
   method: string
   reviewedAt: string | null
@@ -51,8 +52,21 @@ type RegisterFirmResponse = LoginResponse & {
   applicationId: string
 }
 
+export type FirmNameAvailabilityResponse = {
+  firmName: string
+  slug: string
+  available: boolean
+  suggestions: string[]
+  message: string
+}
+
 export async function registerFirm(payload: RegisterFirmRequest): Promise<RegisterFirmResponse> {
   return postJson<RegisterFirmResponse, RegisterFirmRequest>('/onboarding/register', payload)
+}
+
+export async function checkFirmNameAvailability(firmName: string): Promise<FirmNameAvailabilityResponse> {
+  const params = new URLSearchParams({ firmName })
+  return getJson<FirmNameAvailabilityResponse>(`/onboarding/firm-name-availability?${params.toString()}`)
 }
 
 export async function submitFirmApplication(

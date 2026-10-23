@@ -6,7 +6,9 @@ import { useAuthSession } from '../../features/auth/session'
 const auth = useAuthSession()
 const router = useRouter()
 
-const memberships = computed(() => auth.actor.value?.memberships ?? [])
+const memberships = computed(() =>
+  (auth.actor.value?.memberships ?? []).filter((membership) => membership.lifecycleStatus === 'active'),
+)
 
 async function openFirmWorkspace(firmId: string) {
   auth.selectFirm(firmId)

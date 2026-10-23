@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Tenancy\Exceptions\FirmLifecycleException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class FirmOnboardingService
@@ -197,6 +198,7 @@ class FirmOnboardingService
 
     public function provisionAndAssignOwner(Firm $firm, ?User $actor, string $ownerRole = 'Partner'): Firm
     {
+        $this->prepareForProvisioningUnderSimplifiedFlow($firm, $actor);
         $provisioned = $this->provisioner->provision($firm, $actor);
         $application = $firm->onboardingApplication()->first();
 
@@ -207,6 +209,8 @@ class FirmOnboardingService
                 $this->audit->record($provisioned->refresh(), $actor, 'onboarding.owner.assigned', 'Onboarding owner membership assigned after provisioning.');
             }
         }
+
+        $this->createLocalDemoUsers($provisioned, $actor);
 
         return $provisioned->refresh();
     }
@@ -246,6 +250,10 @@ class FirmOnboardingService
             ->where('revision', $revision)
             ->get()
             ->keyBy('verification_type');
+        $workflowConfig = config('onboarding.verification_workflows', []);
+        if (! is_array($workflowConfig)) {
+            $workflowConfig = [];
+        }
 
         return [
             'hasApplication' => true,
@@ -261,16 +269,21 @@ class FirmOnboardingService
                 'provisioningStatus' => $firm->provisioning_status->value,
                 'provisioningFailureReason' => $firm->provisioning_failure_reason,
                 'approvalCount' => $approvals,
-                'requiredApprovals' => 2,
+                'requiredApprovals' => $this->simplifiedFlowEnabled() ? 0 : 2,
                 'preferredHost' => $firm->preferredHostname(),
                 'fallbackHost' => $firm->fallbackHostname(),
                 'ownerMembershipReady' => $firm->memberships->contains(fn ($membership): bool => $membership->user_id === $application->applicant_user_id),
-                'verifications' => collect($this->requiredVerificationTypes())->map(function (string $type) use ($verificationMap): array {
+                'verifications' => collect($this->requiredVerificationTypes())->map(function (string $type) use ($verificationMap, $workflowConfig): array {
                     /** @var FirmOnboardingVerification|null $verification */
                     $verification = $verificationMap->get($type);
+                    $workflow = $workflowConfig[$type] ?? [];
+                    if (! is_array($workflow)) {
+                        $workflow = [];
+                    }
 
                     return [
                         'type' => $type,
+                        'label' => is_string($workflow['label'] ?? null) ? $workflow['label'] : $type,
                         'status' => $verification?->status ?? 'pending',
                         'method' => $verification?->method ?? 'manual',
                         'reviewedAt' => $verification?->reviewed_at?->toIso8601String(),
@@ -351,5 +364,112 @@ class FirmOnboardingService
         }
 
         return array_values(array_filter($types, fn (mixed $type): bool => is_string($type) && $type !== ''));
+    }
+
+    private function createLocalDemoUsers(Firm $firm, ?User $actor): void
+    {
+        $enabled = (bool) config('onboarding.firm_demo_users.enabled', false);
+        if (! $enabled) {
+            return;
+        }
+
+        $emailDomain = trim((string) config('onboarding.firm_demo_users.email_domain', ''));
+        $password = (string) config('onboarding.firm_demo_users.password', '');
+        $accounts = config('onboarding.firm_demo_users.accounts', []);
+        if ($emailDomain === '' || $password === '' || ! is_array($accounts)) {
+            return;
+        }
+
+        $slug = trim((string) $firm->slug);
+        if ($slug === '') {
+            return;
+        }
+
+        foreach ($accounts as $account) {
+            if (! is_array($account)) {
+                continue;
+            }
+
+            $prefix = Str::of((string) ($account['prefix'] ?? ''))->lower()->replaceMatches('/[^a-z0-9]/', '')->value();
+            $name = trim((string) ($account['name'] ?? ''));
+            $role = trim((string) ($account['role'] ?? ''));
+            if ($prefix === '' || $name === '' || $role === '') {
+                continue;
+            }
+
+            $permissions = config('roles.'.$role, []);
+            if (! is_array($permissions)) {
+                $permissions = [];
+            }
+
+            $email = strtolower($prefix.'.'.$slug.'.'.$emailDomain);
+            $user = User::query()->updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $firm->display_name.' '.$name,
+                    'password' => Hash::make($password),
+                    'role' => $role,
+                    'permissions' => array_values(array_filter($permissions, 'is_string')),
+                    'platform_role' => null,
+                    'is_platform_administrator' => false,
+                ],
+            );
+
+            $this->review->saveMembership($firm, $user, $role, $actor);
+        }
+    }
+
+    private function simplifiedFlowEnabled(): bool
+    {
+        return (bool) config('onboarding.dev_simplified_flow', false);
+    }
+
+    private function prepareForProvisioningUnderSimplifiedFlow(Firm $firm, ?User $actor): void
+    {
+        if (! $this->simplifiedFlowEnabled()) {
+            return;
+        }
+
+        $application = $firm->onboardingApplication()->first();
+        if (! $application instanceof FirmOnboardingApplication) {
+            return;
+        }
+
+        $this->assertVerificationComplete($firm, $application->revision);
+        $firm->forceFill([
+            'lifecycle_status' => FirmLifecycleStatus::Approved,
+            'provisioning_status' => FirmProvisioningStatus::Requested,
+            'provisioning_failure_reason' => null,
+            'approved_at' => now(),
+            'rejected_at' => null,
+        ])->save();
+        $this->audit->record(
+            $firm->refresh(),
+            $actor,
+            'onboarding.dev_simplified_flow.promoted',
+            'Development simplified flow promoted firm to approved before provisioning.',
+        );
+    }
+
+    private function assertVerificationComplete(Firm $firm, int $revision): void
+    {
+        $required = $this->requiredVerificationTypes();
+        $verifications = FirmOnboardingVerification::query()
+            ->where('firm_id', $firm->id)
+            ->where('revision', $revision)
+            ->get()
+            ->keyBy('verification_type');
+
+        foreach ($required as $type) {
+            if ($type === 'domain_ownership' && $firm->domains()->whereNotNull('verified_at')->whereNull('revoked_at')->exists()) {
+                continue;
+            }
+
+            /** @var FirmOnboardingVerification|null $verification */
+            $verification = $verifications->get($type);
+            if (! $verification instanceof FirmOnboardingVerification || ! in_array($verification->status, ['verified', 'bypassed'], true)) {
+                throw new FirmLifecycleException('Verification requirements are not complete for this application revision.');
+            }
+        }
     }
 }

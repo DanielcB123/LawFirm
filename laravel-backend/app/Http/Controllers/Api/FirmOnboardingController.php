@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FirmOnboardingApplication;
 use App\Models\User;
 use App\Tenancy\FirmOnboardingService;
+use App\Tenancy\FirmRegistry;
 use App\Tenancy\OnboardingFastTrackGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 class FirmOnboardingController extends Controller
 {
+    public function availability(Request $request, FirmRegistry $registry): JsonResponse
+    {
+        $validated = $request->validate([
+            'firmName' => ['required', 'string', 'max:200', 'regex:/^[^<>]*$/'],
+        ]);
+        $firmName = trim((string) $validated['firmName']);
+        $availability = $registry->slugAvailability($firmName);
+
+        return response()->json([
+            'firmName' => $firmName,
+            'slug' => $availability['slug'],
+            'available' => $availability['available'],
+            'suggestions' => $availability['suggestions'],
+            'message' => $availability['available']
+                ? 'Firm name is available.'
+                : 'Firm name is unavailable. Pick a different name or choose a suggested variant.',
+        ]);
+    }
+
     public function register(Request $request, FirmOnboardingService $onboarding): JsonResponse
     {
         $validated = $request->validate([

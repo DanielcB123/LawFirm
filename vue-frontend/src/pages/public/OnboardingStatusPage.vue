@@ -10,9 +10,11 @@ const status = ref<OnboardingStatusResponse | null>(null)
 const error = ref<string | null>(null)
 const isLoading = ref(false)
 const isFastTracking = ref(false)
+const isStatusDismissed = ref(false)
 
 const application = computed(() => status.value?.application)
 const developmentNotice = computed(() => status.value?.developmentNotice ?? null)
+const contactEmail = computed(() => auth.actor.value?.email ?? 'the email provided during registration')
 const canFastTrack = computed(
   () =>
     status.value?.fastTrackEnabled === true &&
@@ -28,6 +30,15 @@ const stageCopy: Record<string, string> = {
   provisioning: 'Provisioning',
   provisioning_failed: 'Provisioning failed',
   active: 'Active',
+}
+
+const verificationStatusCopy: Record<string, string> = {
+  pending: 'Pending',
+  in_review: 'In review',
+  verified: 'Verified',
+  rejected: 'Rejected',
+  unavailable: 'Unavailable',
+  bypassed: 'Bypassed',
 }
 
 async function loadStatus(): Promise<void> {
@@ -64,6 +75,14 @@ async function fastTrack(): Promise<void> {
   }
 }
 
+function dismissStatusCard(): void {
+  isStatusDismissed.value = true
+}
+
+function reopenStatusCard(): void {
+  isStatusDismissed.value = false
+}
+
 onMounted(() => {
   void loadStatus()
 })
@@ -83,7 +102,7 @@ onMounted(() => {
       <RouterLink class="hero-button hero-button--primary" to="/register-firm">Register your firm</RouterLink>
     </template>
 
-    <template v-else-if="application">
+    <template v-else-if="application && !isStatusDismissed">
       <div class="workspace-form">
         <label>
           Firm
@@ -119,10 +138,32 @@ onMounted(() => {
         <h2>Verification checks</h2>
         <ul class="firm-selector">
           <li v-for="verification in application.verifications" :key="verification.type" class="firm-selector__item">
-            <span class="firm-selector__title">{{ verification.type }}</span>
-            <span class="firm-selector__meta">{{ verification.status }} · {{ verification.method }}</span>
+            <span class="firm-selector__title">{{ verification.label }}</span>
+            <span class="firm-selector__meta">
+              {{ verificationStatusCopy[verification.status] ?? verification.status }} · {{ verification.method }}
+            </span>
           </li>
         </ul>
+      </article>
+
+      <div class="workspace-form__inline">
+        <button type="button" @click="dismissStatusCard">Exit</button>
+      </div>
+    </template>
+
+    <template v-else-if="application && isStatusDismissed">
+      <article class="card workspace-form-card">
+        <h2>What happens next</h2>
+        <p class="muted">
+          Thanks for submitting your firm application. Our platform team will review your details, complete verification checks,
+          and contact you shortly at <strong>{{ contactEmail }}</strong>.
+        </p>
+        <p class="muted">
+          Once review and provisioning are complete, your firm workspace access will activate automatically.
+        </p>
+        <div class="workspace-form__inline">
+          <button type="button" @click="reopenStatusCard">View application status</button>
+        </div>
       </article>
     </template>
   </section>

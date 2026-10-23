@@ -24,6 +24,7 @@ class FirmOnboardingVerification extends Model
         'method',
         'reviewer_user_id',
         'notes',
+        'evidence_payload',
         'reviewed_at',
     ];
 
@@ -34,6 +35,7 @@ class FirmOnboardingVerification extends Model
     {
         return [
             'revision' => 'integer',
+            'evidence_payload' => 'array',
             'reviewed_at' => 'datetime',
         ];
     }

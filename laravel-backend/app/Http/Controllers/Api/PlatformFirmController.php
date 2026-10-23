@@ -127,6 +127,23 @@ class PlatformFirmController extends Controller
         return response()->json($this->firmPayload($firm));
     }
 
+    public function reopen(Request $request, Firm $firm, FirmReviewService $review): JsonResponse
+    {
+        $this->authorize('review', $firm);
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $firm = $review->reopenOnboardingApplication($firm, $request->user(), $validated['reason']);
+        } catch (FirmLifecycleException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json($this->firmPayload($firm));
+    }
+
     public function provision(Request $request, Firm $firm, FirmOnboardingService $onboarding): JsonResponse
     {
         $this->authorize('provision', $firm);
@@ -242,9 +259,11 @@ class PlatformFirmController extends Controller
 
         $validated = $request->validate([
             'verificationType' => ['required', Rule::in(config('onboarding.required_verifications'))],
-            'status' => ['required', Rule::in(['pending', 'verified', 'rejected', 'unavailable'])],
+            'status' => ['required', Rule::in(['pending', 'in_review', 'verified', 'rejected', 'unavailable'])],
             'method' => ['required', Rule::in(['manual', 'provider'])],
             'notes' => ['nullable', 'string', 'max:255'],
+            'evidence' => ['nullable', 'array'],
+            'evidence.*' => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
@@ -255,6 +274,7 @@ class PlatformFirmController extends Controller
                 $validated['status'],
                 $validated['method'],
                 $validated['notes'] ?? null,
+                $validated['evidence'] ?? null,
             );
         } catch (ValidationException $exception) {
             throw $exception;
@@ -271,10 +291,11 @@ class PlatformFirmController extends Controller
     private function firmPayload(Firm $firm): array
     {
         $firm->loadMissing(['domains', 'memberships.user', 'publicProfile']);
+        $simplifiedFlow = (bool) config('onboarding.dev_simplified_flow', false);
         $application = $firm->onboardingApplication()->first();
         $revision = $application?->revision;
         $approvalCount = 0;
-        $verificationStatuses = [];
+        $verificationStatuses = collect();
 
         if ($revision !== null) {
             $approvalCount = $firm->onboardingReviews()
@@ -286,15 +307,59 @@ class PlatformFirmController extends Controller
             $verificationStatuses = $firm->onboardingVerifications()
                 ->where('revision', $revision)
                 ->get()
-                ->map(fn ($verification): array => [
-                    'type' => $verification->verification_type,
-                    'status' => $verification->status,
-                    'method' => $verification->method,
-                    'reviewedAt' => $verification->reviewed_at?->toIso8601String(),
-                ])
-                ->values()
-                ->all();
+                ->keyBy('verification_type');
         }
+
+        $requiredTypes = config('onboarding.required_verifications', []);
+        if (! is_array($requiredTypes)) {
+            $requiredTypes = [];
+        }
+        $workflowConfig = config('onboarding.verification_workflows', []);
+        if (! is_array($workflowConfig)) {
+            $workflowConfig = [];
+        }
+
+        $verificationPayload = collect($requiredTypes)
+            ->filter(fn (mixed $type): bool => is_string($type) && $type !== '')
+            ->map(function (string $type) use ($verificationStatuses, $workflowConfig): array {
+                $workflow = $workflowConfig[$type] ?? [];
+                if (! is_array($workflow)) {
+                    $workflow = [];
+                }
+
+                $fields = $workflow['required_fields'] ?? [];
+                if (! is_array($fields)) {
+                    $fields = [];
+                }
+                $requiredFields = collect($fields)
+                    ->filter(fn (mixed $field): bool => is_array($field) && is_string($field['key'] ?? null) && $field['key'] !== '')
+                    ->map(fn (array $field): array => [
+                        'key' => $field['key'],
+                        'label' => is_string($field['label'] ?? null) ? $field['label'] : $field['key'],
+                        'helpText' => is_string($field['help_text'] ?? null) ? $field['help_text'] : null,
+                    ])
+                    ->values()
+                    ->all();
+
+                $record = $verificationStatuses->get($type);
+
+                return [
+                    'type' => $type,
+                    'label' => is_string($workflow['label'] ?? null) ? $workflow['label'] : $type,
+                    'status' => $record?->status ?? 'pending',
+                    'method' => $record?->method ?? 'manual',
+                    'notes' => $record?->notes,
+                    'evidence' => is_array($record?->evidence_payload) ? $record->evidence_payload : [],
+                    'reviewedAt' => $record?->reviewed_at?->toIso8601String(),
+                    'workflow' => [
+                        'description' => is_string($workflow['description'] ?? null) ? $workflow['description'] : '',
+                        'steps' => is_array($workflow['steps'] ?? null) ? array_values(array_filter($workflow['steps'], 'is_string')) : [],
+                        'requiredFields' => $requiredFields,
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
 
         return [
             'id' => $firm->id,
@@ -325,8 +390,9 @@ class PlatformFirmController extends Controller
                 'applicantUserId' => $application?->applicant_user_id,
                 'revision' => $revision,
                 'approvalCount' => $approvalCount,
-                'requiredApprovals' => $application !== null ? 2 : 0,
-                'verificationStatuses' => $verificationStatuses,
+                'requiredApprovals' => $application !== null ? ($simplifiedFlow ? 0 : 2) : 0,
+                'devSimplifiedFlow' => $simplifiedFlow,
+                'verificationStatuses' => $verificationPayload,
             ],
         ];
     }

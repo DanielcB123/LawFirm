@@ -323,7 +323,7 @@ classDiagram
   TenantMatterRecord "1" --> "*" TenantMatterTask : matter_record_id CASCADE
 ```
 
-## Laravel onboarding control-plane additions (2026-10-22)
+## Laravel onboarding control-plane additions (2026-10-22 and 2026-10-23)
 
 Applied by schema-evolution row L16.
 
@@ -354,6 +354,9 @@ classDiagram
     int revision
     string verification_type
     string status
+    string method
+    string notes
+    json evidence_payload
     bigint reviewer_user_id
   }
   class FirmOnboardingReview {

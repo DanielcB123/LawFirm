@@ -15,6 +15,7 @@ use App\Tenancy\FirmReviewService;
 use App\Tenancy\TenantConnectionManager;
 use App\Tenancy\TenantSchemaProvisioner;
 use App\Enums\FirmLifecycleStatus;
+use App\Enums\FirmProvisioningStatus;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -70,8 +71,20 @@ class DatabaseSeeder extends Seeder
             $firm = $registry->register('Brian and Sandra Law LLC', 'Brian & Sandra Law', $admin);
         }
 
-        if ($firm->lifecycle_status === FirmLifecycleStatus::PendingReview) {
-            $firm = $review->approve($firm, $admin, 'Seeded development review approval.', ['seed:automated']);
+        if ($firm->lifecycle_status !== FirmLifecycleStatus::Active && $firm->lifecycle_status !== FirmLifecycleStatus::Approved) {
+            if ($firm->onboardingApplication()->exists()) {
+                // Dev seed recovery path: prior rejected onboarding state should not break deterministic reseeds.
+                $firm->forceFill([
+                    'lifecycle_status' => FirmLifecycleStatus::Approved,
+                    'provisioning_status' => FirmProvisioningStatus::Requested,
+                    'approved_at' => now(),
+                    'rejected_at' => null,
+                    'provisioning_failure_reason' => null,
+                ])->save();
+                $firm = $firm->refresh();
+            } else {
+                $firm = $review->approve($firm, $admin, 'Seeded development review approval.', ['seed:automated']);
+            }
         }
 
         if (! $firm->isUsable()) {

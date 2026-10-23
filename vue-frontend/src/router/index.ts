@@ -98,6 +98,7 @@ router.beforeEach(async (to) => {
   const auth = useAuthSession()
   await auth.ensureSessionLoaded()
   const memberships = auth.actor.value?.memberships ?? []
+  const activeMemberships = memberships.filter((membership) => membership.lifecycleStatus === 'active')
   const isPlatformOwner = auth.actor.value?.platformRole === 'platform_owner'
 
   if (to.meta.requiresAuth && !auth.isAuthenticated.value) {
@@ -111,16 +112,26 @@ router.beforeEach(async (to) => {
   if (
     to.meta.requiresAuth &&
     auth.isAuthenticated.value &&
+    !isPlatformOwner &&
+    activeMemberships.length === 0 &&
+    to.name !== 'onboarding-status'
+  ) {
+    return { name: 'onboarding-status' }
+  }
+
+  if (
+    to.meta.requiresAuth &&
+    auth.isAuthenticated.value &&
     isPlatformHost() &&
     !isPlatformOwner &&
     to.name !== 'workspace-select-firm' &&
-    memberships.length > 1 &&
+    activeMemberships.length > 1 &&
     !auth.selectedFirmId.value
   ) {
     return { name: 'workspace-select-firm' }
   }
 
-  if (to.name === 'workspace-select-firm' && memberships.length <= 1) {
+  if (to.name === 'workspace-select-firm' && activeMemberships.length <= 1) {
     return { name: 'workspace-home' }
   }
 
@@ -135,6 +146,14 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated.value) {
+    if (to.name === 'workspace-login') {
+      return true
+    }
+
+    if (!isPlatformOwner && activeMemberships.length === 0) {
+      return { name: 'onboarding-status' }
+    }
+
     if (isPlatformHost() && isPlatformOwner) {
       return { name: 'workspace-platform-firms' }
     }

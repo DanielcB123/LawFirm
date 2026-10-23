@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiClientError } from '../../lib/apiClient'
 import { useAuthSession } from '../../features/auth/session'
-import { registerFirm, submitFirmApplication } from '../../features/onboarding/api'
+import {
+  checkFirmNameAvailability,
+  registerFirm,
+  submitFirmApplication,
+  type FirmNameAvailabilityResponse,
+} from '../../features/onboarding/api'
 
 const router = useRouter()
 const auth = useAuthSession()
@@ -19,8 +24,48 @@ const form = ref({
 
 const error = ref<string | null>(null)
 const isSaving = ref(false)
+const isCheckingName = ref(false)
+const availability = ref<FirmNameAvailabilityResponse | null>(null)
+const availabilityError = ref<string | null>(null)
+let availabilityTimer: ReturnType<typeof setTimeout> | null = null
 
 const isAuthenticated = computed(() => auth.isAuthenticated.value)
+const trimmedFirmName = computed(() => form.value.firmName.trim())
+const canSubmit = computed(() => {
+  if (isCheckingName.value) {
+    return false
+  }
+
+  if (availability.value && !availability.value.available) {
+    return false
+  }
+
+  return true
+})
+
+async function checkName(): Promise<void> {
+  const firmName = trimmedFirmName.value
+  if (firmName.length < 3) {
+    availability.value = null
+    availabilityError.value = null
+    return
+  }
+
+  isCheckingName.value = true
+  availabilityError.value = null
+  try {
+    availability.value = await checkFirmNameAvailability(firmName)
+  } catch (err) {
+    availability.value = null
+    availabilityError.value = err instanceof ApiClientError ? err.message : 'Unable to check firm name availability.'
+  } finally {
+    isCheckingName.value = false
+  }
+}
+
+function applySuggestedSlug(slug: string): void {
+  form.value.firmName = slug
+}
 
 async function submit(): Promise<void> {
   error.value = null
@@ -54,6 +99,19 @@ async function submit(): Promise<void> {
     isSaving.value = false
   }
 }
+
+watch(
+  () => form.value.firmName,
+  () => {
+    if (availabilityTimer) {
+      clearTimeout(availabilityTimer)
+    }
+
+    availabilityTimer = setTimeout(() => {
+      void checkName()
+    }, 300)
+  },
+)
 </script>
 
 <template>
@@ -69,6 +127,25 @@ async function submit(): Promise<void> {
         Firm name
         <input v-model="form.firmName" type="text" required />
       </label>
+      <p v-if="isCheckingName" class="muted">Checking firm URL availability...</p>
+      <p v-else-if="availability && availability.available" class="muted">
+        Available: <strong>{{ availability.slug }}</strong>.firms.localhost
+      </p>
+      <div v-else-if="availability && !availability.available">
+        <p class="error-message">{{ availability.message }}</p>
+        <p class="muted">Suggested available names:</p>
+        <div class="workspace-form__inline">
+          <button
+            v-for="suggestion in availability.suggestions"
+            :key="suggestion"
+            type="button"
+            @click="applySuggestedSlug(suggestion)"
+          >
+            {{ suggestion }}
+          </button>
+        </div>
+      </div>
+      <p v-if="availabilityError" class="error-message">{{ availabilityError }}</p>
 
       <label>
         Applicant name
@@ -107,7 +184,7 @@ async function submit(): Promise<void> {
       </template>
 
       <p v-if="error" class="error-message">{{ error }}</p>
-      <button type="submit" class="hero-button hero-button--primary" :disabled="isSaving">
+      <button type="submit" class="hero-button hero-button--primary" :disabled="isSaving || !canSubmit">
         {{ isSaving ? 'Submitting...' : 'Submit firm application' }}
       </button>
     </form>

@@ -43,14 +43,15 @@ function persistSelectedFirm(nextFirmId: string | null) {
 
 function reconcileSelectedFirm(): void {
   const memberships = actor.value?.memberships ?? []
-  const allowedFirmIds = new Set(memberships.map((membership) => membership.firmId))
+  const activeMemberships = memberships.filter((membership) => membership.lifecycleStatus === 'active')
+  const allowedFirmIds = new Set(activeMemberships.map((membership) => membership.firmId))
 
   if (selectedFirmId.value && !allowedFirmIds.has(selectedFirmId.value)) {
     persistSelectedFirm(null)
   }
 
-  if (!selectedFirmId.value && memberships.length === 1) {
-    persistSelectedFirm(memberships[0].firmId)
+  if (!selectedFirmId.value && activeMemberships.length === 1) {
+    persistSelectedFirm(activeMemberships[0].firmId)
   }
 }
 

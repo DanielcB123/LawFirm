@@ -63,6 +63,43 @@ class FirmOnboardingApiTest extends TestCase
         ]);
     }
 
+    public function test_guest_can_check_firm_name_availability(): void
+    {
+        $this->postJson('/api/onboarding/register', [
+            'firmName' => 'Riverstone Legal',
+            'name' => 'Riverstone Owner',
+            'email' => 'riverstone-owner@example.test',
+            'password' => 'Passw0rd!',
+            'password_confirmation' => 'Passw0rd!',
+        ])->assertCreated();
+
+        $this->getJson('/api/onboarding/firm-name-availability?firmName=Riverstone Legal')
+            ->assertOk()
+            ->assertJsonPath('available', false)
+            ->assertJsonPath('slug', 'riverstone-legal')
+            ->assertJsonCount(5, 'suggestions');
+    }
+
+    public function test_registration_rejects_firm_name_when_slug_is_unavailable(): void
+    {
+        $this->postJson('/api/onboarding/register', [
+            'firmName' => 'Keystone Trial Group',
+            'name' => 'Keystone Owner',
+            'email' => 'keystone-owner@example.test',
+            'password' => 'Passw0rd!',
+            'password_confirmation' => 'Passw0rd!',
+        ])->assertCreated();
+
+        $this->postJson('/api/onboarding/register', [
+            'firmName' => 'Keystone Trial Group',
+            'name' => 'Second Applicant',
+            'email' => 'keystone-second@example.test',
+            'password' => 'Passw0rd!',
+            'password_confirmation' => 'Passw0rd!',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['firmName']);
+    }
+
     public function test_two_distinct_platform_reviewers_are_required(): void
     {
         $this->registerApplicantWithFirm('North Star Law');
@@ -122,6 +159,78 @@ class FirmOnboardingApiTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_rejected_onboarding_application_can_be_reopened_and_reapproved(): void
+    {
+        $this->registerApplicantWithFirm('Reopen Candidate Law');
+        $firm = Firm::query()->where('display_name', 'Reopen Candidate Law')->firstOrFail();
+
+        $reviewerOne = User::factory()->create(['is_platform_administrator' => true]);
+        $reviewerTwo = User::factory()->create(['is_platform_administrator' => true]);
+
+        Sanctum::actingAs($reviewerOne);
+        $this->markRequiredVerificationsVerified($firm);
+        $this->postJson('/api/platform/firms/'.$firm->id.'/review', [
+            'decision' => 'reject',
+            'reason' => 'Initial rejection due to missing authority proof.',
+            'evidenceReferences' => ['manual:reject'],
+        ])->assertOk();
+
+        $this->assertSame(FirmLifecycleStatus::Rejected, $firm->refresh()->lifecycle_status);
+
+        $this->postJson('/api/platform/firms/'.$firm->id.'/reopen', [
+            'reason' => 'Evidence completed and ready for fresh review.',
+        ])->assertOk();
+
+        $this->assertSame(FirmLifecycleStatus::PendingReview, $firm->refresh()->lifecycle_status);
+
+        $this->postJson('/api/platform/firms/'.$firm->id.'/review', [
+            'decision' => 'approve',
+            'reason' => 'First reviewer approval after reopen.',
+            'evidenceReferences' => ['manual:approve-1'],
+        ])->assertOk();
+
+        Sanctum::actingAs($reviewerTwo);
+        $this->postJson('/api/platform/firms/'.$firm->id.'/review', [
+            'decision' => 'approve',
+            'reason' => 'Second reviewer approval after reopen.',
+            'evidenceReferences' => ['manual:approve-2'],
+        ])->assertOk();
+
+        $firm->refresh();
+        $this->assertSame(FirmLifecycleStatus::Approved, $firm->lifecycle_status);
+        $this->assertSame(FirmProvisioningStatus::Requested, $firm->provisioning_status);
+    }
+
+    public function test_simplified_dev_flow_can_provision_rejected_firm_after_verifications(): void
+    {
+        config(['onboarding.dev_simplified_flow' => true]);
+        config(['onboarding.firm_demo_users.enabled' => true]);
+        config(['onboarding.firm_demo_users.email_domain' => 'firms@localhost']);
+        config(['onboarding.firm_demo_users.password' => 'Passw0rd!']);
+
+        $this->registerApplicantWithFirm('Simplified Provision Firm');
+        $firm = Firm::query()->where('display_name', 'Simplified Provision Firm')->firstOrFail();
+        $admin = User::factory()->create(['is_platform_administrator' => true]);
+
+        Sanctum::actingAs($admin);
+        $this->markRequiredVerificationsVerified($firm);
+        $this->postJson('/api/platform/firms/'.$firm->id.'/review', [
+            'decision' => 'reject',
+            'reason' => 'Rejected before final documents.',
+            'evidenceReferences' => ['manual:reject'],
+        ])->assertOk();
+
+        $this->postJson('/api/platform/firms/'.$firm->id.'/provision')
+            ->assertOk()
+            ->assertJsonPath('lifecycleStatus', 'active')
+            ->assertJsonPath('provisioningStatus', 'ready');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'attorney.simplified-provision-firm.firms@localhost',
+            'role' => 'Attorney',
+        ]);
+    }
+
     public function test_fast_track_is_disabled_by_default(): void
     {
         $applicant = $this->registerApplicantWithFirm('Harbor Counsel');
@@ -134,6 +243,9 @@ class FirmOnboardingApiTest extends TestCase
     public function test_fast_track_can_activate_local_firm_without_marking_email_verified(): void
     {
         config(['onboarding.dev_fast_track' => true]);
+        config(['onboarding.firm_demo_users.enabled' => true]);
+        config(['onboarding.firm_demo_users.email_domain' => 'firms@localhost']);
+        config(['onboarding.firm_demo_users.password' => 'Passw0rd!']);
 
         $applicant = $this->registerApplicantWithFirm('Rapid Local Firm');
         Sanctum::actingAs($applicant);
@@ -149,6 +261,16 @@ class FirmOnboardingApiTest extends TestCase
             'firm_id' => $firm->id,
             'user_id' => $applicant->id,
             'role' => 'Partner',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'email' => 'attorney.rapid-local-firm.firms@localhost',
+            'role' => 'Attorney',
+        ]);
+        $demoAttorney = User::query()->where('email', 'attorney.rapid-local-firm.firms@localhost')->firstOrFail();
+        $this->assertDatabaseHas('firm_memberships', [
+            'firm_id' => $firm->id,
+            'user_id' => $demoAttorney->id,
+            'role' => 'Attorney',
         ]);
         $this->assertNull($applicant->refresh()->email_verified_at);
     }
@@ -166,6 +288,25 @@ class FirmOnboardingApiTest extends TestCase
             'method' => 'provider',
             'notes' => 'Provider attempt.',
         ])->assertStatus(422);
+    }
+
+    public function test_verified_status_requires_verification_evidence_fields(): void
+    {
+        $this->registerApplicantWithFirm('Evidence Required Firm');
+        $firm = Firm::query()->where('display_name', 'Evidence Required Firm')->firstOrFail();
+        $admin = User::factory()->create(['is_platform_administrator' => true]);
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/platform/firms/'.$firm->id.'/verifications', [
+            'verificationType' => 'business_existence',
+            'status' => 'verified',
+            'method' => 'manual',
+            'notes' => 'Trying to verify without evidence.',
+            'evidence' => [
+                'legal_business_name' => 'Evidence Required Firm',
+            ],
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['evidence']);
     }
 
     private function registerApplicantWithFirm(string $firmName): User
@@ -202,7 +343,38 @@ class FirmOnboardingApiTest extends TestCase
                 'status' => 'verified',
                 'method' => 'manual',
                 'notes' => 'Manual verification complete.',
+                'evidence' => $this->evidenceFor($verificationType, $firm),
             ])->assertOk();
         }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function evidenceFor(string $verificationType, Firm $firm): array
+    {
+        return match ($verificationType) {
+            'business_existence' => [
+                'legal_business_name' => $firm->legal_name,
+                'tin_ein_last4' => '1234',
+                'irs_lookup_reference' => 'irs:entity-check:1234',
+            ],
+            'applicant_authority' => [
+                'applicant_role_title' => 'Partner',
+                'authority_source' => 'Firm public site profile',
+                'authority_reference' => 'https://example.test/team/profile',
+            ],
+            'applicant_email' => [
+                'verified_email' => 'owner@example.test',
+                'verification_method' => 'challenge_link',
+                'proof_reference' => 'email-proof-123',
+            ],
+            'domain_ownership' => [
+                'hostname' => $firm->fallbackHostname() ?? 'fallback.firms.localhost',
+                'verification_source' => 'platform_managed',
+                'proof_reference' => 'domain-proof-123',
+            ],
+            default => [],
+        };
     }
 }
