@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Tenant\TenantModel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class ConsultationRequest extends Model
+class ConsultationRequest extends TenantModel
 {
     /** @use HasFactory<\Database\Factories\ConsultationRequestFactory> */
     use HasFactory;

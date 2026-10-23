@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Firm;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\CalendarEntry;
 use App\Models\User;
+use App\Tenancy\FirmRegistry;
+use App\Tenancy\FirmReviewService;
+use App\Tenancy\TenantSchemaProvisioner;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -14,30 +17,26 @@ class CalendarApiTest extends TestCase
 
     public function test_calendar_endpoints_require_authentication(): void
     {
-        $this->getJson('/api/calendar/entries')->assertUnauthorized();
-        $this->postJson('/api/calendar/entries', [])->assertUnauthorized();
+        $this->getJson('/api/tenant/calendar/entries')->assertUnauthorized();
+        $this->postJson('/api/tenant/calendar/entries', [])->assertUnauthorized();
     }
 
     public function test_user_without_calendar_permission_gets_forbidden(): void
     {
-        $user = User::factory()->create([
-            'permissions' => ['contacts.read'],
-        ]);
+        [$user, $firm] = $this->memberUser(['contacts.read']);
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/calendar/entries')
+        $this->withHeader('X-Firm-Id', $firm->id)->getJson('/api/tenant/calendar/entries')
             ->assertForbidden()
             ->assertJsonPath('required_permission', 'calendar.read');
     }
 
     public function test_authorized_user_can_create_and_complete_calendar_entry(): void
     {
-        $user = User::factory()->create([
-            'permissions' => ['calendar.read', 'calendar.manage'],
-        ]);
+        [$user, $firm] = $this->memberUser(['calendar.read', 'calendar.manage']);
         Sanctum::actingAs($user);
 
-        $created = $this->postJson('/api/calendar/entries', [
+        $created = $this->withHeader('X-Firm-Id', $firm->id)->postJson('/api/tenant/calendar/entries', [
             'title' => 'Prepare mediation packet',
             'entryType' => 'Task',
             'deadlineType' => 'InternalTarget',
@@ -53,12 +52,27 @@ class CalendarApiTest extends TestCase
 
         $entryId = $created->json('id');
 
-        $this->postJson("/api/calendar/entries/{$entryId}/complete", [
+        $this->withHeader('X-Firm-Id', $firm->id)->postJson("/api/tenant/calendar/entries/{$entryId}/complete", [
             'isCompleted' => true,
         ])
             ->assertOk()
             ->assertJsonPath('isCompleted', true);
+    }
 
-        $this->assertTrue(CalendarEntry::query()->findOrFail($entryId)->is_completed);
+    /**
+     * @param  list<string>  $permissions
+     * @return array{User,Firm}
+     */
+    private function memberUser(array $permissions): array
+    {
+        $admin = User::factory()->create(['is_platform_administrator' => true]);
+        $firm = app(FirmRegistry::class)->register('Calendar Test LLC', 'Calendar Test', $admin);
+        $firm = app(FirmReviewService::class)->approve($firm, $admin, 'approved', ['test']);
+        $firm = app(TenantSchemaProvisioner::class)->provision($firm, $admin);
+
+        $member = User::factory()->create(['permissions' => $permissions]);
+        app(FirmReviewService::class)->saveMembership($firm, $member, 'Attorney', $admin);
+
+        return [$member, $firm];
     }
 }

@@ -33,7 +33,7 @@ async function loadIntake() {
   isLoading.value = true
   error.value = null
   try {
-    records.value = await getJson<IntakeRecord[]>('/intake', token)
+    records.value = await getJson<IntakeRecord[]>('/tenant/intake', token)
   } catch (err) {
     error.value = err instanceof ApiClientError ? err.message : 'Unable to load intake queue.'
   } finally {
@@ -50,7 +50,7 @@ async function createIntake() {
   error.value = null
   try {
     await postJson(
-      '/intake',
+      '/tenant/intake',
       {
         prospectiveClientName: form.value.prospectiveClientName.trim(),
         practiceArea: form.value.practiceArea,

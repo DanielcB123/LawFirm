@@ -1,3 +1,339 @@
+## 2026-10-23 - Firm partner user-management and seeded login expansion
+
+- **Recorded:** 2026-10-23 15:36 EDT. **Not committed.**
+- **Objective and scope:** seed firm-branded partner credentials, add partner-managed firm user onboarding/settings flows, and keep tenant/user boundaries fail-closed.
+
+### Changes
+
+- Added partner-manage permission in `laravel-backend/config/roles.php`:
+  - `users.manage` granted to `Partner`.
+- Added tenant user-management API controller:
+  - `laravel-backend/app/Http/Controllers/Api/TenantUserController.php`.
+- Added tenant routes (all permission-gated and tenant-scoped):
+  - `GET /api/tenant/users`,
+  - `POST /api/tenant/users`,
+  - `PUT /api/tenant/users/{user}/membership`.
+- Added firm-partner role guardrails:
+  - endpoints require actor membership role `Partner` in the currently resolved tenant context,
+  - cross-firm membership updates return `404` without leaking other-firm membership state.
+- Expanded seeding in `laravel-backend/database/seeders/DatabaseSeeder.php`:
+  - added `lawfirmbrianandsandra@matterforge.com` (`Partner`) and attached to seeded Brian & Sandra firm.
+- Added frontend team-management feature:
+  - `vue-frontend/src/features/team/api.ts`,
+  - `vue-frontend/src/pages/workspace/WorkspaceUsersPage.vue`,
+  - routed `/workspace/settings` to real team-access page (`vue-frontend/src/router/index.ts`).
+- Updated operations/auth docs:
+  - `Markdown/operations/docker-and-laravel-command-runbook.md` seeded-login note after `db:seed`,
+  - `docs/seeded-auth-users-and-permissions.md` updated user list, role matrix, and tenant route permissions.
+- Added/updated tests in `laravel-backend/tests/Feature/FirmTenancyTest.php`:
+  - partner can create/list/update users in own firm,
+  - non-partner blocked even when global permission is present.
+
+### Checks run (actual results)
+
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `php artisan test --compact tests/Feature/FirmTenancyTest.php` -> first run failed while authoring new partner test; after membership-role fix, rerun passed (19 tests, 146 assertions).
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited backend/frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** firm partners can now onboard/manage firm users from workspace settings with role-based permission assignment and tenant-scoped enforcement.
+- **Next action:** run `docker compose --profile dev exec -T backend-dev php artisan db:seed --force`, sign in as `lawfirmbrianandsandra@matterforge.com`, and validate create/change role flows at `/workspace/settings`.
+
+## 2026-10-23 - Platform owner vs ops permission split hardening
+
+- **Recorded:** 2026-10-23 13:01 EDT. **Not committed.**
+- **Objective and scope:** split broad platform-admin authority into explicit `platform_owner` and `platform_ops` roles with strict server-side permission boundaries and compatibility-safe auth payload updates.
+
+### Changes
+
+- Added platform role and permission map in `laravel-backend/config/platform.php`.
+- Added control-plane migration `laravel-backend/database/migrations/2026_10_23_165500_add_platform_role_to_users_table.php`:
+  - `users.platform_role` nullable indexed string.
+- Updated `laravel-backend/app/Models/User.php`:
+  - role/permission helpers (`platformRole`, `platformPermissions`, `hasPlatformAccess`, `hasPlatformPermission`, owner/ops helpers),
+  - compatibility fallback preserves behavior for legacy rows that only have `is_platform_administrator = true`.
+- Added `RequirePlatformPermission` middleware and alias (`platform-permission`) in bootstrap.
+- Applied permission middleware per platform route in `laravel-backend/routes/api.php`.
+- Updated `FirmPolicy` to action-level permission checks and aligned controller authorization calls in `PlatformFirmController`.
+- Updated auth payloads in `AuthController` and `FirmOnboardingController` to include:
+  - `platformRole`,
+  - `platformPermissions`,
+  - compatibility boolean `isPlatformAdministrator` from `hasPlatformAccess()`.
+- Updated seeding:
+  - `partner@matterforge.local` -> `platform_owner`,
+  - `adminit@matterforge.local` -> `platform_ops`.
+- Updated frontend auth typing/session helpers and platform-admin page action visibility:
+  - added `platformRole` and `platformPermissions` fields,
+  - added `hasPlatformPermission()` session helper,
+  - hid owner-only actions on `PlatformFirmsPage.vue` while keeping backend enforcement authoritative.
+- Added/updated feature tests in `laravel-backend/tests/Feature/FirmTenancyTest.php`:
+  - ops cannot execute owner-only transitions,
+  - ops can execute allowed platform operations.
+
+### Checks run (actual results)
+
+- `php artisan test --compact tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` -> first runs failed during new test authoring; final rerun passed (18 tests, 146 assertions).
+- `vendor/bin/pint --dirty --format=agent` -> passed.
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited backend/frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** platform-role boundaries are now explicit and enforced at route middleware + policy layers; frontend now reflects role capabilities without relying on UI-only security.
+- **Next action:** run `php artisan migrate && php artisan db:seed`, then manually verify owner vs ops control visibility and direct-API 403 behavior for owner-only endpoints.
+
+## 2026-10-23 - Platform-host login cross-origin redirect removal
+
+- **Recorded:** 2026-10-23 11:15 EDT. **Not committed.**
+- **Objective and scope:** remove cross-host redirects in post-login/firm-selection flow to prevent bearer-token loss across origins in local dev.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`:
+  - removed tenant-host redirect for single-membership users on platform host,
+  - set seeded platform-admin email as default login value for clearer local testing,
+  - added explicit SaaS admin credential hint text.
+- Updated `vue-frontend/src/pages/workspace/FirmSelectorPage.vue`:
+  - removed tenant-host URL builder and host redirect,
+  - selection now persists firm context then routes to `/workspace` on current host.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** platform-host auth state now stays on one origin, avoiding guest fallback on tenant hosts due to `localStorage` scope.
+- **Next action:** manually verify platform-admin login lands on `/workspace/platform/firms` and non-admin login stays on platform-host workspace with selected firm context.
+
+## 2026-10-23 - Platform-admin routing alignment on platform hosts
+
+- **Recorded:** 2026-10-23 11:04 EDT. **Not committed.**
+- **Objective and scope:** ensure platform admins signing in from platform hosts land in SaaS admin workflows, not tenant-host customer/public flows.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue` to prioritize platform-admin redirect to `/workspace/platform/firms` on platform hosts.
+- Updated `vue-frontend/src/router/index.ts` to:
+  - exclude platform admins from firm-selector enforcement,
+  - route platform-admin `/workspace` to `/workspace/platform/firms` on platform hosts,
+  - route guestOnly post-auth redirects for platform admins to platform-firms page.
+- Updated `vue-frontend/src/layout/WorkspaceShell.vue` with platform-admin surface mode:
+  - platform brand label,
+  - SaaS-management nav options,
+  - hides firm practice nav on platform-admin surface.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` on edited files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** platform-host admin sign-in now remains on SaaS-admin side instead of redirecting into tenant-host customer context.
+- **Next action:** manually verify browser flow and confirm `/workspace/platform/firms` is the first authenticated landing page for platform admins on `localhost:5173`.
+
+## 2026-10-23 - Tenant-host redirect port preservation fix
+
+- **Recorded:** 2026-10-23 10:57 EDT. **Not committed.**
+- **Objective and scope:** fix local tenant-host workspace redirects that dropped the frontend port after platform-host login/selection.
+
+### Changes
+
+- Updated `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue` redirect logic to append the current browser port when redirecting to a preferred tenant host.
+- Updated `vue-frontend/src/pages/workspace/FirmSelectorPage.vue` redirect helper to preserve the current browser port when building tenant workspace URLs.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> passed.
+- `ReadLints` for edited files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** local redirect now targets `http://<tenant-host>:5173/workspace` instead of defaulting to port 80.
+- **Next action:** manually re-run the login flow and confirm browser no longer lands on connection-refused tenant host URLs.
+
+## 2026-10-20 - Strict v2 Option B host-surface and discovery implementation
+
+- **Recorded:** 2026-10-20 11:49 EDT. **Not committed.**
+- **Objective and scope:** execute the strict v2 prompt implementation slice to establish SaaS-first platform hosts, app-host discovery behavior, and canonical tenant fallback host continuity.
+
+### Changes
+
+- Backend tenancy/config:
+  - expanded platform/reserved host defaults and env-driven parsing in `laravel-backend/config/tenancy.php`,
+  - added tenant fallback suffix config and platform branding defaults (`MatterForge`),
+  - added fallback/preferred host helpers on `Firm` model and membership payload host metadata via `User::membershipPayload()`,
+  - added automatic platform-managed verified fallback domain creation at firm registration in `FirmRegistry`.
+- Frontend host-surface behavior:
+  - added host-surface helpers (`vue-frontend/src/features/host/surface.ts`),
+  - added SaaS route `/for-law-firms`,
+  - added authenticated `/workspace/select-firm` multi-membership selector page,
+  - updated router/login guards to require explicit firm selection on platform hosts for multi-membership users,
+  - updated API client to include local-only explicit firm selector header when enabled and on platform hosts,
+  - updated public home/contact/nav messaging to render SaaS-first copy on platform hosts while preserving tenant-host firm experience.
+- Test updates:
+  - expanded `FirmTenancyTest` for platform fallback domain creation and reserved platform-host claim rejection.
+- Environment/runbook updates:
+  - added tenancy host env examples in backend/frontend env files,
+  - added frontend host env wiring to `docker-compose.yml`,
+  - documented local host simulation and host-role variables in operations runbook.
+
+### Checks run (actual results)
+
+- `docker compose config` -> passed.
+- `php artisan test --compact tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` -> first run failed 1 test (reserved host expectation); after tenancy config default update, rerun passed (16 tests, 127 assertions).
+- `vendor/bin/pint --dirty --format agent` -> passed.
+- `npm run build` in `vue-frontend` -> first run failed on TypeScript implicit `any`; after typing fixes in host/api helpers, rerun passed.
+- `ReadLints` on edited backend/frontend files -> no diagnostics.
+
+### Outcome and next action
+
+- **Outcome:** SaaS-first outer host surfaces are now implemented in code with stricter local selector gating and multi-membership discovery flow support.
+- **Next action:** perform manual browser verification with hosts-file mappings to validate app-host selector UX and tenant-host redirection paths end-to-end.
+
+## 2026-10-20 - Option B strict prompt v2 packaging
+
+- **Recorded:** 2026-10-20 11:39 EDT. **Not committed.**
+- **Objective and scope:** create a stricter copy/paste-ready implementation prompt with explicit checklists and stop-if-fail gates for each phase.
+
+### Changes
+
+- Added `doc/saas-first-root-and-tenant-hosts-implementation-prompt-strict-v2.md` with:
+  - hard preflight pass criteria,
+  - phase-by-phase checklists,
+  - stop-if-fail gates per phase,
+  - mandatory test protocol and completion report template.
+- Updated planning/handoff artifacts (`ProgressPlan.md`, `SLICE_HISTORY.md`, and decision log) for traceability.
+
+### Checks run (actual results)
+
+- Documentation-only slice: no runtime code/config changes.
+- No build/test commands were required in this packaging pass.
+
+### Outcome and next action
+
+- **Outcome:** strict v2 prompt is ready for direct execution with stronger safety and verification controls than v1.
+- **Next action:** run strict v2 prompt for implementation when the team wants hard gates and auditable phase completion criteria.
+
+## 2026-10-20 - Option B implementation prompt handoff packaging
+
+- **Recorded:** 2026-10-20 11:28 EDT. **Not committed.**
+- **Objective and scope:** convert the approved SaaS-first outer-layer recommendation into a run-ready implementation prompt and replace the brainstorming artifact.
+
+### Changes
+
+- Added `doc/saas-first-root-and-tenant-hosts-implementation-prompt.md` containing:
+  - branch/working-tree safety rules,
+  - explicit host-role split (`www`, `app`, tenant hosts + fallback URL),
+  - phased implementation slices,
+  - required tests and completion report format.
+- Removed `doc/outer-saas-layer-implementation-brainstorming-and-options.md` after replacing it with the execution prompt document.
+- Updated planning/handoff artifacts (`ProgressPlan.md`, `SLICE_HISTORY.md`, and decision log) for traceability.
+
+### Checks run (actual results)
+
+- Documentation-only slice: no runtime code/config changes.
+- No build/test commands were required in this packaging pass.
+
+### Outcome and next action
+
+- **Outcome:** the approved Option B direction is now packaged as a detailed Cursor prompt that can be executed directly for implementation.
+- **Next action:** run the prompt and implement SaaS-root/app-shell/tenant-host routing behavior in small tested slices.
+
+## 2026-10-19 - Outer SaaS layer brainstorming and options document
+
+- **Recorded:** 2026-10-19 18:39 EDT. **Not committed.**
+- **Objective and scope:** evaluate whether root host should remain tenant-firm-first or become SaaS-first, and produce an implementation-options document with recommendation.
+
+### Changes
+
+- Added `doc/outer-saas-layer-implementation-brainstorming-and-options.md` with:
+  - option comparison (firm-first vs SaaS-first vs hybrid),
+  - recommendation (SaaS-first root + tenant hosts),
+  - phased implementation blueprint,
+  - risk/mitigation list.
+- This artifact was later superseded by `doc/saas-first-root-and-tenant-hosts-implementation-prompt.md` when planning moved into execution-ready prompt packaging.
+- Updated planning/handoff artifacts for decision traceability.
+
+### Checks run (actual results)
+
+- Research performed via current web references on:
+  - host-header and multi-tenant security controls,
+  - custom-domain onboarding flows,
+  - platform vs tenant host entrypoint patterns.
+- No runtime code changed in this slice; no build/test commands were required.
+
+### Outcome and next action
+
+- **Outcome:** recommendation is to shift to SaaS-first outer layer and keep tenant domains/subdomains as firm entrypoints for public/tenant experiences.
+- **Next action:** if approved, implement root-host SaaS shell and preserve host-verified tenant routing for firm data access.
+
+## 2026-10-19 - Complete firm onboarding/domain verification and tenant workspace isolation slice
+
+- **Recorded:** 2026-10-19 20:35 EDT. **Not committed.**
+- **Objective and scope:** close major multi-tenant gaps by adding secure domain ownership verification, host-to-tenant routing hardening, tenant-scoped workspace tables/routes, runtime credential abstraction, and a minimal platform-admin onboarding UI.
+
+### Changes
+
+- Added control-plane migrations:
+  - `2026_10_20_010000_harden_firm_domains_and_public_site_key.php`
+  - `2026_10_20_010100_create_firm_database_credentials_table.php`
+- Added tenant migrations:
+  - `2026_10_20_020000_create_tenant_contacts_table.php`
+  - `2026_10_20_020100_create_tenant_intake_records_table.php`
+  - `2026_10_20_020200_create_tenant_consultation_requests_table.php`
+  - `2026_10_20_020300_create_tenant_matter_records_table.php`
+  - `2026_10_20_020400_create_tenant_matter_tasks_table.php`
+  - `2026_10_20_020500_create_tenant_calendar_entries_table.php`
+- Added domain verification services:
+  - `app/Tenancy/HostnameNormalizer.php`
+  - `app/Tenancy/DnsTxtLookup.php`
+  - `app/Tenancy/DomainOwnershipProofService.php`
+- Added host-only public tenant routing service/middleware:
+  - `app/Tenancy/PublicTenantResolver.php`
+  - `app/Http/Middleware/EstablishPublicTenantContext.php`
+- Expanded platform-admin API/controller flow:
+  - firm listing and filtering,
+  - reactivate transition,
+  - domain challenge reissue/verify/revoke,
+  - richer payload with domains/memberships/public site key.
+- Moved workspace routes to tenant-prefixed API group and switched workspace models to `TenantModel`.
+- Added backfill command:
+  - `php artisan tenants:backfill-workspace --firm=<uuid> [--map-all-to-firm] [--apply]`
+- Added credential abstraction and provisioning integration:
+  - `app/Models/FirmDatabaseCredential.php`
+  - `app/Tenancy/TenantCredentialStore.php`
+  - updated `TenantSchemaProvisioner` and `TenantConnectionManager`.
+- Added platform-admin workspace UI:
+  - `vue-frontend/src/pages/workspace/PlatformFirmsPage.vue`
+  - route wiring and sidebar visibility for platform admins.
+- Added public-site key and extension typing:
+  - `publicSiteKey` in branding payload/types,
+  - `src/firms/extensions.ts` built-in key registry,
+  - shell variant class application.
+
+### Checks run (actual results)
+
+- `php artisan test --compact tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` -> passed (14 tests, 121 assertions).
+- `npm run build` in `vue-frontend` -> passed.
+- `vendor/bin/pint app database routes tests bootstrap --format agent` -> passed.
+- `ReadLints` on edited backend/frontend paths -> no diagnostics.
+
+### Checks not run, and why
+
+- Full backend test suite was not run in this slice to keep execution focused on tenancy/domain/provisioning paths.
+- Browser automation was not run; platform-admin UI and host-based flows were validated by route/build/test coverage in this pass.
+
+### Outcome and next action
+
+- **Outcome:** onboarding and tenant-routing path now includes explicit DNS ownership proof and tenant-scoped workspace writes/reads by default.
+- **Risk still open:** shared-runtime fallback for DB credentials can still be enabled in non-production environments; strict per-tenant runtime DB users are still required for production readiness.
+- **Next action:** execute reviewed backfill mapping in disposable/local data, reconcile row counts, then plan controlled retirement of legacy shared workspace tables.
+
 # Slice History
 
 A **slice** is one bounded implementation step: a small piece of work carried end to end (schema, API, UI where relevant, tests, documentation) that leaves the application runnable. Entries are append-only. Each heading's date and slice name is its stable ID. Later outcomes are added as new entries; earlier failures are not rewritten. Commit references appear only when a commit exists. Current state lives in [ProgressPlan.md](ProgressPlan.md). Why a choice was made, what it helps, and how it could fail later live in [Markdown/planning/decision-log.md](Markdown/planning/decision-log.md). Entries before 2026-10-13 22:40 EDT were not rewritten into that shape.
@@ -2290,3 +2626,128 @@ Finish by updating ProgressPlan.md, appending a truthful SLICE_HISTORY.md entry 
 - **Outcome:** consultation records now render visibly regardless of reveal observer timing.
 - **Benefit and possible future downfall:** [D-20261019-9](Markdown/planning/decision-log.md). Benefit: removes a class of false-empty operational queues caused by animation gating. Downfall: fewer reveal animations on this page reduce motion polish slightly.
 - **Next action:** keep critical operational data surfaces visible-by-default and apply reveal animation only to non-blocking decorative sections.
+
+## 2026-10-19 - Firm tenant schema foundation
+
+- **Recorded:** 2026-10-19 15:28 EDT. **Not committed.** Branch `feature/firm-tenant-schema-foundation` from `f8edb1a`.
+- **Objective and scope:** first Laravel/Vue slice for a firm registry, human review, per-firm MySQL schema, request-scoped tenant context, and public branding. Existing workspace modules stay on the shared database.
+
+### Changes
+
+- Control-plane migrations for platform-administrator flag, firms, public profiles, domains, verifications, memberships, and provisioning events.
+- Tenant migrations in `laravel-backend/database/tenant-migrations` for `firm_identity` and `tenant_workspace_notes`.
+- Provisioning, resolution middleware, fleet command `tenants:migrate`, platform firm API, and public branding API.
+- Vue public shell reads branding. `vue-frontend/src/firms/extensions.ts` is the code-owned extension point.
+- Design note: [Markdown/architecture/firm-tenant-schema-foundation.md](Markdown/architecture/firm-tenant-schema-foundation.md). Decision [D-20261019-10](Markdown/planning/decision-log.md).
+
+### Checks run (actual results)
+
+- `php artisan test --compact` in `laravel-backend` passed: 30 tests, 203 assertions. That includes `FirmTenancyTest` and `TenantMysqlProvisioningTest` against MySQL 8.0.36 on `127.0.0.1:3307`.
+- `vendor/bin/pint --dirty --format agent` completed with no remaining formatter changes.
+- `npm run build` in `vue-frontend` passed (`vue-tsc` and Vite).
+- Docker: `docker compose --profile dev up -d backend-dev` recreated a healthy `backend-dev`. `php artisan migrate --force` inside that container applied the two control-plane migrations. `GET http://localhost:8080/api/health` and `GET http://localhost:8080/api/public/branding` returned HTTP 200.
+- Browser on `http://localhost:5173`: home, about, and sign-in rendered the platform name; the page requested `/api/public/branding` (HTTP 200); sign-in as the seeded attorney reached `/workspace`; matters listed the two seeded matters.
+
+### Checks not run, and why
+
+- No frontend unit test runner exists in `vue-frontend/package.json`.
+- `docker compose config` was not run. The dev profile was already up and the backend container was recreated.
+- Per-firm MySQL accounts were not created. The MySQL test grants one runtime user DML on the new schema and checks that user cannot read the control-plane `firms` table.
+
+### Outcome and next action
+
+- **Outcome:** new firms can be reviewed and given an isolated schema. Existing legal tables are still shared. The branch is not committed.
+- **Benefit and possible future downfall:** [D-20261019-10](Markdown/planning/decision-log.md). Benefit: tenant routes fail closed and schema names are not taken from the client. Downfall: staff can still read the shared matter database, and one runtime MySQL user can reach every provisioned schema if the connection is pointed at it.
+- **Next action:** choose when to move contacts, matters, consultations, tasks, and calendar into tenant schemas, and where per-firm database credentials will be stored.
+
+## 2026-10-22 - Tenant-host guest fallback + workspace redirect hardening
+
+- **Recorded:** 2026-10-22 EDT. **Not committed.**
+- **Objective and scope:** ensure firm-host URLs remain prospective-customer-first for unauthenticated traffic and tighten sign-in redirect safety for workspace routes.
+
+### Changes
+
+- Updated `vue-frontend/src/router/index.ts`:
+  - imported tenant-host detection from host-surface utilities,
+  - changed auth-guard behavior so unauthenticated requests to authenticated workspace routes on tenant hosts redirect to public home (`/`) instead of auto-routing to `/workspace/login`.
+- Updated `vue-frontend/src/pages/workspace/WorkspaceLoginPage.vue`:
+  - added `safeWorkspaceRedirect()` helper,
+  - restricted post-login redirect targets to safe internal workspace paths (must start with `/workspace` and must not start with `//`).
+- Updated `vue-frontend/src/features/branding/api.ts`:
+  - `applyPublicBranding()` now updates `document.title`,
+  - tenant surfaces now show `{Firm Display Name} | MatterForge`; platform surface remains `MatterForge`.
+
+### Checks run (actual results)
+
+- `npm run build` in `vue-frontend` -> success.
+- `ReadLints` on edited frontend files (`router/index.ts`, `WorkspaceLoginPage.vue`, `features/branding/api.ts`) -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation/manual host-switching walkthrough was run in this slice; verification focused on compile, lint, and route-guard behavior in source.
+
+### Outcome and next action
+
+- **Outcome:** tenant-host visitors who are not signed in now stay on the firm's public-facing experience when they attempt workspace URLs, and login redirect handling is stricter against unsafe redirect values.
+- **Benefit and possible future downfall:** [D-20261022-1](Markdown/planning/decision-log.md). Benefit: improves tenant public-surface consistency and reduces redirect abuse surface. Downfall: users expecting direct guest access to `/workspace/login` from protected tenant-route links will now land on home first and need one extra navigation step.
+- **Next action:** manually validate the guest -> sign-in -> workspace flow on both a platform host and at least one tenant host, then adjust CTA copy if teams want a more explicit tenant-host sign-in prompt.
+
+## 2026-10-22 - Self-service firm onboarding, two-reviewer approvals, and local fast-track guardrails
+
+- **Recorded:** 2026-10-22 EDT. **Not committed.**
+- **Objective and scope:** add applicant-facing firm onboarding while preserving tenant isolation and enforcing two-person approval for onboarding applications, with a strictly guarded local/testing fast-track path for rapid development provisioning.
+
+### Changes
+
+- Added onboarding control-plane schema in `2026_10_22_185837_create_firm_onboarding_tables`:
+  - `firms.applicant_user_id` (nullable FK to `users`) and `firms.onboarding_revision`,
+  - `firm_onboarding_applications`,
+  - `firm_onboarding_verifications`,
+  - `firm_onboarding_reviews`,
+  - revision-bound unique constraints for review and verification rows.
+- Added onboarding service and guard classes:
+  - `app/Tenancy/FirmOnboardingService.php`,
+  - `app/Tenancy/OnboardingFastTrackGuard.php`.
+- Added applicant onboarding API controller/routes:
+  - `POST /api/onboarding/register`,
+  - `POST /api/onboarding/applications`,
+  - `GET /api/onboarding/applications/current`,
+  - `PUT /api/onboarding/applications/current`,
+  - `POST /api/onboarding/applications/current/fast-track`.
+- Added platform verification endpoint:
+  - `POST /api/platform/firms/{firm}/verifications`.
+- Updated approval flow in `FirmReviewService`:
+  - onboarding applications now require complete verification checks and two distinct platform reviewers for approval,
+  - self-review and conflicted member review are blocked server-side,
+  - rejections are revision-scoped and block provisioning until a material application revision.
+- Updated provisioning path:
+  - platform provisioning now goes through onboarding service and assigns owner membership after successful schema provisioning.
+- Added local fast-track command:
+  - `php artisan onboarding:fast-track`.
+- Added frontend integration:
+  - `vue-frontend/src/pages/public/RegisterFirmPage.vue`,
+  - `vue-frontend/src/pages/public/OnboardingStatusPage.vue`,
+  - router/nav updates for `/register-firm` and `/onboarding/status`,
+  - onboarding API client in `src/features/onboarding/api.ts`,
+  - platform firms page now supports manual verification actions and displays onboarding approval counters.
+- Added feature coverage:
+  - `tests/Feature/FirmOnboardingApiTest.php` with applicant registration, two-reviewer enforcement, conflicted reviewer rejection, fast-track guard behavior, and provider fail-closed checks.
+
+### Checks run (actual results)
+
+- `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` -> pass (23 tests, 166 assertions).
+- `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php` -> pass (7 tests, 39 assertions).
+- `vendor/bin/pint --dirty --format agent` -> pass.
+- `npm run build` in `vue-frontend` -> pass.
+- `docker compose config` -> pass.
+- `ReadLints` on edited backend/frontend onboarding files -> no diagnostics.
+
+### Checks not run, and why
+
+- No browser automation/manual screenshot capture was run for `/register-firm` and `/onboarding/status`; verification focused on API behavior, migration constraints, tests, and frontend compilation.
+
+### Outcome and next action
+
+- **Outcome:** local developers can now register a test firm through applicant-facing flow and, when explicitly enabled in local/testing, fast-track into an active tenant workspace without weakening production approval/verification pathways.
+- **Benefit and possible future downfall:** [D-20261022-2](Markdown/planning/decision-log.md). Benefit: cuts local onboarding cycle time while preserving strict server-side controls and auditability. Downfall: introduces additional control-plane state and review workflow complexity that requires disciplined operational runbooks and reviewer training.
+- **Next action:** run manual host-based UX verification for register -> status -> review -> provision -> workspace across platform and tenant hosts, then decide production policy for fresh-password confirmation/MFA on privileged platform review actions.

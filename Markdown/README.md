@@ -36,6 +36,7 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Database | [Tenancy research](database/tenancy-research.md) | Primary-source analysis and tradeoffs |
 | Database | [ADR-001 tenant isolation](database/ADR-001-tenancy.md) | Proposed decision and conditions |
 | Database | [ADR-002 multi-firm architecture](database/ADR-002-multitenant-architecture.md) | Options, capacity scenarios, refined decision, reconsideration triggers |
+| Architecture | [Firm tenant schema foundation](architecture/firm-tenant-schema-foundation.md) | Laravel control plane, per-firm schema, request lifecycle, and what is still shared |
 | Database | [Data dictionary](database/data-dictionary.md) | Control plane and firm tables, identifiers, money, dates, ERDs |
 | Database | [Query and index spec](database/query-and-index-spec.md) | Real queries, observed plans, partitioning findings |
 | Database | [Design SQL and validation](../db/design/README.md) | Reviewable DDL, synthetic data, disposable-MySQL checks |
@@ -66,6 +67,7 @@ The repository is an ASP.NET Core 8 + EF Core (Pomelo/MySQL) API with a React 19
 | Delivery | [Roadmap and acceptance](delivery/roadmap-and-acceptance.md) | Safe implementation order and first slice |
 | Delivery | [Multi-firm implementation plan](delivery/multitenant-implementation-plan.md) | Dependency-ordered steps T0–T12 and blocking decisions |
 | Delivery | [Multi-firm acceptance matrix](delivery/multitenant-acceptance-matrix.md) | Acceptance-test ids, status, evidence |
+| Delivery | [Firm onboarding/domain routing implementation record](../docs/firm-onboarding-domain-routing-and-tenant-workspaces.md) | End-to-end onboarding, domain TXT verification, tenant routing, and migration notes for this slice |
 | Delivery | [Open decisions](planning/open-decisions.md) | Known facts versus unresolved choices. The `delivery/` copy is a pointer |
 | Research | [Source register](research/sources.md) | References, dates, limitations |
 | Cursor | [Copyable Cursor prompt](archive/original-prompt/CURSOR_PROMPT.md) | Original prompt and blueprint zip (archived, read-only) |

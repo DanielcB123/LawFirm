@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenant\TenantModel;
 
-class Contact extends Model
+class Contact extends TenantModel
 {
     protected $fillable = [
         'display_name',

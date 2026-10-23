@@ -2,7 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Firm;
 use App\Models\User;
+use App\Tenancy\FirmRegistry;
+use App\Tenancy\FirmReviewService;
+use App\Tenancy\TenantSchemaProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -13,27 +17,23 @@ class IntakeApiTest extends TestCase
 
     public function test_unauthenticated_intake_requests_are_rejected(): void
     {
-        $this->getJson('/api/intake')->assertUnauthorized();
-        $this->postJson('/api/intake', [])->assertUnauthorized();
+        $this->getJson('/api/tenant/intake')->assertUnauthorized();
+        $this->postJson('/api/tenant/intake', [])->assertUnauthorized();
     }
 
     public function test_user_without_intake_read_permission_gets_forbidden(): void
     {
-        $user = User::factory()->create([
-            'permissions' => ['contacts.read'],
-        ]);
+        [$user, $firm] = $this->memberUser(['contacts.read']);
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/intake')
+        $this->withHeader('X-Firm-Id', $firm->id)->getJson('/api/tenant/intake')
             ->assertForbidden()
             ->assertJsonPath('required_permission', 'intake.read');
     }
 
     public function test_user_with_manage_permission_can_create_intake_record(): void
     {
-        $user = User::factory()->create([
-            'permissions' => ['intake.manage', 'intake.read'],
-        ]);
+        [$user, $firm] = $this->memberUser(['intake.manage', 'intake.read']);
         Sanctum::actingAs($user);
 
         $payload = [
@@ -45,7 +45,7 @@ class IntakeApiTest extends TestCase
             'nextAction' => 'Schedule follow-up call',
         ];
 
-        $this->postJson('/api/intake', $payload)
+        $this->withHeader('X-Firm-Id', $firm->id)->postJson('/api/tenant/intake', $payload)
             ->assertCreated()
             ->assertJsonPath('prospectiveClientName', 'Jane Prospect')
             ->assertJsonPath('stage', 'New');
@@ -53,12 +53,10 @@ class IntakeApiTest extends TestCase
 
     public function test_user_without_manage_permission_cannot_create_intake_record(): void
     {
-        $user = User::factory()->create([
-            'permissions' => ['intake.read'],
-        ]);
+        [$user, $firm] = $this->memberUser(['intake.read']);
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/intake', [
+        $this->withHeader('X-Firm-Id', $firm->id)->postJson('/api/tenant/intake', [
             'prospectiveClientName' => 'Should Not Save',
             'practiceArea' => 'ConstructionLaw',
             'intakeType' => 'Website',
@@ -67,5 +65,22 @@ class IntakeApiTest extends TestCase
         ])
             ->assertForbidden()
             ->assertJsonPath('required_permission', 'intake.manage');
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     * @return array{User,Firm}
+     */
+    private function memberUser(array $permissions): array
+    {
+        $admin = User::factory()->create(['is_platform_administrator' => true]);
+        $firm = app(FirmRegistry::class)->register('Intake Test LLC', 'Intake Test', $admin);
+        $firm = app(FirmReviewService::class)->approve($firm, $admin, 'approved', ['test']);
+        $firm = app(TenantSchemaProvisioner::class)->provision($firm, $admin);
+
+        $member = User::factory()->create(['permissions' => $permissions]);
+        app(FirmReviewService::class)->saveMembership($firm, $member, 'Attorney', $admin);
+
+        return [$member, $firm];
     }
 }

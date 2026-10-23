@@ -4,7 +4,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use App\Http\Middleware\EstablishPublicTenantContext;
+use App\Http\Middleware\EstablishTenantContext;
 use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\RequirePlatformAdministrator;
+use App\Http\Middleware\RequirePlatformPermission;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => null);
         $middleware->alias([
             'permission' => RequirePermission::class,
+            'platform-admin' => RequirePlatformAdministrator::class,
+            'platform-permission' => RequirePlatformPermission::class,
+            'tenant' => EstablishTenantContext::class,
+            'public-tenant' => EstablishPublicTenantContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -46,7 +46,7 @@ export async function createConsultationRequest(payload: CreateConsultationPaylo
 
 export async function getConsultationQueue(token: string, status?: string): Promise<ConsultationRequestItem[]> {
   const suffix = status ? `?status=${encodeURIComponent(status)}` : ''
-  return getJson<ConsultationRequestItem[]>(`/consultations${suffix}`, token)
+  return getJson<ConsultationRequestItem[]>(`/tenant/consultations${suffix}`, token)
 }
 
 export async function updateConsultationStatus(
@@ -55,7 +55,7 @@ export async function updateConsultationStatus(
   payload: UpdateConsultationPayload,
 ): Promise<ConsultationRequestItem> {
   return postJson<ConsultationRequestItem, UpdateConsultationPayload>(
-    `/consultations/${consultationId}/status`,
+    `/tenant/consultations/${consultationId}/status`,
     payload,
     token,
   )
