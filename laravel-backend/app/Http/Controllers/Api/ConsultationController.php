@@ -101,7 +101,7 @@ class ConsultationController extends Controller
         return response()->json($items->values()->all());
     }
 
-    public function updateStatus(Request $request, ConsultationRequest $consultation): JsonResponse
+    public function updateStatus(Request $request, string $consultationId): JsonResponse
     {
         $validated = $request->validate([
             'status' => ['required', 'in:Requested,InReview,Contacted,Scheduled,Converted,Closed,Cancelled'],
@@ -110,6 +110,7 @@ class ConsultationController extends Controller
             'internalNotes' => ['nullable', 'string'],
         ]);
 
+        $consultation = ConsultationRequest::query()->findOrFail($consultationId);
         $consultation->fill([
             'status' => $validated['status'],
             'assigned_to_actor_id' => $validated['assignedToActorId'] ?? null,

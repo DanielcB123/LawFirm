@@ -1,19 +1,41 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { teamMembers } from '../../data/teamMembers'
 import { useConsultationModal } from '../../features/consultations/modal'
+import { usePublicBrandingState } from '../../features/branding/api'
+import { isPlatformHost } from '../../features/host/surface'
 
-const quickStats = [
-  { label: 'Avg. response window', value: '< 1 business day' },
-  { label: 'Practice model', value: 'Client-first, trial-ready' },
-  { label: 'Consultations', value: 'Same-week availability' },
-]
+const branding = usePublicBrandingState()
+const isPlatformSurface = computed(() => isPlatformHost() && branding.value.source === 'platform')
 
-const valueProps = [
-  'Responsive communication and transparent billing.',
-  'Focused experience in high-stakes civil matters.',
-  'Personalized strategy tailored to your goals.',
-]
+const quickStats = computed(() =>
+  isPlatformSurface.value
+    ? [
+        { label: 'Onboarding model', value: 'Human-reviewed activation gates' },
+        { label: 'Tenant architecture', value: 'One schema per law firm' },
+        { label: 'Go-live path', value: 'Verified domains + fallback URL' },
+      ]
+    : [
+        { label: 'Avg. response window', value: '< 1 business day' },
+        { label: 'Practice model', value: 'Client-first, trial-ready' },
+        { label: 'Consultations', value: 'Same-week availability' },
+      ],
+)
+
+const valueProps = computed(() =>
+  isPlatformSurface.value
+    ? [
+        'Platform-level onboarding with clear lifecycle gates.',
+        'Tenant-isolated workspace data and firm membership controls.',
+        'Distinct public firm sites without backend forks.',
+      ]
+    : [
+        'Responsive communication and transparent billing.',
+        'Focused experience in high-stakes civil matters.',
+        'Personalized strategy tailored to your goals.',
+      ],
+)
 
 const practiceAreaHighlights = [
   {
@@ -69,15 +91,27 @@ function openConsultation(event: MouseEvent) {
       <div class="home-hero__image" aria-hidden="true"></div>
       <div class="home-hero__glow" aria-hidden="true"></div>
       <div class="home-hero__grid" aria-hidden="true"></div>
-      <p class="eyebrow home-hero__eyebrow">Trusted legal counsel in Ohio</p>
-      <h1>Legal strategy that moves as fast as your life.</h1>
+      <p class="eyebrow home-hero__eyebrow">
+        {{ isPlatformSurface ? 'SaaS platform for modern law firms' : 'Trusted legal counsel in Ohio' }}
+      </p>
+      <h1>
+        {{ isPlatformSurface ? 'Launch your firm on a secure, host-verified workspace platform.' : 'Legal strategy that moves as fast as your life.' }}
+      </h1>
       <p class="lead">
-        Brian & Sandra Law helps individuals, families, and small businesses resolve legal issues with practical strategy,
-        consistent communication, and strong courtroom advocacy.
+        {{
+          isPlatformSurface
+            ? 'MatterForge helps law firms onboard with verified custom domains, isolated tenant schemas, and a shared workspace product for legal operations.'
+            : 'Brian & Sandra Law helps individuals, families, and small businesses resolve legal issues with practical strategy, consistent communication, and strong courtroom advocacy.'
+        }}
       </p>
       <div class="home-hero__actions">
-        <button type="button" class="hero-button hero-button--primary" @click="openConsultation">Book consultation</button>
-        <RouterLink class="hero-button" to="/practice-areas">Explore practice areas</RouterLink>
+        <RouterLink v-if="isPlatformSurface" class="hero-button hero-button--primary" to="/for-law-firms">
+          Start your firm onboarding
+        </RouterLink>
+        <button v-else type="button" class="hero-button hero-button--primary" @click="openConsultation">Book consultation</button>
+        <RouterLink class="hero-button" :to="isPlatformSurface ? '/workspace/login' : '/practice-areas'">
+          {{ isPlatformSurface ? 'Firm sign in' : 'Explore practice areas' }}
+        </RouterLink>
       </div>
       <div class="home-hero__stats" aria-label="Firm highlights">
         <article class="card home-stat" v-for="stat in quickStats" :key="stat.label">
@@ -89,20 +123,27 @@ function openConsultation(event: MouseEvent) {
 
     <section class="content-grid home-panels" data-reveal="left">
       <article class="card home-panel home-panel--lift">
-        <h2>Why clients choose us</h2>
+        <h2>{{ isPlatformSurface ? 'Why firms choose MatterForge' : 'Why clients choose us' }}</h2>
         <ul>
           <li v-for="item in valueProps" :key="item">{{ item }}</li>
         </ul>
       </article>
       <article class="card home-panel home-panel--lift">
-        <h2>Consultation hours</h2>
-        <p>Monday-Friday: 8:30 AM-6:00 PM</p>
-        <p>Saturday: By appointment</p>
-        <p>Same-week consultations available for urgent matters.</p>
+        <h2>{{ isPlatformSurface ? 'Implementation model' : 'Consultation hours' }}</h2>
+        <template v-if="isPlatformSurface">
+          <p>Shared Laravel backend and one workspace codebase.</p>
+          <p>Firm-specific public-site keys and domain-managed routing.</p>
+          <p>Platform admin onboarding, review, provision, and verification workflows.</p>
+        </template>
+        <template v-else>
+          <p>Monday-Friday: 8:30 AM-6:00 PM</p>
+          <p>Saturday: By appointment</p>
+          <p>Same-week consultations available for urgent matters.</p>
+        </template>
       </article>
     </section>
 
-    <section class="home-practice-grid" data-reveal>
+    <section v-if="!isPlatformSurface" class="home-practice-grid" data-reveal>
       <article class="card home-practice-card home-panel--lift" v-for="item in practiceAreaHighlights" :key="item.title">
         <p class="home-practice-card__tag">Practice area</p>
         <h3>{{ item.title }}</h3>
@@ -110,14 +151,14 @@ function openConsultation(event: MouseEvent) {
       </article>
     </section>
 
-    <section class="home-parallax-banner" aria-label="Approach" data-reveal="zoom">
+    <section v-if="!isPlatformSurface" class="home-parallax-banner" aria-label="Approach" data-reveal="zoom">
       <div class="home-parallax-banner__inner">
         <p class="home-parallax-banner__kicker">Approach</p>
         <h2>Built for clarity, speed, and confidence at every legal milestone.</h2>
       </div>
     </section>
 
-    <section class="home-partners card" data-reveal="right">
+    <section v-if="!isPlatformSurface" class="home-partners card" data-reveal="right">
       <p class="home-partners__kicker">Partner spotlight</p>
       <h2>Meet the attorneys behind every strategy.</h2>
       <div class="home-partners__grid">
@@ -138,7 +179,7 @@ function openConsultation(event: MouseEvent) {
       </div>
     </section>
 
-    <section class="home-process card" data-reveal="zoom">
+    <section v-if="!isPlatformSurface" class="home-process card" data-reveal="zoom">
       <p class="home-process__kicker">What to expect</p>
       <h2>A simple process designed to reduce uncertainty.</h2>
       <ol class="home-process__list">
@@ -146,7 +187,7 @@ function openConsultation(event: MouseEvent) {
       </ol>
     </section>
 
-    <section class="content-grid home-testimonials" data-reveal>
+    <section v-if="!isPlatformSurface" class="content-grid home-testimonials" data-reveal>
       <article class="card home-testimonial home-panel--lift" v-for="item in testimonials" :key="item.quote">
         <p class="home-testimonial__quote">"{{ item.quote }}"</p>
         <p class="home-testimonial__source">{{ item.source }}</p>
@@ -154,9 +195,20 @@ function openConsultation(event: MouseEvent) {
     </section>
 
     <section class="card marketing-cta" data-reveal="zoom">
-      <p class="marketing-cta__kicker">Next step</p>
-      <h2>Start your consultation and get a focused legal roadmap.</h2>
-      <button type="button" class="hero-button hero-button--primary" @click="openConsultation">Start your consultation</button>
+      <p class="marketing-cta__kicker">{{ isPlatformSurface ? 'Next step' : 'Next step' }}</p>
+      <h2>
+        {{
+          isPlatformSurface
+            ? 'Start onboarding your law firm and map your public site, domain, and workspace rollout.'
+            : 'Start your consultation and get a focused legal roadmap.'
+        }}
+      </h2>
+      <RouterLink v-if="isPlatformSurface" class="hero-button hero-button--primary" to="/for-law-firms">
+        Start firm onboarding
+      </RouterLink>
+      <button v-else type="button" class="hero-button hero-button--primary" @click="openConsultation">
+        Start your consultation
+      </button>
     </section>
   </section>
 </template>

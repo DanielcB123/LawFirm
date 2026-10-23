@@ -37,6 +37,10 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'permissions' => $user->permissions ?? [],
+                'platformRole' => $user->platformRole(),
+                'platformPermissions' => $user->platformPermissions(),
+                'isPlatformAdministrator' => $user->hasPlatformAccess(),
+                'memberships' => $user->membershipPayload(),
             ],
         ]);
     }
@@ -52,6 +56,10 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $user->role,
             'permissions' => $user->permissions ?? [],
+            'platformRole' => $user->platformRole(),
+            'platformPermissions' => $user->platformPermissions(),
+            'isPlatformAdministrator' => $user->hasPlatformAccess(),
+            'memberships' => $user->membershipPayload(),
         ]);
     }
 }

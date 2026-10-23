@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenant\TenantModel;
 use Illuminate\Support\Str;
 
-class IntakeRecord extends Model
+class IntakeRecord extends TenantModel
 {
     public $incrementing = false;
 

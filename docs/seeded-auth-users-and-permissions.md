@@ -24,6 +24,7 @@ The following users are created (or updated) by the database seeder:
 | Aria Accountant | `accountant@matterforge.local` | Accountant |
 | Liam Legal Assistant | `assistant@matterforge.local` | LegalAssistant |
 | Ira Admin | `adminit@matterforge.local` | AdminIT |
+| Brian and Sandra Firm Partner | `lawfirmbrianandsandra@matterforge.com` | Partner |
 | Casey Client | `client@matterforge.local` | Client |
 
 ## Role-to-permission matrix
@@ -32,7 +33,7 @@ Permissions are seeded from `config/roles.php` and stored per user in the `permi
 
 | Role | Granted Permissions |
 |---|---|
-| Partner | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage`, `calendar.read`, `calendar.manage`, `matters.read`, `tasks.read`, `tasks.manage` |
+| Partner | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage`, `calendar.read`, `calendar.manage`, `matters.read`, `tasks.read`, `tasks.manage`, `users.manage` |
 | Attorney | `contacts.read`, `contacts.manage`, `intake.read`, `intake.manage`, `consultations.read`, `consultations.manage`, `calendar.read`, `calendar.manage`, `matters.read`, `tasks.read`, `tasks.manage` |
 | Paralegal | `contacts.read`, `intake.read`, `consultations.read`, `calendar.read`, `matters.read`, `tasks.read` |
 | Accountant | `contacts.read` |
@@ -44,16 +45,17 @@ Permissions are seeded from `config/roles.php` and stored per user in the `permi
 
 Authenticated routes in `routes/api.php` apply permission middleware as follows:
 
-- `contacts.read` -> `GET /api/contacts`
-- `contacts.manage` -> `POST /api/contacts`
-- `intake.read` -> `GET /api/intake`
-- `intake.manage` -> `POST /api/intake`
-- `consultations.read` -> `GET /api/consultations`
-- `consultations.manage` -> `POST /api/consultations/{consultation}/status`
-- `calendar.read` -> `GET /api/calendar/entries`
-- `calendar.manage` -> `POST /api/calendar/entries`, `POST /api/calendar/entries/{entry}/complete`
-- `matters.read` -> `GET /api/matters`
-- `tasks.read` -> `GET /api/tasks`
-- `tasks.manage` -> `POST /api/tasks`, `POST /api/tasks/{task}/status`
+- `contacts.read` -> `GET /api/tenant/contacts`
+- `contacts.manage` -> `POST /api/tenant/contacts`
+- `intake.read` -> `GET /api/tenant/intake`
+- `intake.manage` -> `POST /api/tenant/intake`
+- `consultations.read` -> `GET /api/tenant/consultations`
+- `consultations.manage` -> `POST /api/tenant/consultations/{consultation}/status`
+- `calendar.read` -> `GET /api/tenant/calendar/entries`
+- `calendar.manage` -> `POST /api/tenant/calendar/entries`, `POST /api/tenant/calendar/entries/{entry}/complete`
+- `matters.read` -> `GET /api/tenant/matters`
+- `tasks.read` -> `GET /api/tenant/tasks`
+- `tasks.manage` -> `POST /api/tenant/tasks`, `POST /api/tenant/tasks/{task}/status`
+- `users.manage` -> `GET /api/tenant/users`, `POST /api/tenant/users`, `PUT /api/tenant/users/{user}/membership`
 
 The middleware returns `403 Forbidden` if the authenticated user lacks the required permission.

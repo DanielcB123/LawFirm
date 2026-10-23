@@ -64,6 +64,10 @@ services:
     profiles: ["dev"]
     environment:
       VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_ALLOW_HEADER_FIRM_SELECTION: "true"
+      VITE_TENANCY_SELECTION_HEADER: X-Firm-Id
+      VITE_PLATFORM_HOSTS: localhost,127.0.0.1,app.localhost,www.localhost
+      VITE_APP_HOSTS: app.localhost
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "100"
     volumes:

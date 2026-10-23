@@ -51,3 +51,18 @@ See [ADR-002](../database/ADR-002-multitenant-architecture.md) and the [implemen
 | Provider PCI/HIPAA/BAA obligations if applicable | Scope and contractual safeguards | Provider/firm review |
 
 Proceed with documentation, synthetic tests, and reversible foundation work where these questions do not block correctness. Record blockers precisely rather than silently selecting production-sensitive facts.
+
+## Still open after the 2026-10-19 Laravel tenancy slice
+
+The sentence above that says no tenancy exists is the 2026-10-12 audit. The Laravel slice now has a control plane and a schema per new firm. These choices are still open:
+
+| Decision | Why it matters | Owner |
+|---|---|---|
+| When to retire legacy shared workspace rows and drop control-plane workspace tables | New writes now use tenant schemas, but legacy shared rows still require reviewed reconciliation and cutover cleanup | Founder and technical owner |
+| Per-firm MySQL accounts and where their passwords live | The shared runtime user can use every schema it has been granted | Technical owner |
+| How a human reviewer proves a firm is legitimate, and how long evidence references are kept | The software only stores the review. It does not check a bar association | Firm and legal advisers |
+| Whether a platform administrator may ever open a firm schema for support | This slice denies tenant data without a membership | Founder and legal advisers |
+| Custom-domain DNS proof beyond an administrator typing the hostname | Public branding trusts that attested hostname | Technical owner |
+| Exact legal name and public branding of the first firm | Still unconfirmed | Founder and first firm |
+| Which external provider (if any) will be used for automated business-existence and applicant-authority verification | Onboarding now has a provider slot that fails closed when unconfigured; manual review remains the only implemented mode | Founder and legal advisers |
+| Whether privileged platform-review actions require fresh password confirmation in addition to platform-admin status | Current implementation relies on authenticated platform-admin identity and existing environment controls; production MFA policy is still external | Founder and technical owner |

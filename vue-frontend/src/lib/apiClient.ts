@@ -1,4 +1,10 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+const tenantSelectionHeader = import.meta.env.VITE_TENANCY_SELECTION_HEADER ?? 'X-Firm-Id'
+const allowHeaderFirmSelection = (import.meta.env.VITE_ALLOW_HEADER_FIRM_SELECTION ?? '').toLowerCase() === 'true'
+const configuredPlatformHosts = (import.meta.env.VITE_PLATFORM_HOSTS ?? 'localhost,127.0.0.1')
+  .split(',')
+  .map((entry: string) => entry.trim().toLowerCase())
+  .filter((entry: string) => entry.length > 0)
 
 export class ApiClientError extends Error {
   statusCode: number
@@ -22,7 +28,34 @@ function buildHeaders(token?: string, headers?: HeadersInit): HeadersInit {
     merged.Authorization = `Bearer ${token}`
   }
 
+  const selectedFirm = selectedFirmIdForRequest()
+  if (selectedFirm) {
+    merged[tenantSelectionHeader] = selectedFirm
+  }
+
   return merged
+}
+
+function selectedFirmIdForRequest(): string | null {
+  if (!allowHeaderFirmSelection) {
+    return null
+  }
+
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const host = window.location.hostname.toLowerCase()
+  if (!configuredPlatformHosts.includes(host)) {
+    return null
+  }
+
+  const firmId = localStorage.getItem('matterforge.session.selectedFirmId')
+  if (!firmId || firmId.trim() === '') {
+    return null
+  }
+
+  return firmId
 }
 
 export async function getJson<T>(path: string, token?: string): Promise<T> {
@@ -44,6 +77,24 @@ export async function postJson<TResponse, TRequest>(
 ): Promise<TResponse> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: 'POST',
+    headers: buildHeaders(token, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    throw await parseApiError(response)
+  }
+
+  return (await response.json()) as TResponse
+}
+
+export async function putJson<TResponse, TRequest>(
+  path: string,
+  body: TRequest,
+  token?: string,
+): Promise<TResponse> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: 'PUT',
     headers: buildHeaders(token, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   })

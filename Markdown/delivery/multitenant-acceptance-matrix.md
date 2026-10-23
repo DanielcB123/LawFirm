@@ -11,7 +11,7 @@
 
 "DB-validated" means the case was executed as a SQL check in [`run-validation.ps1`](../../db/design/run-validation.ps1). That run used a disposable MySQL 8.0.36 container, two synthetic firm databases with **overlapping local ids**, and real restricted accounts. It is evidence about engine behavior. It is not an application test.
 
-Every application-level multi-firm case is **Designed** only, because no multi-firm code exists.
+The rows below were written for the ASP.NET design and remain **Designed** unless a later note names a Laravel test. On 2026-10-19 the Laravel slice now covers additional executed checks in `php artisan test`: DNS TXT domain verification must succeed before host-routed public intake writes are accepted, hostname normalization and host/header mismatch controls are enforced, workspace routes for contacts/intake/consultations/matters/tasks/calendar require tenant context, and MySQL provisioning validates tenant-schema isolation with runtime credential handling (`FirmTenancyTest`, `TenantMysqlProvisioningTest`). Strict production-only DB-user enforcement still depends on disabling shared fallback in environment config.
 
 ## Fixtures for application tests
 - At least two synthetic firms (A and B) on one cell, plus a third on a second cell for movement and restore.

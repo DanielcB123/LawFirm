@@ -24,16 +24,16 @@ export async function getCalendarEntries(token: string, filters: CalendarListFil
   }
 
   const query = params.size > 0 ? `?${params.toString()}` : ''
-  return getJson<CalendarEntry[]>(`/calendar/entries${query}`, token)
+  return getJson<CalendarEntry[]>(`/tenant/calendar/entries${query}`, token)
 }
 
 export async function createCalendarEntry(
   token: string,
   payload: CreateCalendarEntryPayload,
 ): Promise<CalendarEntry> {
-  return postJson<CalendarEntry, CreateCalendarEntryPayload>('/calendar/entries', payload, token)
+  return postJson<CalendarEntry, CreateCalendarEntryPayload>('/tenant/calendar/entries', payload, token)
 }
 
 export async function completeCalendarEntry(token: string, entryId: string, isCompleted = true): Promise<CalendarEntry> {
-  return postJson<CalendarEntry, { isCompleted: boolean }>(`/calendar/entries/${entryId}/complete`, { isCompleted }, token)
+  return postJson<CalendarEntry, { isCompleted: boolean }>(`/tenant/calendar/entries/${entryId}/complete`, { isCompleted }, token)
 }

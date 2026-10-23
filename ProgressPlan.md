@@ -1,8 +1,189 @@
 # ProgressPlan
 
-**Last updated:** 2026-10-19 05:40 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
+**Last updated:** 2026-10-23 15:36 EDT (UTC−04:00). **Primary handoff document.** Read this first, then the latest [SLICE_HISTORY.md](SLICE_HISTORY.md) entries, then [Markdown/README.md](Markdown/README.md). Agent rules: [AGENTS.md](AGENTS.md).
 
 Status vocabulary: **Planned**, **In progress**, **Blocked**, **Implemented—verification pending**, **Verified within stated scope**. "Verified" always names what was exercised. Code existing, code building, behavior verified by integration tests, and production readiness are separate claims. Nothing in this repository is production ready. Owner is **Unassigned** for everything unless stated.
+
+## Current step: Firm partner user-management and seeded login expansion
+
+**Status: Verified within stated scope.** Not committed. Scope: seed a firm-branded partner login, add partner-only tenant user-management APIs and UI settings page, and update Docker runbook guidance to include the new seeded identities after `db:seed`.
+
+| Criterion | Result |
+|---|---|
+| Seeder expansion | Added `lawfirmbrianandsandra@matterforge.com` as seeded `Partner` and attached membership to the seeded Brian & Sandra firm |
+| Permission model | Added `users.manage` permission to `Partner` role in `config/roles.php` |
+| Backend APIs | Added partner-only tenant user-management controller/routes (`GET/POST /api/tenant/users`, `PUT /api/tenant/users/{user}/membership`) with tenant-context + membership-role enforcement |
+| Security boundary | User-management endpoints require both `users.manage` permission and current-firm membership role `Partner`; cross-firm membership updates return safe `404` |
+| Frontend settings page | Replaced workspace settings placeholder with `WorkspaceUsersPage` for adding users and assigning role-based access; non-partners are blocked with clear error state |
+| Docker runbook update | Added seeded-login verification notes under startup section in `Markdown/operations/docker-and-laravel-command-runbook.md` |
+| Verification | `php artisan test --compact tests/Feature/FirmTenancyTest.php` passed (19 tests, 146 assertions); `vendor/bin/pint --dirty --format=agent` passed; `npm run build` in `vue-frontend` passed; `ReadLints` on edited files returned no diagnostics |
+| Not done | No browser automation was run; role-based page hiding across the full sidebar remains a follow-up (current enforcement is API-first with settings-page role matrix) |
+
+Next action: run `docker compose --profile dev exec -T backend-dev php artisan db:seed --force`, sign in as `lawfirmbrianandsandra@matterforge.com`, and validate creating/changing firm users on `/workspace/settings`.
+
+## Current step: Platform owner vs platform ops permission split hardening
+
+**Status: Verified within stated scope.** Not committed. Scope: split platform administration into explicit owner and ops roles, enforce action-level platform permissions at middleware + policy layers, and keep platform role/permission data visible to frontend auth flows without weakening tenancy boundaries.
+
+| Criterion | Result |
+|---|---|
+| Security boundary | Added explicit platform roles and permission map in `laravel-backend/config/platform.php` (`platform_owner`, `platform_ops`) |
+| Data model | Added `users.platform_role` migration and indexed role storage (`2026_10_23_165500_add_platform_role_to_users_table.php`) |
+| Backend enforcement | Added `platform-permission` middleware alias and action-level guards for every `/api/platform/*` route; owner-only actions now require explicit permissions |
+| Policy alignment | `FirmPolicy` now authorizes per action (`viewAny`, `review`, `provision`, `finalizeDomain`, `suspend`, etc.) via `User::hasPlatformPermission()` |
+| Auth/session payloads | Auth and onboarding actor payloads now include `platformRole` + `platformPermissions`, while `isPlatformAdministrator` remains compatibility-derived from `hasPlatformAccess()` |
+| Frontend safety UX | Platform-firms UI now hides owner-only actions for ops while backend remains source of truth |
+| Verification | `php artisan test --compact tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` passed (18 tests, 146 assertions); `vendor/bin/pint --dirty --format=agent` passed; `npm run build` in `vue-frontend` passed; `ReadLints` on edited files reported no diagnostics |
+| Not done | No browser automation was executed in this slice; production SSO/MFA and session-cookie migration remain future hardening work |
+
+Next action: run migration + seed locally, sign in as `partner@matterforge.local` and `adminit@matterforge.local`, and verify owner-only controls (review/provision/lifecycle/domain finalize) are absent for ops and blocked server-side if called directly.
+
+## Current step: Platform-host login flow hardening (no cross-host token loss)
+
+**Status: Verified within stated scope.** Not committed. Scope: eliminate cross-host post-login redirects that break `localStorage` auth continuity and route users correctly on platform host according to role.
+
+| Criterion | Result |
+|---|---|
+| User-reported issue | Login from `localhost:5173/workspace/login` still landed on tenant public page after sign-in |
+| Root cause | Single-membership path redirected from platform host to tenant host; bearer token is stored in `localStorage` and does not transfer across origins, so tenant host treated user as guest |
+| Fix | Removed cross-host redirects from login and firm-selector flows; platform host now keeps selected firm context in session and routes within platform-host workspace |
+| UX clarity | Login default now uses seeded platform-admin account (`partner@matterforge.local`) and displays explicit admin credential hint |
+| Verification | `npm run build` passed; `ReadLints` on edited files returned no diagnostics |
+| Not done | Browser automation was not run; manual browser re-test pending |
+
+Next action: clear browser storage, sign in at `localhost:5173/workspace/login`, and verify platform admin lands on `/workspace/platform/firms` while non-admin remains on platform-host workspace routes.
+
+## Current step: Platform-admin login routing and workspace navigation alignment
+
+**Status: Verified within stated scope.** Not committed. Scope: ensure SaaS platform administrators who sign in from platform hosts stay on platform-management routes and do not get redirected into tenant-host customer/public flows.
+
+| Criterion | Result |
+|---|---|
+| User-reported issue | Platform-host admin sign-in redirected to tenant host, landing on customer/public side and creating inconsistent back-button flow |
+| Root cause | Login/router logic treated platform admins like firm members and preferred tenant-host redirects when memberships were present |
+| Fix | Added platform-admin route priority on platform hosts, defaulting to `/workspace/platform/firms`; added platform-admin workspace navigation mode with SaaS-management options |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` for edited frontend files returned no diagnostics |
+| Not done | No browser automation was run in this slice; manual browser re-test pending by user |
+
+Next action: sign in at `localhost:5173/workspace/login` as platform admin and confirm direct landing on `/workspace/platform/firms` with platform-admin sidebar options.
+
+## Current step: Tenant redirect port preservation fix
+
+**Status: Verified within stated scope.** Not committed. Scope: fix tenant-host redirect behavior after login/firm selection so local dev redirects preserve the active frontend port and do not fall back to port 80.
+
+| Criterion | Result |
+|---|---|
+| User-reported issue | Signing in from platform host redirected to `*.firms.localhost/workspace` without `:5173`, causing browser connection refusal |
+| Root cause | Redirect URL builders in `WorkspaceLoginPage` and `FirmSelectorPage` used host + protocol but omitted `window.location.port` |
+| Fix | Added port-preserving URL construction for tenant-host redirects in both login and firm-selector flows |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited files reported no diagnostics |
+| Not done | No browser automation run in this slice; manual browser confirmation pending by user |
+
+Next action: re-test sign-in from `localhost:5173` and confirm redirect target now uses `http://<tenant-host>:5173/workspace`.
+
+## Current step: Self-service firm onboarding with guarded local fast-track
+
+**Status: Verified within stated scope.** Not committed. Scope: implement applicant-facing firm registration/status flow, two-reviewer onboarding approvals, verification record workflow, and a strictly server-guarded local/testing fast-track path that still uses the existing tenant provisioning service.
+
+| Criterion | Result |
+|---|---|
+| Applicant onboarding UX | Added `/register-firm` and `/onboarding/status` flows for guest and authenticated applicants, with status mapping for pending/awaiting-second/rejected/provisioning/provisioning-failed/active |
+| Backend onboarding API | Added `FirmOnboardingController` routes for register/submit/status/update/fast-track plus `FirmOnboardingService` orchestration |
+| Verification + approval controls | Added revision-bound onboarding tables and platform verification endpoint; onboarding approvals now require two distinct platform reviewers when a firm has an onboarding application |
+| Fast-track guardrail | Added `FIRM_ONBOARDING_DEV_FAST_TRACK` config with `OnboardingFastTrackGuard` hard fail-closed enforcement outside `local|testing`; applied in app boot, request flow, and command flow |
+| Provisioning + ownership | Provisioning now reuses existing `TenantSchemaProvisioner` and assigns onboarding owner membership after successful provisioning |
+| Verification | `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` passed (23 tests, 166 assertions); `php artisan test --compact tests/Feature/FirmOnboardingApiTest.php` passed (7 tests, 39 assertions); `vendor/bin/pint --dirty --format agent` passed; `npm run build` in `vue-frontend` passed; `docker compose config` passed |
+| Not done | No browser automation/manual screenshot capture for new onboarding pages; external verification-provider integrations remain unimplemented by design and fail closed |
+
+Next action: validate multi-host browser flow for register -> status -> review -> provision -> workspace entry, then tighten platform privileged-action controls (fresh password confirmation / MFA dependency path) for production hardening.
+
+## Current step: Tenant-host public fallback routing for unauthorized workspace access
+
+**Status: Verified within stated scope.** Not committed. Scope: ensure tenant-host URLs remain firm-branded for prospective customers and prevent unsafe post-login redirect handling while preserving platform-host workspace login flow.
+
+| Criterion | Result |
+|---|---|
+| Tenant-host unauthorized behavior | Vue router now redirects unauthenticated access to `/workspace/*` back to tenant public home on tenant hosts instead of forcing workspace login |
+| Redirect hardening | Workspace login now only accepts internal redirects that begin with `/workspace` and rejects malformed/open-redirect style values |
+| Firm identity visibility | Public-branding application now updates browser title to include firm name on tenant surfaces (`{Firm Name} \| MatterForge`) |
+| Verification | `npm run build` in `vue-frontend` passed; `ReadLints` on edited frontend files reported no diagnostics |
+| Not done | No browser automation/manual multi-host walkthrough was executed in this slice; backend tenancy policy/middleware logic was unchanged |
+
+Next action: manually validate tenant-host UX (`firm-slug.<fallback-domain>`) for guest landing, sign-in, and post-auth workspace navigation across platform and tenant hosts.
+
+## Current step: Option B strict v2 implementation run (host surfaces + discovery shell)
+
+**Status: Verified within stated scope.** Not committed. Scope: execute strict v2 prompt by implementing SaaS-first root/app host behavior, canonical tenant fallback host continuity, and multi-membership firm selection flow while preserving tenant-domain security gates.
+
+| Criterion | Result |
+|---|---|
+| Host-surface behavior | Platform hosts now render SaaS-oriented messaging (`MatterForge`), with explicit "For law firms" route and firm sign-in positioning; tenant hosts remain firm-context entrypoints |
+| App/discovery behavior | Added authenticated `/workspace/select-firm` selector flow for multi-membership users on platform hosts; single-membership users can be redirected to preferred tenant host |
+| Canonical fallback continuity | Firm registration now creates a platform-managed verified fallback hostname from firm slug + configured suffix |
+| Local explicit selector guardrail | Frontend and backend now use explicit env-gated header firm selection for local/testing only (`X-Firm-Id`) |
+| Verification | `docker compose config` passed; `php artisan test --compact tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` passed (16 tests, 127 assertions); `vendor/bin/pint --dirty --format agent` passed; `npm run build` passed |
+| Not done | No browser-based manual host switching verification was run in this slice; production DNS/TLS rollout remains an operations step |
+
+Next action: run manual browser verification using hosts-file entries (`app.localhost`, `www.localhost`, and at least two tenant fallback hosts) and confirm end-to-end sign-in routing and tenant isolation in the UI.
+
+## Current step: Outer SaaS layer Option B implementation prompt handoff
+
+**Status: Verified within stated scope.** Not committed. Scope: convert the approved SaaS-first recommendation into an execution-ready Cursor prompt for implementation work.
+
+| Criterion | Result |
+|---|---|
+| User question addressed | Converted approved Option B direction into a detailed implementation prompt the team can run directly |
+| Prompt packaging | Replaced brainstorming artifact with execution-oriented prompt format, including branch safety, host responsibilities, rollout slices, tests, and completion report requirements |
+| Output artifact | Added `doc/saas-first-root-and-tenant-hosts-implementation-prompt.md` and removed `doc/outer-saas-layer-implementation-brainstorming-and-options.md` |
+| Implementation changes | None in runtime code; documentation-only |
+
+Next action: run the new prompt to implement Option B host split (`www` platform, `app` discovery, tenant hosts for public/workspace) and verify behavior through tenancy-focused tests.
+
+## Current step: Outer SaaS layer strict prompt v2 packaging
+
+**Status: Verified within stated scope.** Not committed. Scope: produce a stricter copy/paste-ready version of the Option B prompt with explicit phase checklists and hard stop-if-fail gates.
+
+| Criterion | Result |
+|---|---|
+| User question addressed | Produced stricter v2 prompt with gate-based execution control |
+| Strictness additions | Added phase-by-phase pass criteria, stop-if-fail conditions, prohibited actions, and required final report template |
+| Output artifact | Added `doc/saas-first-root-and-tenant-hosts-implementation-prompt-strict-v2.md` |
+| Implementation changes | None in runtime code; documentation-only |
+
+Next action: run strict v2 prompt for execution when team wants maximal guardrails and auditable phase gates.
+
+## Current step: Firm onboarding, domain verification, and tenant workspace isolation
+
+**Status: Verified within stated scope.** Not committed. Branch `feature/firm-tenant-schema-foundation` from `f8edb1a`.
+
+| Criterion | Result |
+|---|---|
+| Domain ownership proof | Domain claims now require DNS TXT challenge verification before host routing to tenant data; verification/reissue/revoke endpoints are implemented and tested |
+| Host-to-tenant routing | Tenant resolution now enforces verified + non-revoked domain records and supports header firm selection only when explicitly enabled by config |
+| Workspace data isolation | Contacts, intake, consultations, matters, tasks, and calendar routes moved to `/api/tenant/*` and now use tenant-schema models/migrations |
+| Public intake safety | Public consultation create/slot endpoints now resolve tenant by verified host via dedicated middleware and fail closed (`404`) on unknown/unverified hosts |
+| Runtime DB credential model | Added `firm_database_credentials` abstraction and per-firm credential issuance attempt during provisioning; local shared-runtime fallback remains available for non-production environments |
+| Platform admin workflow UI | Added platform-admin management route `/workspace/platform/firms` to operate create/review/provision/domain/branding/membership/suspend/reactivate flows |
+| Verification | `php artisan test --compact tests/Feature/FirmTenancyTest.php tests/Feature/TenantMysqlProvisioningTest.php` passed (14 tests); `npm run build` passed; `vendor/bin/pint app database routes tests bootstrap --format agent` passed |
+| Not done | Legacy shared workspace rows/tables are not retired yet; strict production enforcement of no shared-runtime DB fallback still requires environment policy |
+
+Next action: run staged legacy-row backfill (`tenants:backfill-workspace`) with explicit reviewed ownership mapping, then plan shared-table retirement/cutover validation.
+
+## Current step: Firm tenant schema foundation
+
+**Status: Verified within stated scope.** Not committed. Branch `feature/firm-tenant-schema-foundation` from `f8edb1a`. Scope: control-plane firm registry, human review, explicit MySQL schema provisioning, per-request tenant context, public branding, and tests. Existing matter, contact, consultation, task, and calendar modules stay on the shared database.
+
+| Criterion | Result |
+|---|---|
+| Working tree before the branch | `git status --short --branch` was clean on `main`, matching `origin/main` at `f8edb1a` |
+| Tenant boundary | New `/api/tenant` routes resolve a firm on every request and clear the connection afterward. Pending, rejected, suspended, and unprovisioned firms are denied |
+| Isolation | `FirmTenancyTest` uses two SQLite schema files. `TenantMysqlProvisioningTest` created two `mf_f_*` databases on MySQL 8.0.36 and showed the runtime user cannot read the control-plane `firms` table |
+| Provisioning | Failed migration does not mark the firm active. Retry keeps one schema name. `php artisan migrate` does not create tenant tables |
+| Public branding | Unsafe markup is rejected. Unknown and pending hosts receive the platform payload |
+| Docker | `backend-dev` recreated and healthy. Control-plane migrations applied. `GET /api/health` and `GET /api/public/branding` returned HTTP 200. Vue home, about, sign-in, and matters still rendered |
+| Not done | Legacy workspace tables are not schema-isolated. No per-firm database account, MFA, login throttle, or tenant deletion |
+
+Next action: move contacts, matters, consultations, tasks, and calendar into tenant schemas, and decide where per-firm database passwords will live. See [firm tenant schema foundation](Markdown/architecture/firm-tenant-schema-foundation.md).
 
 ## Current step: Consultations queue cards forced-visible fallback fix
 

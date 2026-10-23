@@ -82,12 +82,13 @@ class CalendarController extends Controller
         return response()->json($this->toApiItem($entry), 201);
     }
 
-    public function complete(Request $request, CalendarEntry $entry): JsonResponse
+    public function complete(Request $request, string $entryId): JsonResponse
     {
         $validated = $request->validate([
             'isCompleted' => ['nullable', 'boolean'],
         ]);
 
+        $entry = CalendarEntry::query()->findOrFail($entryId);
         $isCompleted = $validated['isCompleted'] ?? true;
         $entry->is_completed = $isCompleted;
         $entry->completed_at_utc = $isCompleted ? now() : null;

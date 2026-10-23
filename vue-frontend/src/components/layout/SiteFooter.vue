@@ -1,9 +1,29 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { loadPublicBranding } from '../../features/branding/api'
+import { platformBranding, type PublicBranding } from '../../features/branding/types'
+
+const branding = ref<PublicBranding>(platformBranding)
+const year = new Date().getFullYear()
+const contactLine = computed(() =>
+  [branding.value.contactAddress, branding.value.contactPhone].filter((part) => part && part.trim() !== '').join(' | '),
+)
+
+onMounted(async () => {
+  try {
+    branding.value = await loadPublicBranding()
+  } catch {
+    branding.value = platformBranding
+  }
+})
+</script>
+
 <template>
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <p>Brian & Sandra Law | Client-focused representation for families and businesses.</p>
-      <p>123 Justice Avenue, Suite 400, Columbus, OH 43215 | (614) 555-0134</p>
-      <p>{{ new Date().getFullYear() }} Brian & Sandra Law. All rights reserved.</p>
+      <p>{{ branding.displayName }} | {{ branding.publicCopy }}</p>
+      <p>{{ contactLine }}</p>
+      <p>{{ year }} {{ branding.displayName }}. All rights reserved.</p>
     </div>
   </footer>
 </template>

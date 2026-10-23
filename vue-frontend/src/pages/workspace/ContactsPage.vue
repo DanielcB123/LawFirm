@@ -38,7 +38,7 @@ async function loadContacts() {
   isLoading.value = true
   error.value = null
   try {
-    contacts.value = await getJson<Contact[]>(`/contacts?q=${encodeURIComponent(query.value)}`, token)
+    contacts.value = await getJson<Contact[]>(`/tenant/contacts?q=${encodeURIComponent(query.value)}`, token)
   } catch (err) {
     error.value = err instanceof ApiClientError ? err.message : 'Unable to load contacts.'
   } finally {
@@ -61,7 +61,7 @@ async function createContact() {
     }
 
     await postJson<Contact, CreateContactPayload>(
-      '/contacts',
+      '/tenant/contacts',
       payload,
       token,
     )

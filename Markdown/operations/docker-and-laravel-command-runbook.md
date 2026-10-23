@@ -36,6 +36,12 @@ Expected result before developing:
 - `frontend` is `running`.
 - `migrate` may show `exited (0)` (one-shot job, expected).
 
+After `db:seed`, these key local logins should exist:
+
+- SaaS platform owner: `partner@matterforge.local` / `Passw0rd!`
+- Firm partner (Brian and Sandra demo firm): `lawfirmbrianandsandra@matterforge.com` / `Passw0rd!`
+- Firm staff examples: `attorney@matterforge.local`, `paralegal@matterforge.local`, `assistant@matterforge.local` / `Passw0rd!`
+
 ## When finished (clean shutdown)
 
 Standard stop (most common, keeps local named volumes/data):
@@ -160,6 +166,51 @@ Optional full cleanup for prod profile:
 ```bash
 docker compose --profile prod down --remove-orphans --volumes
 ```
+
+## Tenant schemas
+
+`php artisan migrate` updates the control-plane database only. Firm schemas are created by a platform administrator calling `POST /api/platform/firms/{firm}/provision` after approval. They are not created at login.
+
+After a deploy that adds files under `laravel-backend/database/tenant-migrations`, run:
+
+```text
+docker compose --profile dev exec -T backend-dev php artisan tenants:migrate
+```
+
+The command migrates firms that are already provisioned (`provisioning_status = ready`). It reports each firm id as `ok` or `failed` and can be run again. It does not drop schemas. Details: [firm tenant schema foundation](../architecture/firm-tenant-schema-foundation.md).
+
+Legacy shared-workspace backfill (dry run first):
+
+```text
+docker compose --profile dev exec -T backend-dev php artisan tenants:backfill-workspace --firm=<firm-uuid> --map-all-to-firm
+docker compose --profile dev exec -T backend-dev php artisan tenants:backfill-workspace --firm=<firm-uuid> --map-all-to-firm --apply
+```
+
+The command is idempotent and does not drop legacy shared tables. Keep it in dry-run mode until ownership mapping is reviewed.
+
+## Local host simulation for SaaS/app/tenant split
+
+The frontend now distinguishes platform hosts, app hosts, and tenant hosts.
+
+- Platform hosts default: `localhost`, `127.0.0.1`, `www.localhost`, `app.localhost`
+- Tenant fallback suffix default: `firms.localhost`
+
+Example local hosts-file entries:
+
+```text
+127.0.0.1 app.localhost
+127.0.0.1 www.localhost
+127.0.0.1 alpha.firms.localhost
+127.0.0.1 beta.firms.localhost
+```
+
+Environment toggles:
+
+- Backend: `TENANCY_PLATFORM_HOSTS`, `TENANCY_RESERVED_DOMAINS`, `TENANCY_TENANT_FALLBACK_DOMAIN_SUFFIX`
+- Frontend: `VITE_PLATFORM_HOSTS`, `VITE_APP_HOSTS`
+- Local-only explicit firm selector header: `TENANCY_ALLOW_HEADER_FIRM_SELECTION=true` and `VITE_ALLOW_HEADER_FIRM_SELECTION=true`
+
+Do not enable header-based firm selection in production.
 
 ## Command-order rule
 

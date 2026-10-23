@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\MatterRecord;
 use App\Models\MatterTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,7 +42,7 @@ class TaskController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'matterId' => ['required', 'exists:matter_records,id'],
+            'matterId' => ['required', 'uuid'],
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
             'priority' => ['nullable', 'in:Low,Normal,High,Urgent'],
@@ -51,6 +52,14 @@ class TaskController extends Controller
         ]);
 
         $actor = $request->user();
+        if (! MatterRecord::query()->whereKey($validated['matterId'])->exists()) {
+            return response()->json([
+                'message' => 'The selected matter id is invalid.',
+                'errors' => [
+                    'matterId' => ['The selected matter id is invalid.'],
+                ],
+            ], 422);
+        }
         $task = MatterTask::query()->create([
             'matter_record_id' => $validated['matterId'],
             'title' => $validated['title'],
@@ -68,12 +77,13 @@ class TaskController extends Controller
         return response()->json($this->toApiItem($task), 201);
     }
 
-    public function updateStatus(Request $request, MatterTask $task): JsonResponse
+    public function updateStatus(Request $request, string $taskId): JsonResponse
     {
         $validated = $request->validate([
             'status' => ['required', 'in:Open,InProgress,Waiting,Completed'],
         ]);
 
+        $task = MatterTask::query()->findOrFail($taskId);
         $task->status = $validated['status'];
         $task->completed_at_utc = $validated['status'] === 'Completed' ? now() : null;
         $task->save();

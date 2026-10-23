@@ -13,6 +13,7 @@ return [
         'matters.read',
         'tasks.read',
         'tasks.manage',
+        'users.manage',
     ],
     'Attorney' => [
         'contacts.read',
